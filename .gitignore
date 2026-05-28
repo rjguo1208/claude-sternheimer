@@ -1,0 +1,50 @@
+# ============================================================================
+# Publish policy: the GitHub Pages site is docs/ only.
+# Tracked source: research.md, tools/, content/, README.md, CLAUDE.md.
+# Everything below is raw/large research data, logs, or secrets -> NEVER commit.
+# ============================================================================
+
+# --- Raw / large research data ---
+*.wfc
+*.save/
+*.cube
+*.npy
+*.npz
+*.bin
+*.h5
+*.dat
+*.upf
+*.UPF
+*.hdf5
+
+# --- QE save dirs & scheduler output / logs ---
+*.save
+dout/
+out/
+*.out
+*.err
+*.log
+slurm-*.out
+
+# --- Local / private config & anything credential-like ---
+.claude/
+.env
+*.key
+*.pem
+*.p12
+*.token
+*secret*
+*credential*
+id_rsa*
+id_ed25519*
+
+# --- Python / tooling caches ---
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# --- Editor / OS cruft ---
+*~
+.DS_Store
+.vscode/

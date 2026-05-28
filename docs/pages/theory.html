@@ -1,0 +1,379 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sternheimer Electron-Defect T-matrix — Theory &amp; Method</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head><body>
+<nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html" style="color:#fff;text-decoration:underline">Theory &amp; Method</a></div></nav>
+<header><div class="header-inner"><h1>Active/Rest Partitioning of the Defect $T$-matrix</h1><p class="subtitle">cRPA-style downfolding, the coupling-second-order effective potential, and a $k$-decoupled Sternheimer solution</p><div class="meta"><span class="pill">Theory &amp; Method note</span><span class="pill">17 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<main>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-0">0. Overview and the one-paragraph summary</a><a href="#sec-1">1. Setup and conventions</a><a href="#sec-2">2. Active/rest partitioning (the cRPA structure)</a><a href="#sec-3">3. Partial scattered $T$-matrix (rest-only resummation)</a><a href="#sec-4">4. Full scattered $T$-matrix (exact reorganization)</a><a href="#sec-5">5. Approximations enter here: rest self-dressing and the static limit</a><a href="#sec-6">6. Assembling the full $T$-matrix (active layer)</a><a href="#sec-7">7. Sternheimer formulation of the rest dressing</a><a href="#sec-8">8. The $k$-grid problem: why bare decouples and dressed does not</a><a href="#sec-9">9. $k$-decoupled ladder to the full rest dressing</a><a href="#sec-10">10. Convergence and failure modes</a><a href="#sec-11">11. Beyond the static limit: first frequency correction</a><a href="#sec-12">12. Metallic / continuum case</a><a href="#sec-13">13. The two-layer structure at a glance</a><a href="#sec-14">14. Implementation notes (EDI / QE / Wannier)</a><a href="#sec-15">15. Relation to cRPA (dictionary)</a><a href="#sec-16">16. Grounding in the EDI codebase: status, dictionary, and reuse map</a></div></section>
+<section id="sec-0"><h2>0. Overview and the one-paragraph summary</h2>
+<p>We compute the electron–defect $T$-matrix by splitting the host Green's function into an <strong>active</strong> block $A$ (bands near the band of interest / $E_F$, where dynamical effects are strong) and a <strong>rest</strong> block $R$ (distant bands, treated statically). This is the constrained-RPA (cRPA) logic transported from screened interactions to multiple scattering. The construction has two layers, and the central message of this note is that <strong>they are cleanly separable and individually controlled</strong>:</p>
+<ul><li><strong>Layer 1 (rest):</strong> the rest bands renormalize the bare defect potential $V$ into an effective, energy-dependent potential $\tilde V(\omega)$. Downfolding to the active space makes $\tilde V$ <strong>exactly second order in the active–rest coupling</strong> (Feshbach), so "second order" here is not an approximation — it is exact. The only genuine approximations at this layer are (i) optionally dropping the rest self-dressing $V_{QQ}$, and (ii) the static limit $\omega\to\omega_0$. We obtain $\tilde V$ by solving a <strong>Sternheimer equation</strong> whose operator is the periodic host Hamiltonian, hence <strong>block-diagonal in crystal momentum</strong> ($N_k$ independent small solves) — this is what avoids the $N_k\times N_k$ dense coupled system. Full rest dressing is recovered, <em>while staying $k$-decoupled</em>, by an iterative ladder (Neumann/Krylov) whose fixed point is exactly the dressed Sternheimer solution.</li><li><strong>Layer 2 (active):</strong> the full dynamical multiple scattering is resummed <strong>exactly</strong> by a single small matrix inversion in the active space, $T_{PP}(\omega)=[1-\tilde V\,G^A(\omega)]^{-1}\tilde V$.</li></ul>
+<p>Neither layer ever requires forming or inverting a dense $(N_kN_b)\times(N_kN_b)$ matrix.</p>
+<blockquote><p><strong>Scope &amp; status relative to the EDI code (read §16 first if you are implementing).</strong> The production EDI code (<code>/anvil/projects/x-che190065/rjguo/qe-7.5/edi-dev</code>) currently computes the electron–defect matrix element strictly in the <strong>first Born approximation</strong> — a single defect scattering event, $M_{nk,mk'}=\langle\psi_{nk}|\Delta V|\psi_{mk'}\rangle$, fed into Fermi's golden rule. In the language of this note that is just the leading term $T\!\approx\!V$ (one power of the difference potential, no resolvent applied). <strong>Nothing in this note is implemented yet:</strong> there is no Sternheimer solve, no $G_0$ resolvent, no $T$-matrix resummation, and no $A/R$ projector anywhere in <code>src/</code>. The method here is the <em>beyond-Born</em> generalization of what EDI already does. The good news, detailed in <strong>§16</strong>, is that EDI's existing machinery lines up almost one-to-one with the abstract objects below — the Wannier active manifold <em>is</em> the active space $A$, the excluded bands <em>are</em> the rest $R$, the difference potential <code>V_colin</code>(+KB) <em>is</em> $V$, and the interpolated Wannier Hamiltonian <em>is</em> $G^A$ — so the construction can be built largely by reusing parts already present.</p></blockquote>
+</section>
+<section id="sec-1"><h2>1. Setup and conventions</h2>
+<p>We work in the KKR / multiple-scattering convention. Let $H_0$ be the host (defect-free) crystal Hamiltonian, $G_0(\omega)=(\omega-H_0)^{-1}$ its retarded propagator, and $V=H-H_0$ the defect potential (in practice the supercell <strong>difference potential</strong>, local + nonlocal parts). The Lippmann–Schwinger equations are</p>
+<div class="math">
+$$
+T(\omega)=V+V\,G_0(\omega)\,T(\omega),
+\qquad
+G(\omega)=G_0(\omega)+G_0(\omega)\,T(\omega)\,G_0(\omega).
+$$
+</div>
+<p>Formally $T=[1-VG_0]^{-1}V=V[1-G_0V]^{-1}$.</p>
+<p><strong>Notation.</strong> Throughout, $G^{A},G^{R}$ denote the relevant projections of the <em>host</em> propagator $G_0$ (not of $T$); the subscript $0$ is suppressed. We write $\omega_0$ for the reference energy (center of the active window, typically the band of interest or $E_F$), and $\Delta$ for the active–rest energy gap (the smallest $|\,\varepsilon_n-\omega_0|$ over $n\in R$).</p>
+<div class="table-wrap"><table><thead><tr><th>Symbol</th><th>Meaning</th></tr></thead><tbody><tr><td>$P,\;Q$</td><td>projectors onto active ($A$) and rest ($R$) subspaces, $P+Q=\mathbb 1$, $[P,H_0]=0$</td></tr><tr><td>$G^A,\;G^R$</td><td>active/rest projections of the host propagator $G_0$</td></tr><tr><td>$H_0^Q=QH_0Q$</td><td>rest-block host Hamiltonian</td></tr><tr><td>$V_{PP},V_{PQ},V_{QP},V_{QQ}$</td><td>blocks $PVP$, $PVQ$, $QVP$, $QVQ$ of the defect potential</td></tr><tr><td>$\mathcal G^Q(\omega)$</td><td>$V_{QQ}$-dressed rest propagator, Eq. (3.2)</td></tr><tr><td>$T^R$</td><td>partial scattered $T$-matrix (rest-only resummation), §3</td></tr><tr><td>$\tilde V(\omega)=PT^RP$</td><td>active-space effective potential (downfolded), §3</td></tr><tr><td>$T_{PP}$</td><td>active block of the full $T$-matrix, §6</td></tr></tbody></table></div>
+</section>
+<section id="sec-2"><h2>2. Active/rest partitioning (the cRPA structure)</h2>
+<p>Introduce orthogonal projectors $P$ (active) and $Q$ (rest), $P+Q=\mathbb 1$. Because the partition is by host band index and $[P,H_0]=0$, the host propagator is block-diagonal and separates additively:</p>
+<div class="math">
+$$
+G_0(\omega)=G^A(\omega)+G^R(\omega),\qquad
+G^A=\sum_{n\in A}\frac{|n\rangle\langle n|}{\omega-\varepsilon_n},
+\quad
+G^R=\sum_{n\in R}\frac{|n\rangle\langle n|}{\omega-\varepsilon_n}.
+$$
+</div>
+<p>$G^A=PG^AP$ lives entirely in the active space; $G^R=QG^RQ$ entirely in the rest space. The physical input — <em>strong dynamics in $A$, weak/static dynamics in $R$</em> — mirrors cRPA, where low-energy "target" screening is kept explicit and high-energy screening is folded into a partially screened interaction.</p>
+</section>
+<section id="sec-3"><h2>3. Partial scattered $T$-matrix (rest-only resummation)</h2>
+<p>Resum multiple scattering using <strong>only</strong> the rest propagator $G^R$:</p>
+<div class="math">
+$$
+T^R(\omega)=V+V\,G^R(\omega)\,T^R(\omega)
+\quad\Longrightarrow\quad
+T^R=\big[1-VG^R\big]^{-1}V=V\big[1-G^RV\big]^{-1}.
+\tag{3.1}
+$$
+</div>
+<p>This is the multiple-scattering analogue of the cRPA <strong>partially screened interaction</strong> $W^{r}=(1-vP^{R})^{-1}v$, under the dictionary $G^R\leftrightarrow P^{R}$, $V\leftrightarrow v$. It is the defect potential "pre-dressed" by the distant bands.</p>
+<h3>3.1 Downfolding to the active space = Feshbach effective potential</h3>
+<p>The object that enters the active dynamics is the active block $\tilde V\equiv PT^RP$. Expanding (3.1) and keeping the $PP$ block,</p>
+<div class="math">
+$$
+\boxed{\;\tilde V(\omega)=PT^RP=V_{PP}+V_{PQ}\,\mathcal G^Q(\omega)\,V_{QP}\;}
+\qquad
+\mathcal G^Q(\omega)=\big[\omega-H_0^Q-V_{QQ}\big]^{-1}.
+\tag{3.2}
+$$
+</div>
+<p>This is <strong>exact</strong> (Feshbach downfolding). The derivation is a direct resummation: in $T^R=V+VG^RV+VG^RVG^RV+\cdots$, every internal propagator is $G^R$, which lives in $Q$. Therefore once an index enters $Q$ via $V_{QP}$ it cannot return to $P$ until the final $V_{PQ}$ — so in the $PP$ block the <strong>cross-coupling $V_{PQ}/V_{QP}$ appears exactly twice</strong>, while all internal $V$'s are $Q$–$Q$ blocks and resum into</p>
+<div class="math">
+$$
+\mathcal G^Q=G^R+G^RV_{QQ}G^R+G^RV_{QQ}G^RV_{QQ}G^R+\cdots
+=\big[1-G^RV_{QQ}\big]^{-1}G^R,
+$$
+</div>
+<p>which equals $[(G^R)^{-1}-V_{QQ}]^{-1}=[\omega-H_0^Q-V_{QQ}]^{-1}$ since $(G^R)^{-1}=\omega-H_0^Q$ on $Q$.</p>
+<p><strong>Physical reading.</strong> $V_{PQ}\,\mathcal G^Q\,V_{QP}$ is the energy-dependent self-energy / optical potential that the rest bands induce on the active space. $\tilde V$ is exactly the downfolded effective potential of Feshbach projection.</p>
+<blockquote><p><strong>Key point — what "second order" means.</strong> The $PP$ block is <em>intrinsically</em> second order in the active–rest coupling, and <strong>that is exact, not a truncation</strong>. The "higher-order" coupling terms (multiple excursions in and out of $P$) are not lost: they are carried by the <em>active</em> layer, Eq. (6.1), through the resummation $[1-\tilde V G^A]^{-1}$. Thus "drop higher orders" must be stated precisely — see §5.</p></blockquote>
+</section>
+<section id="sec-4"><h2>4. Full scattered $T$-matrix (exact reorganization)</h2>
+<p>Return to the exact equation $T=V+V(G^A+G^R)T$ and move the rest term to the left:</p>
+<div class="math">
+$$
+(1-VG^R)\,T=V+VG^A T
+\;\Longrightarrow\;
+T=\underbrace{(1-VG^R)^{-1}V}_{T^R}+(1-VG^R)^{-1}V\,G^A T,
+$$
+</div>
+<p>i.e. a <strong>renormalized Lippmann–Schwinger equation</strong></p>
+<div class="math">
+$$
+\boxed{\;T(\omega)=T^R(\omega)+T^R(\omega)\,G^A(\omega)\,T(\omega)\;}
+\qquad\Longrightarrow\qquad
+T=\big[1-T^RG^A\big]^{-1}T^R=T^R\big[1-G^AT^R\big]^{-1}.
+\tag{4.1}
+$$
+</div>
+<p>The bare potential $V$ is replaced by the rest-dressed $T^R$, and the only propagator left is the active $G^A$.</p>
+<h3>4.1 No double counting</h3>
+<p>Eq. (4.1) is <strong>exact</strong> for the original $T$. Expanding $T=T^R+T^RG^AT^R+\cdots$ and substituting $T^R=V+VG^RV+\cdots$ produces precisely the propagator strings</p>
+<div class="math">
+$$
+R^{m_0}\,A\,R^{m_1}\,A\,R^{m_2}\cdots,\qquad m_i\ge 0,
+$$
+</div>
+<p>i.e. every sequence with arbitrarily many $G^R$ (including zero) between consecutive $G^A$. The "zero $G^R$" case is supplied by $T^R\!\to\!V$ at leading order, so adjacent $G^A$'s are also covered. This reconstructs $T=V+V(G^A+G^R)V+\cdots$ with <strong>no omission and no repetition</strong>. Conclusion: the $A/R$ split is just a reorganization of one and the same series; by itself it introduces no approximation.</p>
+</section>
+<section id="sec-5"><h2>5. Approximations enter here: rest self-dressing and the static limit</h2>
+<p>Two independent, physically transparent approximations turn the exact (4.1)/(3.2) into something cheap.</p>
+<h3>5.1 Coupling-second-order vs. exact ($V_{QQ}$ dressing)</h3>
+<p>Eq. (3.2) is exact. Two truncation choices exist:</p>
+<ul><li><strong>Exact (recommended):</strong> keep $\mathcal G^Q=[\omega-H_0^Q-V_{QQ}]^{-1}$.</li><li><strong>Drop rest self-dressing ($V^{(2)}$):</strong> set $\mathcal G^Q\to G^R$,</li></ul>
+<div class="math">
+$$
+\tilde V^{(2)}(\omega)=V_{PP}+V_{PQ}\,G^R\,V_{QP}.
+\tag{5.1}
+$$
+</div>
+<p>The relative error of $\tilde V^{(2)}$ is $\mathcal O(\|V_{QQ}\|/\Delta)$. It is justified only when $\|V\|/\Delta\ll1$. As §7–§9 show, <strong>keeping $V_{QQ}$ costs almost nothing</strong> (it only changes the Sternheimer operator from $H_0^Q$ to $H_0^Q+V_{QQ}$, or equivalently adds outer iterations), so the exact form is preferred unless a deliberate leading-order estimate is wanted.</p>
+<h3>5.2 Static limit for the rest</h3>
+<p>Because rest bands lie far from $\omega_0$, the denominators $\omega-\varepsilon_n\;(n\in R)$ are large and nearly $\omega$-independent across the active window. Freeze them at $\omega_0$:</p>
+<div class="math">
+$$
+G^R(\omega)\to G^R(\omega_0)\equiv G^R_{\rm stat},
+\qquad
+T^R\to \tilde V\equiv\big[1-VG^R_{\rm stat}\big]^{-1}V\quad(\omega\text{-independent}).
+$$
+</div>
+<p>Then <strong>all</strong> frequency dependence of the full $T$-matrix comes from $G^A$:</p>
+<div class="math">
+$$
+\boxed{\;T(\omega)=\big[1-\tilde V\,G^A(\omega)\big]^{-1}\tilde V\;},
+\qquad
+T_{PP}(\omega)=\big[1-\tilde V\,G^A(\omega)\big]^{-1}\tilde V,
+\tag{5.2}
+$$
+</div>
+<p>with $\tilde V$ evaluated once at $\omega_0$.</p>
+<p><strong>Validity condition (independent of §5.1).</strong> The static limit requires the active bandwidth to be small compared with the gap, $W_A\ll\Delta$, and $\omega_0$ taken at the window center. If $W_A$ is not small, keep the first frequency correction (§10). Note this is a <em>separate</em> condition from $\|V_{QQ}\|/\Delta\ll1$: §5.1 controls coupling strength, §5.2 controls frequency variation.</p>
+</section>
+<section id="sec-6"><h2>6. Assembling the full $T$-matrix (active layer)</h2>
+<p>Only the active block of (4.1) is needed, because $G^A=PG^AP$ pins both sides into $P$. Projecting (4.1) with $P$ and using $PT^R G^A = PT^RP\,G^A$ (valid since $G^A=PG^AP$):</p>
+<div class="math">
+$$
+T_{PP}=\tilde V+\tilde V\,G^A\,T_{PP}
+\quad\Longrightarrow\quad
+\boxed{\;T_{PP}(\omega)=\big[1-\tilde V\,G^A(\omega)\big]^{-1}\tilde V\;}.
+\tag{6.1}
+$$
+</div>
+<p>This is a <strong>single small matrix inversion</strong> in the active space ($\dim = N_A$, the number of active states), performed at each $\omega$ of interest, and it resums the active dynamical multiple scattering <strong>exactly</strong>. Whether $\tilde V$ is taken at coupling-second-order (5.1) or fully dressed (3.2), this layer is the same.</p>
+<blockquote><p><strong>Do not conflate $\tilde V$ with $T_{PP}$.</strong> $\tilde V$ — even fully converged in rest dressing — is only the <em>input</em>. The full $T$-matrix is (6.1). The two-layer picture: the <strong>ladder of §9 feeds the all-order rest dressing into $\tilde V$ ($k$-decoupled, iterable to exact); the active dynamics are then resummed exactly by the small inversion (6.1).</strong></p></blockquote>
+</section>
+<section id="sec-7"><h2>7. Sternheimer formulation of the rest dressing</h2>
+<p>To avoid explicitly enumerating the (many) high-energy rest bands in $\mathcal G^Q$, define for each active state $|n\rangle\;(n\in A)$ the <strong>partially perturbed wavefunction</strong></p>
+<div class="math">
+$$
+|\delta\psi_n^R(\omega_0)\rangle\equiv \mathcal G^Q(\omega_0)\,V_{QP}\,|n\rangle,
+\qquad V_{QP}|n\rangle=Q\,V\,|n\rangle .
+$$
+</div>
+<p>It satisfies the <strong>dressed Sternheimer equation</strong></p>
+<div class="math">
+$$
+\boxed{\;Q\big(\omega_0-H_0-V\big)Q\;|\delta\psi_n^R\rangle=Q\,V\,|n\rangle,
+\qquad P|\delta\psi_n^R\rangle=0\;}
+\tag{7.1}
+$$
+</div>
+<p>(the <strong>bare</strong> version drops $V$ inside the operator: $Q(\omega_0-H_0)Q$). The effective potential matrix elements are then a small set of inner products ($m,n\in A$):</p>
+<div class="math">
+$$
+\tilde V_{mn}=\langle m|V|n\rangle+\langle m|V|\delta\psi_n^R\rangle.
+\tag{7.2}
+$$
+</div>
+<h3>7.1 Why Sternheimer is <em>especially</em> well-behaved here</h3>
+<p>The Sternheimer operator's spectrum is $\{\omega_0-\varepsilon_k:k\in R\}$ (dressed: the $V_{QQ}$-shifted rest spectrum). Since $\omega_0$ sits inside the active window and <strong>far</strong> from the rest bands, these eigenvalues are all bounded away from zero: the operator is <strong>non-singular, well-conditioned, free of small denominators</strong>. All the dangerous near-resonant states were projected out by $Q$ and handed to the <em>small</em> active inversion (6.1). Krylov solvers (CG/GMRES) converge in a few iterations. This is the entire payoff of the $A/R$ split.</p>
+<h3>7.2 Cost</h3>
+<p>Only $N_A$ linear solves are needed, and — thanks to the static limit — they are solved <strong>once</strong> at $\omega_0$ and reused for all $\omega$. Because $V$ is a fixed difference potential, there is <strong>no DFPT-style self-consistency cycle</strong>: the problem is simpler than standard DFPT.</p>
+<h3>7.3 Hermiticity-preserving bilinear form</h3>
+<p>Instead of the one-sided inner product (7.2), use the bilinear form</p>
+<div class="math">
+$$
+\langle m|V|\delta\psi_n^R\rangle
+=\big\langle\delta\psi_m^R\big|\,(\omega_0-H_0^Q-V_{QQ})\,\big|\delta\psi_n^R\big\rangle
+\tag{7.3}
+$$
+</div>
+<p>(bare version: replace $V_{QQ}\to 0$). Both sides equal the second term of $\tilde V_{mn}=(V_{PQ}\mathcal G^Q V_{QP})_{mn}$ at convergence; the right-hand side is <strong>manifestly Hermitian</strong> in $(m,n)$ for real $\omega_0$, so $\tilde V$ stays Hermitian even when the linear solves are not fully converged. (Derivation: $\langle\delta\psi_m^R|(\mathcal G^Q)^{-1}|\delta\psi_n^R\rangle=\langle m|V_{PQ}\mathcal G^Q V_{QP}|n\rangle$ since $(\mathcal G^Q)^{-1}|\delta\psi_n^R\rangle=V_{QP}|n\rangle$ and $\langle\delta\psi_m^R|=\langle m|V_{PQ}\mathcal G^Q$.)</p>
+</section>
+<section id="sec-8"><h2>8. The $k$-grid problem: why bare decouples and dressed does not</h2>
+<p>On a Bloch basis $|nk\rangle$, the decisive question is whether $V$ sits <strong>inside the operator</strong> or only <strong>in the source</strong>.</p>
+<h3>8.1 Bare Sternheimer is block-diagonal in $k$</h3>
+<p>$H_0$ and $\omega_0$ are lattice-periodic, hence block-diagonal in crystal momentum:</p>
+<div class="math">
+$$
+Q(\omega_0-H_0)Q=\bigoplus_{k}\;Q(k)\,[\omega_0-H_0(k)]\,Q(k),
+$$
+</div>
+<p>and the rest projector $Q(k)=\sum_{n\in R}|nk\rangle\langle nk|$ acts $k$ by $k$ (it only selects which bands are "rest" at each $k$; it does not connect $k\to k'$). The bare equation therefore splits into $N_k$ <strong>independent</strong> per-$k$ solves:</p>
+<div class="math">
+$$
+Q(k')\,[\omega_0-H_0(k')]\,Q(k')\;|\chi_n^{(0)}(k')\rangle=\big[V|n\rangle\big](k').
+\tag{8.1}
+$$
+</div>
+<p>The defect potential $V$ acts <strong>once</strong>, only when building the source. (That single action does scatter $k\to k'$, but it is one FFT / local multiplication, $\mathcal O(N\log N)$, independent of $N_k$, and is <em>not</em> inside the iteration.) The result is the coupling-second-order $\tilde V^{(2)}$ of (5.1).</p>
+<h3>8.2 Dressed Sternheimer couples all $k$</h3>
+<p>A single defect breaks translational symmetry, so $V(\mathbf r)$ is <strong>not</strong> lattice-periodic; its Fourier components connect arbitrary $k\to k'$ and $\langle nk|V|n'k'\rangle$ is <strong>dense</strong> in $(k,k')$. Putting $V_{QQ}$ inside the operator (7.1) means it acts at <em>every</em> iteration, coupling all $k$. The object to be inverted is then a dense $(N_kN_b^R)\times(N_kN_b^R)$ coupled system — the $N_k\times N_k$ scaling problem. (It can also become ill-conditioned if a defect level is pushed toward $\omega_0$; §10.)</p>
+<p>This is exactly the DFPT structure: DFPT inverts $(H_0+\alpha P-\varepsilon)$ per $(k,q)$ rather than placing $V_{\rm SCF}$ inside the operator, which is precisely why it decouples in $k$ and $q$.</p>
+</section>
+<section id="sec-9"><h2>9. $k$-decoupled ladder to the full rest dressing</h2>
+<p>The false dichotomy is "cheap second order vs. expensive dressed coupled solve." There is a third path: an iterative ladder that <strong>stays $k$-decoupled at every step yet converges to the exact dressed $\tilde V$</strong>.</p>
+<h3>9.1 The ladder</h3>
+<p>Neumann-expand $\mathcal G^Q$ in $V_{QQ}$; each term is built from the $k$-block-diagonal $G^R$ and a <strong>single</strong> action of $V_{QQ}$:</p>
+<div class="math">
+$$
+|\chi_n^{(0)}\rangle=G^R\,V_{QP}|n\rangle,
+\qquad
+|\chi_n^{(m)}\rangle=G^R\,V_{QQ}\,|\chi_n^{(m-1)}\rangle,
+\qquad
+\tilde V_{mn}=\langle m|V|n\rangle+\sum_{m\ge0}\langle m|V|\chi_n^{(m)}\rangle.
+\tag{9.1}
+$$
+</div>
+<ul><li>$m=0$: the coupling-second-order term — one source-$V$ action + one per-$k$ solve (8.1).</li><li>$m=1$: third order — act with $V_{QQ}$ once on $|\chi^{(0)}\rangle$, solve bare Sternheimer again (still $k$-block-diagonal).</li><li>and so on.</li></ul>
+<p>Each step inverts the <strong>same</strong> $k$-block-diagonal operator $A_0\equiv Q(\omega_0-H_0)Q$ (so $G^R=A_0^{-1}$ on $Q$); $V_{QQ}$ appears only in building the right-hand side (one FFT, independent of $N_k$).</p>
+<h3>9.2 Equivalence to the dressed Sternheimer solution</h3>
+<p>The ladder is the Richardson/Neumann iteration for (7.1). Splitting the dressed operator,</p>
+<div class="math">
+$$
+\underbrace{Q(\omega_0-H_0-V)Q}_{\text{dressed}}=\underbrace{Q(\omega_0-H_0)Q}_{A_0\;(k\text{-block diagonal})}-\underbrace{V_{QQ}}_{k\text{-dense}},
+$$
+</div>
+<p>the partial sums $S_M=\sum_{m=0}^{M}|\chi_n^{(m)}\rangle$ satisfy</p>
+<div class="math">
+$$
+A_0\,S_{M+1}=Q\,V|n\rangle+V_{QQ}\,S_M,
+$$
+</div>
+<p>the fixed point of which is $(A_0-V_{QQ})\,|\delta\psi_n^R\rangle=QV|n\rangle$, i.e. <strong>exactly</strong> the dressed Sternheimer equation. Hence</p>
+<div class="math">
+$$
+S_M\;\xrightarrow{M\to\infty}\;\mathcal G^Q V_{QP}|n\rangle=|\delta\psi_n^R\rangle,
+\qquad
+\text{equivalently}\quad
+|\chi_n\rangle=G^R\big(V_{QP}|n\rangle+V_{QQ}|\chi_n\rangle\big).
+\tag{9.2}
+$$
+</div>
+<p><strong>So: yes — the order-by-order Sternheimer ladder converges to the full (all-order in $V_{QQ}$) rest dressing</strong>, i.e. to $\tilde V=PT^RP$, <em>without ever leaving the $k$-decoupled per-$k$ solves.</em> The coupling-second-order $\tilde V^{(2)}$ is simply the $M=0$ truncation.</p>
+<h3>9.3 The $N_k\times N_k$ system is never formed</h3>
+<p>The dense scaling appears <strong>only</strong> if one explicitly builds and directly inverts the dressed operator ($\mathcal O((N_kN_b^R)^3)$, prohibitive). But the dressed system never needs an explicit matrix: both the Neumann ladder (9.1) and a Krylov method (GMRES, using $A_0$ as preconditioner and $V_{QQ}$ as an FFT matvec) require <strong>only matrix–vector products</strong>. Neumann is the simplest such scheme (slower); GMRES is its accelerated cousin (few steps). The real boundary is therefore <strong>"form dense matrix and invert" (infeasible) vs. "iterative matvec" (feasible)</strong> — and second order is just the zeroth matvec step.</p>
+</section>
+<section id="sec-10"><h2>10. Convergence and failure modes</h2>
+<p><strong>Convergence.</strong> The ladder (and the equivalent Richardson iteration) converges geometrically with ratio</p>
+<div class="math">
+$$
+\rho\big(G^R V_{QQ}\big)\sim \frac{\|V_{QQ}\|}{\Delta}.
+$$
+</div>
+<p>This is exactly the condition under which the $A/R$ partition is meaningful, so <strong>whenever the separation is physically justified, the ladder converges</strong>, often in one or two steps.</p>
+<p><strong>Diagnostic (for the Anvil tests).</strong> Monitor the successive-ratio</p>
+<div class="math">
+$$
+\frac{\|\tilde V^{(m+1)}-\tilde V^{(m)}\|}{\|\tilde V^{(m)}-\tilde V^{(m-1)}\|},
+$$
+</div>
+<p>and the condition number / smallest eigenvalue of the per-$k$ bare operator $A_0(k)$ as a function of $V$ strength. If the ratio is not $\ll1$, or if the condition number blows up as $\|V\|$ grows, a rest state is being pushed toward $\omega_0$.</p>
+<p><strong>Failure mode — deep/bound levels.</strong> If the defect pulls a bound/resonant state out of the rest continuum toward $\omega_0$, then $\|V_{QQ}\|/\Delta\gtrsim1$ and the ladder diverges; correspondingly the dressed operator $\omega_0-H_0^Q-V_{QQ}$ approaches singularity at $\omega_0$. This is intrinsically non-perturbative. Note the <em>structure</em> (3.2) is still exact (coupling-second-order $PP$ block); it is the $V_{QQ}$ resummation that fails. Two remedies:</p>
+<ol><li><strong>Recommended:</strong> move the near-resonant rest state <strong>into the active space</strong> (shrink the partition). The newly enlarged active block then carries that state non-perturbatively via the small dressed active solve, and the rest dressing is again weakly coupled. Physically this is usually the correct choice.</li><li>Directly solve the coupled dressed system (Krylov with strong preconditioning), accepting the cost.</li></ol>
+</section>
+<section id="sec-11"><h2>11. Beyond the static limit: first frequency correction</h2>
+<p>If the active window is not narrow ($W_A$ not $\ll\Delta$), retain the leading frequency term:</p>
+<div class="math">
+$$
+\mathcal G^Q(\omega)\approx\mathcal G^Q(\omega_0)+(\omega-\omega_0)\,\partial_\omega\mathcal G^Q\big|_{\omega_0},
+\qquad
+\partial_\omega\mathcal G^Q=-(\mathcal G^Q)^2.
+$$
+</div>
+<p>The derivative is obtained from <strong>one additional Sternheimer solve</strong> acting on $|\delta\psi_n^R\rangle$ (since $\partial_\omega|\delta\psi_n^R\rangle=-\mathcal G^Q|\delta\psi_n^R\rangle$), i.e.</p>
+<div class="math">
+$$
+(\omega_0-H_0^Q-V_{QQ})\,|\delta\psi_n^{R,(1)}\rangle=-|\delta\psi_n^R\rangle,
+$$
+</div>
+<p>so the linear frequency dependence of $\tilde V$ is captured without re-solving across all $\omega$.</p>
+</section>
+<section id="sec-12"><h2>12. Metallic / continuum case</h2>
+<p>If the rest bands extend down toward $\omega_0$, $G^R(\omega_0)$ acquires an imaginary part and $\tilde V$ becomes <strong>non-Hermitian</strong> — it gains a decay width, which is the (physical) absorptive part of the optical potential. Use a complex shift $\omega_0+i\eta$: the Sternheimer operator remains non-singular but requires complex arithmetic, and the downstream active inversion (6.1) is handled with a non-Hermitian $\tilde V$. If the rest bands are genuinely gapped away from $\omega_0$, this subsection does not apply.</p>
+</section>
+<section id="sec-13"><h2>13. The two-layer structure at a glance</h2>
+<div class="math">
+$$
+\underbrace{\;V\;\xrightarrow[\text{$k$-decoupled Sternheimer ladder, §7–§9}]{\text{rest dressing, all orders in }V_{QQ}}\;\tilde V(\omega_0)\;}_{\textbf{Layer 1: rest, statically renormalized, no dense }N_k\times N_k}
+\;\xrightarrow[\text{exact active resummation}]{\quad\text{Eq. (6.1)}\quad}\;
+\underbrace{\;T_{PP}(\omega)=[1-\tilde V G^A(\omega)]^{-1}\tilde V\;}_{\textbf{Layer 2: active dynamics, small inversion}}
+$$
+</div>
+<ul><li><strong>Layer 1</strong> is exact to second order in the active–rest coupling (Feshbach), iterable to all orders in the rest self-energy $V_{QQ}$ while remaining block-diagonal in $k$. Approximations: optional drop of $V_{QQ}$ ($\mathcal O(\|V_{QQ}\|/\Delta)$) and static limit ($\mathcal O(W_A/\Delta)$).</li><li><strong>Layer 2</strong> is an exact, $\omega$-dependent inversion in the small active space.</li><li>Neither layer constructs or inverts a dense $(N_kN_b)\times(N_kN_b)$ matrix.</li></ul>
+</section>
+<section id="sec-14"><h2>14. Implementation notes (EDI / QE / Wannier)</h2>
+<p>These notes name the concrete EDI routines and QE facilities that each step maps onto. A tag marks reuse status: <strong>[have]</strong> = exists in <code>edi-dev/src</code> and is directly reusable; <strong>[QE]</strong> = available in the linked QE libraries but not yet wired into EDI; <strong>[new]</strong> = must be written. The full status/dictionary/reuse audit is §16.</p>
+<ol><li><strong>Source $V_{QP}|n\rangle=QV|n\rangle$ — built from the parts EDI already forms.</strong> The difference potential $V=\Delta V$ is EDI's <code>V_colin</code> (collinear) or <code>V_nc(:,:)</code> (noncollinear, scalar+B$_{xc}$), constructed in <code>edi.f90</code>/<code>ed_coarse.f90</code> by <code>build_vcolin_aligned</code> / <code>build_vcolin_corealign</code> from the supercell potentials <code>V_d,V_p</code> (<code>edic_mod::V_file</code>). <strong>[have]</strong> Acting $V$ on a state is exactly what <code>ed_coarse_full_q</code> already does to build $M_B$: inverse-FFT the periodic part to real space (<code>invfft</code>, <code>dffts%nl</code>, <code>igk_k</code>), multiply by <code>V_colin</code> with the supercell→primitive fold + Bloch phase, plus the Kleinman–Bylander nonlocal piece via <code>get_betavkb</code>+<code>calbec</code>+<code>dvan</code>/<code>dvan_so</code>. The rest projector $Q=1-P$ is "project out the $N_A$ Wannier-active states," the standard orthogonalization already used to disentangle the active manifold. The Sternheimer source is therefore <em>one reuse of the existing $V$-action followed by a projection</em> — no new physics. <strong>[new]</strong> is only the wiring into a linear solver.</li></ol>
+<ol><li><strong>Per-$k$ solves (8.1).</strong> Each $k$ is an independent solve of $Q(k)[\omega_0-H_0(k)]Q(k)$ on the <strong>primitive</strong> cell — embarrassingly parallel over the coarse $k$-grid, which is exactly the pool layout EDI already runs over (<code>mp_pools</code>, <code>poolcollect</code>, the panel-broadcast loop in <code>ed_coarse_full_q</code>). The operator $\omega_0-H_0(k)$ is the standard QE Hamiltonian action <code>h_psi</code> on the primitive cell already loaded by <code>read_file_new</code>; the well-conditioned, projected linear solve is a Krylov method from <code>KS_Solvers/libks_solvers.a</code> (already linked in <code>src/makefile</code>). <strong>[QE]</strong> No enumeration of high-energy rest bands; the single source action is $\mathcal O(N\log N)$ and independent of $N_k$.</li></ol>
+<ol><li><strong>Rest dressing without a dense matrix.</strong> Implement (9.1)/(9.2) as Neumann or GMRES with $A_0$ as preconditioner and $V_{QQ}$ as an FFT matvec (same <code>V_colin</code>-action machinery as point 1, restricted by $Q$). Truncate at the order set by the §10 diagnostic; $M=0$ recovers the coupling-second-order estimate (this is the term whose Born-level cousin EDI computes today). <strong>[new]</strong></li></ol>
+<ol><li><strong>Hermiticity.</strong> Use the bilinear form (7.3), not the one-sided inner product, so $\tilde V$ stays Hermitian under incomplete linear-solver convergence (real $\omega_0$). This matches EDI's existing habit of Hermitianizing interpolated operators (<code>hamwan2bloch_edi</code>, <code>hamwan2bloch_with_evec</code> symmetrize $H(k)$ before <code>ZHEEV</code>).</li></ol>
+<ol><li><strong>Frequency.</strong> With the static limit, solve once at $\omega_0$ and reuse for all $\omega$ in (6.1); $\omega_0$ is naturally the center of EDI's transport window (<code>transport_win_min/max</code>). If the window is wide, add the single extra solve of §11 for the linear-in-$\omega$ term.</li></ol>
+<ol><li><strong>Active inversion (6.1).</strong> Small dense inversion of $[1-\tilde V G^A(\omega)]$ at each target $\omega$ (dimension $N_A=$ <code>nbndsub</code>, typically 5–11). $G^A(\omega)=\sum_{a\in A}|a\rangle\langle a|/(\omega-\varepsilon_a)$ is the explicit sum over the few active Wannier bands, whose energies $\varepsilon_a$ and eigenvectors $U(k)$ EDI already produces by interpolating <code>chw</code> (=$H_W(R)$) with <code>hamwan2bloch_with_evec</code>. The downfolded $\tilde V$ replaces today's bare $M_W(k,k')$ in the same Bloch-rotation slot ($M_B=U^\dagger\,\tilde V\,U$) used in <code>transport.f90</code> / <code>edmatwan2bloch_2d</code>, after which the rate is the usual $\propto|T_{PP}|^2\,\delta(\varepsilon)$ in place of $|M|^2$. <strong>[new]</strong> for $\tilde V$ and the inversion; <strong>[have]</strong> for the rotate-and-square-into-golden-rule tail.</li></ol>
+<h3>Pseudocode skeleton  <em>(annotated with EDI routine names; "→ new" = not yet in src)</em></h3>
+<pre><code class="language-text"># ---- Layer 1: build the downfolded effective potential V_tilde at omega_0 ----
+# inputs already available in EDI: V_colin (build_vcolin_*), primitive H0 (read_file_new),
+#   active manifold = nbndsub Wannier states, U(k) from hamwan2bloch_with_evec
+for each active state |n&gt;:                       # N_A = nbndsub states
+    source_n = Q * V * |n&gt;                        # reuse ed_coarse_full_q V-action:
+                                                  #   invfft + V_colin fold/phase  (local)
+                                                  #   get_betavkb+calbec+dvan(_so) (nonlocal)
+                                                  #   then project out active manifold (Q)
+    chi = solve_sternheimer(A0=Q(omega0 - H0)Q,   # → new: KS_Solvers Krylov on primitive h_psi
+                            rhs=source_n,          #   per-k (mp_pools), well-conditioned
+                            projector=Q)           # = |chi^(0)&gt;  (coupling-2nd-order)
+
+    while not converged(ratio_test):              # → new: Neumann / GMRES outer loop
+        rhs   = V_QQ * chi                         # one FFT (V_colin action), no k-coupling in SOLVE
+        dchi  = solve_sternheimer(A0, rhs, Q)      # same per-k operator A0
+        chi  += dchi
+    delta_psi[n] = chi                             # = |delta_psi_n^R&gt;  (dressed)
+
+for m,n in active x active:                        # Hermitian bilinear form (7.3)  → new
+    V_tilde[m,n] = &lt;m|V|n&gt; + &lt;delta_psi[m]| (omega0 - H0^Q - V_QQ) |delta_psi[n]&gt;
+
+# ---- Layer 2: exact active multiple scattering at each frequency ----
+for omega in target_grid:
+    GA   = sum_{a in active} |a&gt;&lt;a| / (omega - eps_a)   # eps_a from hamwan2bloch (chw)  [have]
+    Tpp  = inv( I - V_tilde @ GA ) @ V_tilde            # small nbndsub x nbndsub inversion  → new
+    # then: M_B = U(ki)^dagger · Tpp · U(kf), rate ∝ |M_B|^2 δ(eps)  — transport.f90 tail  [have]</code></pre>
+</section>
+<section id="sec-15"><h2>15. Relation to cRPA (dictionary)</h2>
+<div class="table-wrap"><table><thead><tr><th>cRPA (screened interaction)</th><th>This work (multiple scattering)</th></tr></thead><tbody><tr><td>bare interaction $v$</td><td>bare defect potential $V$</td></tr><tr><td>target/low-energy polarization $P^{A}$</td><td>active propagator $G^A$ (kept dynamical)</td></tr><tr><td>rest polarization $P^{R}$</td><td>rest propagator $G^R$ (kept static)</td></tr><tr><td>partially screened $W^{r}=(1-vP^R)^{-1}v$</td><td>partial $T$-matrix $T^R=(1-VG^R)^{-1}V$</td></tr><tr><td>fully screened $W=(1-W^rP^A)^{-1}W^r$</td><td>full $T_{PP}=(1-\tilde V G^A)^{-1}\tilde V$</td></tr></tbody></table></div>
+<p>The structural identity is exact: rest (high-energy) channels statically renormalize the bare object; active (low-energy) channels retain the full dynamics.</p>
+</section>
+<section id="sec-16"><h2>16. Grounding in the EDI codebase: status, dictionary, and reuse map</h2>
+<p>This section reconciles the abstract construction above with the production EDI code at <code>/anvil/projects/x-che190065/rjguo/qe-7.5/edi-dev</code> (QE-7.5 plugin, <code>edi.x</code>). It states precisely what EDI does today, why the $A/R$ partition is <em>already physically present</em> in EDI, what maps onto what, and which pieces are reusable versus new.</p>
+<h3>16.1 What EDI computes today: the first Born term only</h3>
+<p>EDI is a Wannier-interpolated, supercell <strong>difference-potential</strong> code. Its entire output is built from the single matrix element</p>
+<div class="math">
+$$
+M_{nk,mk'}=\langle\psi_{nk}\,|\,\Delta V\,|\,\psi_{mk'}\rangle,
+\qquad \Delta V=V_{\rm defect}-V_{\rm pristine},
+$$
+</div>
+<p>with local and Kleinman–Bylander nonlocal parts, and it inserts $|M|^2$ into Fermi's golden rule. The transport kernel (<code>transport.f90</code>, <code>compute_transport</code>) is literally</p>
+<pre><code class="language-fortran">inv_tau_serta(ibnd,iki) += twopi * n_d_cell * wqf * ABS(edmatf_b(ibnd,jbnd))**2 * w_delta</code></pre>
+<p>i.e. $1/\tau_{nk}=2\pi\,n_d\,\frac1{N_k}\sum_{mk'}|M_{nk,mk'}|^2\,\delta(\varepsilon_{nk}-\varepsilon_{mk'})$ (MRTA adds the $1-\cos\theta$ factor). In the language of §1–§4 this is the <strong>leading Born term</strong>: $T=V+VG_0T$ truncated at $T\approx V$. EDI never applies a host resolvent $G_0$, never resums multiple scattering, and contains no $T$-matrix, Sternheimer, Feshbach, or $A/R$-projection code (verified by grep over <code>src/</code>). <strong>Everything in §3–§13 is therefore a beyond-Born extension of the existing EDI pipeline, not a description of it.</strong></p>
+<p>The current pipeline (orchestrated by <code>edi.f90</code>):</p>
+<ol><li><strong>Potential</strong> — load $V_d,V_p$ (<code>load_supercell_pot</code> on-the-fly via <code>read_file_new</code>, or <code>load_pot_from_file</code> cube files), align (<code>build_vcolin_aligned</code>/<code>_corealign</code>, <code>pot_align=&#x27;vacuum&#x27;|&#x27;core&#x27;|&#x27;none&#x27;</code>) → $\Delta V=$ <code>V_colin</code> (or <code>V_nc</code>).</li><li><strong>Range separation</strong> (optional, <code>range_sep.f90::compute_range_separation</code>) — split $\Delta V=\Delta V_{\rm LR}+\Delta V_{\rm SR}$ via $\Delta\rho\!\to\!$ Coulomb kernel (2D-truncated Ismail-Beigi or 3D $8\pi/G^2$, optional Gaussian $\alpha$).</li><li><strong>Coarse $M$</strong> (<code>ed_coarse.f90::ed_coarse_full_q</code>) — local part by <code>invfft</code>+<code>V_colin</code> fold/phase; nonlocal by <code>get_betavkb</code>+<code>calbec</code>+<code>dvan</code>/<code>dvan_so</code>; over the kept bands <code>nbnd_kept</code> (= non-<code>excluded_band</code>).</li><li><strong>Bloch→Wannier</strong> (<code>edbloch2wan.f90::edbloch2wane</code>) — double FT to $M(R_e,R_p)$; <strong>diagonal/low-rank</strong> structure exploited and SVD-compressed (<code>tt_compress.f90::svd_compress_edmat</code>, &lt;5% singular values → &lt;1% error).</li><li><strong>Wannier→Bloch</strong> (<code>wan2bloch.f90</code>) — $H_W=$<code>chw</code> interpolated to $\varepsilon(k),U(k)$ (<code>hamwan2bloch_with_evec</code>); $M$ interpolated (<code>edmatwan2bloch_2d</code>) and rotated $M_B=U^\dagger(k_i)M_W U(k_f)$; long-range $M^{\rm LR}$ added semi-analytically (<code>lr_matelem.f90::compute_mlr_at_kpair</code>, EPW dipole/Berry-connection form).</li><li><strong>Transport</strong> (<code>transport.f90</code>, <code>delta_weights.f90</code>, <code>bz_symmetry.f90</code>) — golden-rule rates, IBZ symmetry, SERTA/MRTA mobility, Fermi-level bisection.</li></ol>
+<h3>16.2 The key bridge: EDI's Wannier window <em>is</em> the active space $A$</h3>
+<p>The single most important observation for an implementer: <strong>EDI already partitions the band structure into exactly the $A/R$ split this note needs, for an unrelated (Wannierization) reason.</strong> Disentanglement keeps <code>nbndsub</code> Wannier functions spanning the bands near $E_F$ inside the windows <code>dis_win_min/max</code> (and frozen <code>dis_froz_min/max</code>), excluding deep/core bands (<code>bands_skipped</code>→<code>exclude_bands</code>) and high-energy bands. Therefore:</p>
+<ul><li><strong>Active $A$ ($P$)</strong> $\equiv$ the <code>nbndsub</code> kept Wannier bands (<code>n_wannier</code>, <code>num_bands</code>, <code>u_mat</code>, <code>wann_centers</code>; kept set = non-<code>excluded_band</code>, <code>nbndep</code>/<code>ibndkept</code>). These are the strongly-coupled, dynamical, near-$E_F$ states — precisely where transport lives (<code>transport_win_min/max</code>).</li><li><strong>Rest $R$ ($Q$)</strong> $\equiv$ the bands EDI throws away from the Wannier manifold: the deep states removed by <code>exclude_bands</code> and the high-energy states above the outer window. These are the "distant bands, treated statically" of §2.</li><li><strong>$G^A(\omega)$</strong> is built from data EDI already has: the interpolated active eigenvalues $\varepsilon_a(k)$ from <code>chw</code>/<code>hamwan2bloch</code>, as $\sum_{a}|a\rangle\langle a|/(\omega-\varepsilon_a)$.</li><li>The energy gap $\Delta$ of §10 is the disentanglement-window-to-rest-band separation; the static-limit validity $W_A\ll\Delta$ (§5.2) is the statement that the Wannier window is narrow compared with its distance to the excluded bands.</li></ul>
+<p>So the $A/R$ machinery is conceptually free in EDI — it is the Wannier window with a sign flip ($Q=1-P$). What is <em>missing</em> is using $R$ dynamically (the Sternheimer dressing) and resumming $A$ (the active inversion).</p>
+<h3>16.3 Dictionary: theory object → EDI object → source</h3>
+<div class="table-wrap"><table><thead><tr><th>This note</th><th>EDI / QE object</th><th>Where</th></tr></thead><tbody><tr><td>Defect potential $V=\Delta V$</td><td><code>V_colin</code> / <code>V_nc</code> (real-space $\Delta V$ on SC grid)</td><td><code>edic_mod.f90</code>; built in <code>edi.f90</code>, <code>ed_coarse::build_vcolin_*</code></td></tr><tr><td>Action of $V$ on a state</td><td><code>invfft</code>+<code>V_colin</code> fold/phase (local) + <code>get_betavkb</code>/<code>calbec</code>/<code>dvan(_so)</code> (nonlocal)</td><td><code>ed_coarse.f90::ed_coarse_full_q</code>, <code>get_betavkb.f90</code></td></tr><tr><td>First Born element $\langle\psi|V|\psi'\rangle=T^{(1)}$</td><td><code>edmatkq</code>/<code>edmatf_b</code> ($M_B(k,k')$)</td><td><code>ed_coarse_full_q</code>, <code>transport.f90</code></td></tr><tr><td>Host $H_0$, $G_0=(\omega-H_0)^{-1}$</td><td>primitive-cell QE Hamiltonian (<code>read_file_new</code>, <code>h_psi</code>); not assembled as a resolvent</td><td>QE <code>PW/src</code></td></tr><tr><td>Active projector $P$, space $A$</td><td>kept Wannier manifold <code>nbndsub</code> (non-<code>excluded_band</code>)</td><td><code>wann_common.f90</code>, <code>global_var.f90</code></td></tr><tr><td>Rest projector $Q$, space $R$</td><td>excluded + high-energy bands ($Q=1-P$)</td><td>(implicit; <strong>new</strong>)</td></tr><tr><td>Active propagator $G^A(\omega)$</td><td>$\sum_a|a\rangle\langle a|/(\omega-\varepsilon_a)$ from $\varepsilon_a,U(k)$</td><td><code>wan2bloch.f90::hamwan2bloch_with_evec</code>, <code>chw</code></td></tr><tr><td>Eigvecs $U(k)$ for the Bloch rotation</td><td><code>evec</code>/<code>U(k)</code> (filukk <code>u_kc</code>)</td><td><code>read_filukk_edi</code>, <code>hamwan2bloch_with_evec</code></td></tr><tr><td>Downfolded effective potential $\tilde V$</td><td>would replace bare $M_W$ in the rotate-and-square slot</td><td>(<strong>new</strong>; slot is <code>transport.f90</code>/<code>edmatwan2bloch_2d</code>)</td></tr><tr><td>Partially perturbed $|\delta\psi_n^R\rangle$ (7.1)</td><td>rest-projected Sternheimer solution</td><td>(<strong>new</strong>; solver from <code>KS_Solvers</code>)</td></tr><tr><td>Full active block $T_{PP}(\omega)$ (6.1)</td><td>$[1-\tilde V G^A]^{-1}\tilde V$, dim <code>nbndsub</code></td><td>(<strong>new</strong>)</td></tr><tr><td>Golden-rule rate $\propto|T_{PP}|^2\delta$</td><td><code>inv_tau_serta/mrta</code> loop</td><td><code>transport.f90</code></td></tr></tbody></table></div>
+<h3>16.4 Reuse map — what exists vs. what must be built</h3>
+<p><strong>Reusable as-is [have]:</strong></p>
+<ul><li>Construction and alignment of $\Delta V$ (<code>build_vcolin_*</code>, <code>range_sep</code>), and the <em>action</em> of $\Delta V$ on Bloch states (local FFT fold + KB nonlocal) inside <code>ed_coarse_full_q</code> — this is the Sternheimer <strong>source</strong> generator.</li><li>Active eigensystem $\varepsilon_a(k),U(k)$ from <code>chw</code> via <code>hamwan2bloch_with_evec</code>; the Bloch rotation $M_B=U^\dagger(k_i)\,\cdot\,U(k_f)$; the golden-rule/SERTA/MRTA tail (<code>transport.f90</code>). $\tilde V$ or $T_{PP}$ drops straight into the slot now occupied by $M_W$/$M_B$.</li><li>Pool parallelism over $k$ (<code>mp_pools</code>, <code>poolcollect</code>, panel broadcast) — the natural home for the $k$-decoupled per-$k$ solves of §8/§9.</li></ul>
+<p><strong>Available but not yet wired [QE]:</strong></p>
+<ul><li>Krylov linear solvers (<code>KS_Solvers/libks_solvers.a</code>, already in <code>src/makefile</code>) and the primitive-cell <code>h_psi</code> operator — the engine for the per-$k$ Sternheimer solve (8.1). Note EDI does <strong>not</strong> link <code>LR_Modules</code>, so QE's <code>solve_linter</code> is not directly present; the §7 solver must be assembled from <code>h_psi</code>+<code>KS_Solvers</code> (it is simpler than DFPT — see §7.2, no self-consistency since $\Delta V$ is fixed).</li></ul>
+<p><strong>Must be written [new]:</strong></p>
+<ol><li>The rest projector $Q=1-P$ as an "orthogonalize against the <code>nbndsub</code> active states" operation, and the source $QV|n\rangle$.</li><li>The per-$k$ Sternheimer solve (7.1)/(8.1) with $Q(\omega_0-H_0)Q$ (bare) and the §9 Neumann/GMRES ladder for the $V_{QQ}$ dressing.</li><li>Assembly of $\tilde V_{mn}$ via the Hermitian bilinear form (7.3).</li><li>The small active inversion (6.1) per target $\omega$, replacing $M_W$ by $T_{PP}$ in the existing rotate-and-square path.</li></ol>
+<h3>16.5 Long-range / metallic caveats meet EDI's range separation and low-rank structure</h3>
+<ul><li><strong>§12 (metallic/continuum, non-Hermitian $\tilde V$, complex $\omega_0+i\eta$) and the long-range tail.</strong> EDI already faces the long-range problem head-on: a charged or polar defect makes $\Delta V\sim1/r$, which is <em>not</em> short-ranged, breaks the locality that makes $M(R,R')$ compact, and is split off as $\Delta V_{\rm LR}$ (<code>range_sep.f90</code>) and treated semi-analytically (<code>lr_matelem.f90</code>, EPW dipole form). For the $T$-matrix construction the same split is the natural remedy: apply the Sternheimer/$A/R$ machinery to the <strong>short-range</strong> $\Delta V_{\rm SR}$ (where $\|V\|/\Delta\ll1$ and the ladder of §9 converges), and keep the long-range Coulomb channel in the existing analytic LR path. If active bands extend to $\omega_0$ (metallic host), §12's complex shift $\omega_0+i\eta$ applies and $\tilde V$ acquires the physical absorptive width.</li><li><strong>Low-rank / SVD.</strong> EDI finds $M(R,R')$ empirically low-rank (<code>tt_compress.f90</code>: &lt;5% of singular values for &lt;1% error; see <code>plan_zSVD_update.md</code>). This is the multiple-scattering echo of why the <em>active layer</em> is cheap: the physically relevant scattering lives in a small subspace (the <code>nbndsub</code> active block), exactly the space in which $\tilde V$ and the (6.1) inversion are formed. The SVD low rank is empirical evidence that $N_A$ is small and the §6 inversion is genuinely tiny.</li></ul>
+<h3>16.6 Minimal implementation path inside EDI</h3>
+<p>A staged route that reuses the most and adds the least:</p>
+<ol><li><strong>Coupling-second-order $\tilde V^{(2)}$, bare ($V_{QQ}\!=\!0$), static.</strong> For each active Wannier state build $QV|n\rangle$ with the existing <code>ed_coarse_full_q</code> $V$-action, solve (8.1) per $k$ with a <code>KS_Solvers</code> Krylov method on the primitive <code>h_psi</code>, assemble $\tilde V^{(2)}_{mn}$ via (7.3). This is the smallest delta over today's code (the source machinery is shared) and already goes beyond Born for the active dynamics once fed through step 3.</li><li><strong>Dress the rest</strong> with the §9 ladder (<code>V_QQ</code> matvec via the same <code>V_colin</code> action) until the §10 ratio test passes — full all-orders $\tilde V$, still $k$-decoupled.</li><li><strong>Active resummation:</strong> at each transport-window $\omega$ compute $T_{PP}=[1-\tilde V G^A(\omega)]^{-1}\tilde V$ (dim <code>nbndsub</code>), rotate $M_B=U^\dagger\,T_{PP}\,U$, and feed the existing <code>inv_tau</code> loop. Validate against the Born limit by checking $T_{PP}\to\tilde V\to V_{PP}$ when the dressing and the active resummation are switched off (must reproduce today's $M$).</li><li><strong>Frequency/range-sep refinements:</strong> add the §11 single extra solve if $W_A\not\ll\Delta$; route the long-range channel through <code>range_sep</code>/<code>lr_matelem</code> (16.5).</li></ol>
+<p>The validation hooks of §10 (successive-ratio test; smallest eigenvalue / condition number of $A_0(k)$ vs. $\|V\|$) should be emitted on <code>ionode</code> in the same diagnostic style EDI already uses (e.g. the Wannier-interpolation error check and the range-separation roundtrip check), so a deep/bound-level failure mode is caught early.</p>
+<p><em>End of note.</em></p>
+</section>
+</main>
+<footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
+Static HTML; equations rendered client-side with MathJax v3. No raw wavefunctions, cubes,
+binaries, or logs are published.</footer>
+</body></html>
