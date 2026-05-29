@@ -407,22 +407,121 @@ medium grid.
 
 ## 10. Stage G — Wannierize, interpolate, transport (reuse EDI)
 
-$\tilde V_{m k_f,n k_i}$ has **exactly the shape of EDI's** $M(k_i,k_f)$, so EDI's interpolation is reused
-unchanged:
+$\tilde V$ (and $T_{PP}$) carry the **same two-momentum, active-band index structure** as EDI's $M$, so the
+Wannier interpolation is identical — but it is worth deriving the transform once to fix the gauge and
+phase conventions and to see *why* it is the right object to interpolate.
+
+### 10.1 Setup and the Wannier functions
+
+Active Bloch states $|\psi_{n k}\rangle$ ($n\in A(k)$), eigenvalues $\varepsilon_{nk}$, on the coarse grid
+$\{k\}$ ($N_k$ points). The disentanglement+localization rotation $U(k)$ (EDI's `cu`=`u_kc` from `filukk`)
+defines the Wannier functions (EPW/W90 convention)
+$$
+|w_{iR}\rangle=\frac{1}{N_k}\sum_{k}\sum_{n\in A(k)} e^{-ik\cdot R}\,U_{ni}(k)\,|\psi_{nk}\rangle,
+\qquad i=1\ldots N_W .
+$$
+The object produced by Layer 1 is the **effective potential in the active-Bloch basis**,
+$\tilde V_{nm}(k_i,k_f)\equiv\langle\psi_{n k_i}|\tilde V|\psi_{m k_f}\rangle$ (Stage E), the downfolded
+replacement for EDI's bare $M_{nm}(k_i,k_f)=\langle\psi_{n k_i}|\Delta V|\psi_{m k_f}\rangle$.
+
+### 10.2 Bloch → Wannier (the double Fourier transform) — derivation
+
+The effective potential between two Wannier functions is, inserting the definition above and its conjugate
+$\langle w_{iR_e}|=\frac1{N_k}\sum_{k_i,n}e^{+ik_i\cdot R_e}U^{*}_{ni}(k_i)\langle\psi_{n k_i}|$,
+$$
+\tilde V_{ij}(R_e,R_p)\equiv\langle w_{iR_e}|\,\tilde V\,|w_{jR_p}\rangle
+=\frac{1}{N_k^{2}}\sum_{k_i,k_f}\sum_{n,m}
+e^{+ik_i\cdot R_e}\,e^{-ik_f\cdot R_p}\;
+U^{*}_{ni}(k_i)\,\tilde V_{nm}(k_i,k_f)\,U_{mj}(k_f),
+$$
+i.e., in matrix form (Wannier indices $i,j$; band indices contracted),
+$$
+\boxed{\;\tilde V(R_e,R_p)=\frac{1}{N_k^{2}}\sum_{k_i,k_f}
+e^{+ik_i\cdot R_e}\,e^{-ik_f\cdot R_p}\;
+U^{\dagger}(k_i)\,\tilde V(k_i,k_f)\,U(k_f)\;}
+\tag{G.1}
+$$
+This is **exactly EDI's `edbloch2wane` double FT** (phases $+k_i\!\cdot\!R_e$, $-k_f\!\cdot\!R_p$; normalization
+$1/N_k^2$; Wannier-gauge rotation $U^\dagger(k_i)(\cdot)U(k_f)$) — only the matrix fed in changes
+$M\!\to\!\tilde V$. The very same lines apply to $T_{PP}$: $T_{PP}(R_e,R_p)$ is (G.1) with
+$\tilde V(k_i,k_f)\!\to\!T_{PP}(k_i,k_f)$.
+
+### 10.3 Wannier → Bloch (interpolation to the fine grid) — derivation
+
+Inverting (G.1) on the Wigner–Seitz supercell with degeneracy weights $N_{R}$ gives, for *arbitrary*
+fine-grid momenta,
+$$
+\boxed{\;\tilde V^{W}(k_i,k_f)=\sum_{R_e,R_p}
+\frac{e^{-ik_i\cdot R_e}}{N_{R_e}}\,
+\frac{e^{+ik_f\cdot R_p}}{N_{R_p}}\;
+\tilde V(R_e,R_p)\;}
+\tag{G.2}
+$$
+(EDI's `edmatwan2bloch_2d`: conjugate phase on the bra $k_i$, direct phase on the ket $k_f$, divided by the
+WS degeneracies). (G.2) returns the object in the **Wannier gauge**; rotate to the band gauge at the
+interpolated $k$ with the Hamiltonian eigenvectors $U^{H}(k)$ from diagonalizing the interpolated
+$H_W(k)$ (`hamwan2bloch_with_evec`):
+$$
+\tilde V_B(k_i,k_f)=U^{H\dagger}(k_i)\,\tilde V^{W}(k_i,k_f)\,U^{H}(k_f).
+\tag{G.3}
+$$
+**Locality / why interpolation is controlled.** $\tilde V=V_{PP}+V_{PQ}\mathcal G^Q V_{QP}$ is the bare local
+defect block plus a *localized* rest self-energy (the rest response $|\delta\psi^R\rangle$ is short-ranged
+for a gapped rest), so $\tilde V(R_e,R_p)$ decays in $|R_e|,|R_p|,|R_e-R_p|$ just like EDI's $M(R,R')$
+(`diagonal_approx.md`). Monitor a `decay.V` plot (analog of EDI's `decay.M` from `edbloch2wane`).
+
+### 10.4 Two routes to $T_{PP}$ on the fine grid
+
+| | route | when |
+|---|---|---|
+| **B1** | **Wannierize $T_{PP}$ directly**: build $T_{PP}(k_i,k_f)$ on the *coarse* grid (active inversion §9), then apply (G.1)–(G.3) with $\tilde V\!\to\!T_{PP}$. Identical code path. | default *iff* $T_{PP}(R_e,R_p)$ decays |
+| **B2** | **Wannierize $\tilde V$ (short-ranged), resum on the fine grid**: interpolate $\tilde V$ via (G.2)–(G.3), then solve the active Dyson equation (below) iteratively per energy. | when $T_{PP}$ is long-ranged (near-resonant / bound states) |
+
+**Caveat for B1.** The resummation $T_{PP}=[1-\tilde V G^A]^{-1}\tilde V$ can be **longer-ranged** than
+$\tilde V$: multiple scattering and any near-shell resonance spread the effective range in $(R_e,R_p)$.
+So **check the `decay.T` of $T_{PP}(R_e,R_p)$** before trusting B1; if it does not decay within the coarse
+WS cell, use B2 (which only ever interpolates the short-ranged $\tilde V$).
+
+**B2 Dyson equation (active space, fine grid).** With $G^A(\omega)$ diagonal in the band/$k$ basis,
+$$
+T_{PP}(k_i,k_f;\omega)=\tilde V_B(k_i,k_f)
++\frac{1}{N_k^{\rm f}}\sum_{k'}\sum_{a\in A(k')}
+\tilde V_B(k_i,k')\,\frac{|a k'\rangle\langle a k'|}{\omega-\varepsilon_{a k'}+i\eta}\,T_{PP}(k',k_f;\omega),
+\tag{G.4}
+$$
+solved by fixed-point/GMRES iteration using interpolated $\tilde V_B$ as a matvec — never forming the dense
+inverse. The $1/N_k^{\rm f}$ turns the $k'$-sum into a BZ average; the resolvent is dominated by the
+energy shell $\varepsilon_{ak'}\approx\omega$.
+
+### 10.5 Transport (reuse EDI unchanged)
+
+The on-shell $T$-matrix replaces $M$ in Fermi's golden rule,
+$$
+\frac{1}{\tau_{nk}}=\frac{2\pi}{\hbar}\,n_d\,\frac{1}{N_k}\sum_{m,k'}
+\big|\,T_{PP,nm}(k,k';\,\omega{=}\varepsilon_{nk})\,\big|^{2}\,
+\delta(\varepsilon_{nk}-\varepsilon_{mk'}),
+$$
+i.e. in `compute_transport` the only change is `ABS(edmatf_b)**2 → ABS(Tpp_b)**2`; IBZ symmetry,
+SERTA/MRTA, `delta_weights`, and the Fermi-level bisection are reused verbatim. The Born limit
+$T_{PP}\to\tilde V\to M$ reproduces today's EDI mobility (test **T1**).
 
 ```fortran
-CALL edbloch2wane(... Vtilde_B ..., Vtilde_W)        ! M(R,R') double FT  (edbloch2wan.f90)
-! fine grid: per (k_i,k_f)
-CALL edmatwan2bloch_2d(nbndsub, nrr, ndegen, Vtilde_W, cfac_ki, cfac_kf, Vtilde_f)
-! Layer 2 at the transport energy, then golden rule:
-CALL active_tmatrix(eig(n,ki), eta_a, Vtilde_f_block, eig_shell, Tpp_f)
-! in transport.f90's kernel, replace M by T_PP:
-!   inv_tau += twopi*n_d*wqf*ABS(Tpp_b(n,m))**2 * w_delta        (was ABS(edmatf_b)**2)
-```
+! ---- coarse: Layer 1 (+ optional Layer 2 for route B1) ----
+CALL edbloch2wane(nbnd_kept, nbndsub, nks, nkstot, xk, cu, cuq, &   ! (G.1) double FT  [reuse EDI]
+                  Vtilde_B, nrr, irvec, wslen, Vtilde_W)            ! -> Vtilde(R_e,R_p); writes decay.V
+! route B1: replace Vtilde_B by Tpp_B (active_tmatrix on coarse grid) before the FT, check decay.T
 
-So `transport.f90`/`compute_transport`, `delta_weights`, `bz_symmetry`, the SERTA/MRTA assembly, and the
-Fermi-level bisection are **reused unchanged** — only the matrix element fed in changes from $M$ to
-$T_{PP}$.
+! ---- fine grid: per (k_i,k_f) ----
+CALL get_cfac(nrr, irvec, xk_i_cryst, cfac_ki)                      ! exp(i k_i·R)   [reuse EDI]
+CALL get_cfac(nrr, irvec, xk_f_cryst, cfac_kf)
+CALL edmatwan2bloch_2d(nbndsub, nrr, ndegen, Vtilde_W, cfac_ki, cfac_kf, Vtilde_Wf)  ! (G.2) [reuse]
+! band gauge (G.3): Vtilde_Bf = U^H(k_i)^dagger · Vtilde_Wf · U^H(k_f)   (evec from hamwan2bloch_with_evec)
+!   route B1: same for Tpp_W -> Tpp_Bf
+!   route B2: solve (G.4) for Tpp_Bf using Vtilde_Bf as the matvec
+
+! ---- golden rule (reuse transport.f90 kernel) ----
+!   inv_tau += twopi * n_d * wqf * ABS(Tpp_Bf(n,m))**2 * w_delta      (was ABS(edmatf_b)**2)
+```
 
 ---
 
@@ -494,7 +593,7 @@ edt.x : $(EDT_OBJS) ; $(LD) -o $@ $(EDT_OBJS) $(EDIOBJS) $(PWOBJS) $(QEMODS) $(Q
 | T4 | **Ladder convergence** | successive ratio $\to\rho\sim\lVert V_{QQ}\rVert/\Delta\ll1$; $\tilde V$(dressed) stable vs `dress_order` | §7, §10 |
 | T5 | **Gauge sanity** | $\lVert U^\dagger U-I\rVert\!\lesssim\!10^{-13}$; $\tilde V$ invariant under $U^\dagger(\!\cdot\!)U$ | EDI `filukk` |
 | T6 | **$k$-MPI invariance** | result independent of pool/image count to machine precision | codex image-MPI check |
-| T7 | **Active resummation** | coarse-grid $T_{PP}$ vs fine-grid iterative Dyson agree within tol; $T_{PP}\to\tilde V$ as $G^A\to0$ | §9 |
+| T7 | **Active resummation** | coarse-grid $T_{PP}$ (B1) vs fine-grid iterative Dyson (B2) agree within tol; $T_{PP}\to\tilde V$ as $G^A\to0$; `decay.V`/`decay.T` decide B1-vs-B2 | §9, §10.4 |
 | T9 | **Rest BZ-grid convergence** | $\lVert\tilde V\rVert$ (and mobility) converge as `rest_nk*` densifies over the *full* BZ; result is **independent of the supercell folding set** | `research.md` §2; §5 callout; codex rest-k table |
 | T8 | **Transport** | mobility with $|T_{PP}|^2$ vs EDI $|M|^2$; quantify beyond-Born shift | `transport.f90` |
 

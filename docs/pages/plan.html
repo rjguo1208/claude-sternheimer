@@ -242,15 +242,93 @@ END SUBROUTINE active_tmatrix</code></pre>
 <p><strong>Resolution choice (the main Layer-2 approximation — flag for validation):</strong> <em>baseline</em> = do this inversion on the <strong>coarse</strong> active space, then Wannierize $T_{PP}(k_i,k_f)$ and interpolate to the fine grid (mirrors EDI's M-flow). <em>Advanced</em> = keep the static $\tilde V$ Wannier- interpolated and solve the Dyson equation $T_{PP}=\tilde V+\tilde V G^A(\omega)T_{PP}$ iteratively on the fine grid (matvec with interpolated $\tilde V$; never form the dense inverse), exploiting that $G^A(\omega)$ is dominated by the energy shell near $\omega$. Start with baseline; validate against advanced on a medium grid.</p>
 </section>
 <section id="sec-10"><h2>10. Stage G — Wannierize, interpolate, transport (reuse EDI)</h2>
-<p>$\tilde V_{m k_f,n k_i}$ has <strong>exactly the shape of EDI's</strong> $M(k_i,k_f)$, so EDI's interpolation is reused unchanged:</p>
-<pre><code class="language-fortran">CALL edbloch2wane(... Vtilde_B ..., Vtilde_W)        ! M(R,R&#x27;) double FT  (edbloch2wan.f90)
-! fine grid: per (k_i,k_f)
-CALL edmatwan2bloch_2d(nbndsub, nrr, ndegen, Vtilde_W, cfac_ki, cfac_kf, Vtilde_f)
-! Layer 2 at the transport energy, then golden rule:
-CALL active_tmatrix(eig(n,ki), eta_a, Vtilde_f_block, eig_shell, Tpp_f)
-! in transport.f90&#x27;s kernel, replace M by T_PP:
-!   inv_tau += twopi*n_d*wqf*ABS(Tpp_b(n,m))**2 * w_delta        (was ABS(edmatf_b)**2)</code></pre>
-<p>So <code>transport.f90</code>/<code>compute_transport</code>, <code>delta_weights</code>, <code>bz_symmetry</code>, the SERTA/MRTA assembly, and the Fermi-level bisection are <strong>reused unchanged</strong> — only the matrix element fed in changes from $M$ to $T_{PP}$.</p>
+<p>$\tilde V$ (and $T_{PP}$) carry the <strong>same two-momentum, active-band index structure</strong> as EDI's $M$, so the Wannier interpolation is identical — but it is worth deriving the transform once to fix the gauge and phase conventions and to see <em>why</em> it is the right object to interpolate.</p>
+<h3>10.1 Setup and the Wannier functions</h3>
+<p>Active Bloch states $|\psi_{n k}\rangle$ ($n\in A(k)$), eigenvalues $\varepsilon_{nk}$, on the coarse grid $\{k\}$ ($N_k$ points). The disentanglement+localization rotation $U(k)$ (EDI's <code>cu</code>=<code>u_kc</code> from <code>filukk</code>) defines the Wannier functions (EPW/W90 convention)</p>
+<div class="math">
+$$
+|w_{iR}\rangle=\frac{1}{N_k}\sum_{k}\sum_{n\in A(k)} e^{-ik\cdot R}\,U_{ni}(k)\,|\psi_{nk}\rangle,
+\qquad i=1\ldots N_W .
+$$
+</div>
+<p>The object produced by Layer 1 is the <strong>effective potential in the active-Bloch basis</strong>, $\tilde V_{nm}(k_i,k_f)\equiv\langle\psi_{n k_i}|\tilde V|\psi_{m k_f}\rangle$ (Stage E), the downfolded replacement for EDI's bare $M_{nm}(k_i,k_f)=\langle\psi_{n k_i}|\Delta V|\psi_{m k_f}\rangle$.</p>
+<h3>10.2 Bloch → Wannier (the double Fourier transform) — derivation</h3>
+<p>The effective potential between two Wannier functions is, inserting the definition above and its conjugate $\langle w_{iR_e}|=\frac1{N_k}\sum_{k_i,n}e^{+ik_i\cdot R_e}U^{*}_{ni}(k_i)\langle\psi_{n k_i}|$,</p>
+<div class="math">
+$$
+\tilde V_{ij}(R_e,R_p)\equiv\langle w_{iR_e}|\,\tilde V\,|w_{jR_p}\rangle
+=\frac{1}{N_k^{2}}\sum_{k_i,k_f}\sum_{n,m}
+e^{+ik_i\cdot R_e}\,e^{-ik_f\cdot R_p}\;
+U^{*}_{ni}(k_i)\,\tilde V_{nm}(k_i,k_f)\,U_{mj}(k_f),
+$$
+</div>
+<p>i.e., in matrix form (Wannier indices $i,j$; band indices contracted),</p>
+<div class="math">
+$$
+\boxed{\;\tilde V(R_e,R_p)=\frac{1}{N_k^{2}}\sum_{k_i,k_f}
+e^{+ik_i\cdot R_e}\,e^{-ik_f\cdot R_p}\;
+U^{\dagger}(k_i)\,\tilde V(k_i,k_f)\,U(k_f)\;}
+\tag{G.1}
+$$
+</div>
+<p>This is <strong>exactly EDI's <code>edbloch2wane</code> double FT</strong> (phases $+k_i\!\cdot\!R_e$, $-k_f\!\cdot\!R_p$; normalization $1/N_k^2$; Wannier-gauge rotation $U^\dagger(k_i)(\cdot)U(k_f)$) — only the matrix fed in changes $M\!\to\!\tilde V$. The very same lines apply to $T_{PP}$: $T_{PP}(R_e,R_p)$ is (G.1) with $\tilde V(k_i,k_f)\!\to\!T_{PP}(k_i,k_f)$.</p>
+<h3>10.3 Wannier → Bloch (interpolation to the fine grid) — derivation</h3>
+<p>Inverting (G.1) on the Wigner–Seitz supercell with degeneracy weights $N_{R}$ gives, for <em>arbitrary</em> fine-grid momenta,</p>
+<div class="math">
+$$
+\boxed{\;\tilde V^{W}(k_i,k_f)=\sum_{R_e,R_p}
+\frac{e^{-ik_i\cdot R_e}}{N_{R_e}}\,
+\frac{e^{+ik_f\cdot R_p}}{N_{R_p}}\;
+\tilde V(R_e,R_p)\;}
+\tag{G.2}
+$$
+</div>
+<p>(EDI's <code>edmatwan2bloch_2d</code>: conjugate phase on the bra $k_i$, direct phase on the ket $k_f$, divided by the WS degeneracies). (G.2) returns the object in the <strong>Wannier gauge</strong>; rotate to the band gauge at the interpolated $k$ with the Hamiltonian eigenvectors $U^{H}(k)$ from diagonalizing the interpolated $H_W(k)$ (<code>hamwan2bloch_with_evec</code>):</p>
+<div class="math">
+$$
+\tilde V_B(k_i,k_f)=U^{H\dagger}(k_i)\,\tilde V^{W}(k_i,k_f)\,U^{H}(k_f).
+\tag{G.3}
+$$
+</div>
+<p><strong>Locality / why interpolation is controlled.</strong> $\tilde V=V_{PP}+V_{PQ}\mathcal G^Q V_{QP}$ is the bare local defect block plus a <em>localized</em> rest self-energy (the rest response $|\delta\psi^R\rangle$ is short-ranged for a gapped rest), so $\tilde V(R_e,R_p)$ decays in $|R_e|,|R_p|,|R_e-R_p|$ just like EDI's $M(R,R')$ (<code>diagonal_approx.md</code>). Monitor a <code>decay.V</code> plot (analog of EDI's <code>decay.M</code> from <code>edbloch2wane</code>).</p>
+<h3>10.4 Two routes to $T_{PP}$ on the fine grid</h3>
+<div class="table-wrap"><table><thead><tr><th></th><th>route</th><th>when</th></tr></thead><tbody><tr><td><strong>B1</strong></td><td><strong>Wannierize $T_{PP}$ directly</strong>: build $T_{PP}(k_i,k_f)$ on the <em>coarse</em> grid (active inversion §9), then apply (G.1)–(G.3) with $\tilde V\!\to\!T_{PP}$. Identical code path.</td><td>default <em>iff</em> $T_{PP}(R_e,R_p)$ decays</td></tr><tr><td><strong>B2</strong></td><td><strong>Wannierize $\tilde V$ (short-ranged), resum on the fine grid</strong>: interpolate $\tilde V$ via (G.2)–(G.3), then solve the active Dyson equation (below) iteratively per energy.</td><td>when $T_{PP}$ is long-ranged (near-resonant / bound states)</td></tr></tbody></table></div>
+<p><strong>Caveat for B1.</strong> The resummation $T_{PP}=[1-\tilde V G^A]^{-1}\tilde V$ can be <strong>longer-ranged</strong> than $\tilde V$: multiple scattering and any near-shell resonance spread the effective range in $(R_e,R_p)$. So <strong>check the <code>decay.T</code> of $T_{PP}(R_e,R_p)$</strong> before trusting B1; if it does not decay within the coarse WS cell, use B2 (which only ever interpolates the short-ranged $\tilde V$).</p>
+<p><strong>B2 Dyson equation (active space, fine grid).</strong> With $G^A(\omega)$ diagonal in the band/$k$ basis,</p>
+<div class="math">
+$$
+T_{PP}(k_i,k_f;\omega)=\tilde V_B(k_i,k_f)
++\frac{1}{N_k^{\rm f}}\sum_{k'}\sum_{a\in A(k')}
+\tilde V_B(k_i,k')\,\frac{|a k'\rangle\langle a k'|}{\omega-\varepsilon_{a k'}+i\eta}\,T_{PP}(k',k_f;\omega),
+\tag{G.4}
+$$
+</div>
+<p>solved by fixed-point/GMRES iteration using interpolated $\tilde V_B$ as a matvec — never forming the dense inverse. The $1/N_k^{\rm f}$ turns the $k'$-sum into a BZ average; the resolvent is dominated by the energy shell $\varepsilon_{ak'}\approx\omega$.</p>
+<h3>10.5 Transport (reuse EDI unchanged)</h3>
+<p>The on-shell $T$-matrix replaces $M$ in Fermi's golden rule,</p>
+<div class="math">
+$$
+\frac{1}{\tau_{nk}}=\frac{2\pi}{\hbar}\,n_d\,\frac{1}{N_k}\sum_{m,k'}
+\big|\,T_{PP,nm}(k,k';\,\omega{=}\varepsilon_{nk})\,\big|^{2}\,
+\delta(\varepsilon_{nk}-\varepsilon_{mk'}),
+$$
+</div>
+<p>i.e. in <code>compute_transport</code> the only change is <code>ABS(edmatf_b)**2 → ABS(Tpp_b)**2</code>; IBZ symmetry, SERTA/MRTA, <code>delta_weights</code>, and the Fermi-level bisection are reused verbatim. The Born limit $T_{PP}\to\tilde V\to M$ reproduces today's EDI mobility (test <strong>T1</strong>).</p>
+<pre><code class="language-fortran">! ---- coarse: Layer 1 (+ optional Layer 2 for route B1) ----
+CALL edbloch2wane(nbnd_kept, nbndsub, nks, nkstot, xk, cu, cuq, &amp;   ! (G.1) double FT  [reuse EDI]
+                  Vtilde_B, nrr, irvec, wslen, Vtilde_W)            ! -&gt; Vtilde(R_e,R_p); writes decay.V
+! route B1: replace Vtilde_B by Tpp_B (active_tmatrix on coarse grid) before the FT, check decay.T
+
+! ---- fine grid: per (k_i,k_f) ----
+CALL get_cfac(nrr, irvec, xk_i_cryst, cfac_ki)                      ! exp(i k_i·R)   [reuse EDI]
+CALL get_cfac(nrr, irvec, xk_f_cryst, cfac_kf)
+CALL edmatwan2bloch_2d(nbndsub, nrr, ndegen, Vtilde_W, cfac_ki, cfac_kf, Vtilde_Wf)  ! (G.2) [reuse]
+! band gauge (G.3): Vtilde_Bf = U^H(k_i)^dagger · Vtilde_Wf · U^H(k_f)   (evec from hamwan2bloch_with_evec)
+!   route B1: same for Tpp_W -&gt; Tpp_Bf
+!   route B2: solve (G.4) for Tpp_Bf using Vtilde_Bf as the matvec
+
+! ---- golden rule (reuse transport.f90 kernel) ----
+!   inv_tau += twopi * n_d * wqf * ABS(Tpp_Bf(n,m))**2 * w_delta      (was ABS(edmatf_b)**2)</code></pre>
 </section>
 <section id="sec-11"><h2>11. Parallelization (mirror EDI + the codex run)</h2>
 <ul><li><strong>Outer:</strong> distribute <em>source states</em> $(\text{initial }k_i,\ \text{active band }n)$ across MPI images / pools (EDI's <code>mp_pools</code> + panel-broadcast pattern). The reference codex run did fixed $k_i$, rest/final $k=1\!:\!144$, <strong>1584 RHS solves</strong> in $\sim$2h27m on 72 image-MPI ranks — EDT reproduces this layout.</li><li><strong>Inner:</strong> per source, the rest-$k'$ channel solves (§6, over the full-BZ rest grid <code>rest_nk*</code>) are independent → vectorize as <code>nrhs</code> columns to <code>ccgsolve_all</code>, or split across the pool. The rest grid is typically the dominant cost (sources × rest-$k'$ × solve), so its density is the main convergence/cost knob.</li><li><strong>Reductions:</strong> the rest-term contraction (§8) sums over channels with <code>mp_sum(inter_pool_comm)</code>, like <code>edbloch2wane</code>.</li><li>Cache per-$k$ real-space wavefunctions and <code>becd</code>/<code>becp</code> once (EDI already does this in <code>ed_coarse_full_q</code>).</li></ul>
@@ -274,7 +352,7 @@ edt.x : $(EDT_OBJS) ; $(LD) -o $@ $(EDT_OBJS) $(EDIOBJS) $(PWOBJS) $(QEMODS) $(Q
 <p>(If EDI's <code>.o</code> ABI drifts, vendor the handful of reused EDI source files into <code>edt/src/</code> instead.)</p>
 </section>
 <section id="sec-14"><h2>14. Validation &amp; tests (feed the website Test Catalog)</h2>
-<div class="table-wrap"><table><thead><tr><th>#</th><th>Test</th><th>Pass criterion</th><th>Maps to</th></tr></thead><tbody><tr><td>T1</td><td><strong>Born limit</strong></td><td><code>dress_order=0, active_resum=.false.</code> and rest-term zeroed ⇒ $\tilde V \equiv M$ to $\lesssim10^{-12}$ Ry vs <code>ed_coarse_full_q</code></td><td>regression vs EDI</td></tr><tr><td>T2</td><td><strong>Sternheimer vs explicit sum</strong></td><td>$\tilde V^{(2)}$ from <code>ccgsolve</code> matches the explicit finite-rest-band sum $\sum_{r\in R}V_{Pr}V_{rP}/(\omega_0-\varepsilon_r)$ as band cutoff → all</td><td><code>research.md</code> §3.2; codex "explicit vs QE Sternheimer"</td></tr><tr><td>T3</td><td><strong>Solver health</strong></td><td>all RHS converge below <code>sternheimer_thr</code>; report residual, $A_0(k)$ smallest-$|{\rm eig}|$ / condition number vs $\lVert V\rVert$</td><td><code>research.md</code> §10</td></tr><tr><td>T4</td><td><strong>Ladder convergence</strong></td><td>successive ratio $\to\rho\sim\lVert V_{QQ}\rVert/\Delta\ll1$; $\tilde V$(dressed) stable vs <code>dress_order</code></td><td>§7, §10</td></tr><tr><td>T5</td><td><strong>Gauge sanity</strong></td><td>$\lVert U^\dagger U-I\rVert\!\lesssim\!10^{-13}$; $\tilde V$ invariant under $U^\dagger(\!\cdot\!)U$</td><td>EDI <code>filukk</code></td></tr><tr><td>T6</td><td><strong>$k$-MPI invariance</strong></td><td>result independent of pool/image count to machine precision</td><td>codex image-MPI check</td></tr><tr><td>T7</td><td><strong>Active resummation</strong></td><td>coarse-grid $T_{PP}$ vs fine-grid iterative Dyson agree within tol; $T_{PP}\to\tilde V$ as $G^A\to0$</td><td>§9</td></tr><tr><td>T9</td><td><strong>Rest BZ-grid convergence</strong></td><td>$\lVert\tilde V\rVert$ (and mobility) converge as <code>rest_nk*</code> densifies over the <em>full</em> BZ; result is <strong>independent of the supercell folding set</strong></td><td><code>research.md</code> §2; §5 callout; codex rest-k table</td></tr><tr><td>T8</td><td><strong>Transport</strong></td><td>mobility with $|T_{PP}|^2$ vs EDI $|M|^2$; quantify beyond-Born shift</td><td><code>transport.f90</code></td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>Test</th><th>Pass criterion</th><th>Maps to</th></tr></thead><tbody><tr><td>T1</td><td><strong>Born limit</strong></td><td><code>dress_order=0, active_resum=.false.</code> and rest-term zeroed ⇒ $\tilde V \equiv M$ to $\lesssim10^{-12}$ Ry vs <code>ed_coarse_full_q</code></td><td>regression vs EDI</td></tr><tr><td>T2</td><td><strong>Sternheimer vs explicit sum</strong></td><td>$\tilde V^{(2)}$ from <code>ccgsolve</code> matches the explicit finite-rest-band sum $\sum_{r\in R}V_{Pr}V_{rP}/(\omega_0-\varepsilon_r)$ as band cutoff → all</td><td><code>research.md</code> §3.2; codex "explicit vs QE Sternheimer"</td></tr><tr><td>T3</td><td><strong>Solver health</strong></td><td>all RHS converge below <code>sternheimer_thr</code>; report residual, $A_0(k)$ smallest-$|{\rm eig}|$ / condition number vs $\lVert V\rVert$</td><td><code>research.md</code> §10</td></tr><tr><td>T4</td><td><strong>Ladder convergence</strong></td><td>successive ratio $\to\rho\sim\lVert V_{QQ}\rVert/\Delta\ll1$; $\tilde V$(dressed) stable vs <code>dress_order</code></td><td>§7, §10</td></tr><tr><td>T5</td><td><strong>Gauge sanity</strong></td><td>$\lVert U^\dagger U-I\rVert\!\lesssim\!10^{-13}$; $\tilde V$ invariant under $U^\dagger(\!\cdot\!)U$</td><td>EDI <code>filukk</code></td></tr><tr><td>T6</td><td><strong>$k$-MPI invariance</strong></td><td>result independent of pool/image count to machine precision</td><td>codex image-MPI check</td></tr><tr><td>T7</td><td><strong>Active resummation</strong></td><td>coarse-grid $T_{PP}$ (B1) vs fine-grid iterative Dyson (B2) agree within tol; $T_{PP}\to\tilde V$ as $G^A\to0$; <code>decay.V</code>/<code>decay.T</code> decide B1-vs-B2</td><td>§9, §10.4</td></tr><tr><td>T9</td><td><strong>Rest BZ-grid convergence</strong></td><td>$\lVert\tilde V\rVert$ (and mobility) converge as <code>rest_nk*</code> densifies over the <em>full</em> BZ; result is <strong>independent of the supercell folding set</strong></td><td><code>research.md</code> §2; §5 callout; codex rest-k table</td></tr><tr><td>T8</td><td><strong>Transport</strong></td><td>mobility with $|T_{PP}|^2$ vs EDI $|M|^2$; quantify beyond-Born shift</td><td><code>transport.f90</code></td></tr></tbody></table></div>
 <p>Each test emits an <code>ionode</code> report + a small CSV (numbers only), summarized as a row in the <code>claude-sternheimer</code> site Test Catalog (see repo <code>CLAUDE.md</code> for the page recipe). <strong>Never</strong> publish wavefunctions/cubes/<code>.npy</code>/logs.</p>
 </section>
 <section id="sec-15"><h2>15. Milestones</h2>
