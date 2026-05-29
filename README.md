@@ -17,9 +17,11 @@ forthcoming and are listed as *Planned* in the landing-page Test Catalog.
 | `docs/` | The published GitHub Pages site (this is what Pages serves). |
 | `docs/index.html` | Landing page: **Test Catalog** + executive summary + method-at-a-glance. |
 | `docs/pages/theory.html` | Full theory & method note, MathJax-rendered. |
+| `docs/pages/plan.html` | EDT package implementation plan (outline + code snippets), MathJax-rendered. |
 | `docs/assets/style.css` | Shared stylesheet for all pages. |
 | `research.md` | **Source** theory & method note (Markdown + LaTeX). |
-| `tools/build_site.py` | Regenerates `docs/` from `research.md` (Python stdlib only). |
+| `plan.md` | **Source** implementation plan for the EDT package. |
+| `tools/build_site.py` | Regenerates `docs/` from `research.md` + `plan.md` (Python stdlib only). |
 | `content/` | Reserved for additional per-test Markdown sources. |
 
 ## Build
@@ -33,8 +35,8 @@ conda activate Tmat            # or: /home/x-rg47749/.conda/envs/2024.02-py311/T
 python tools/build_site.py
 ```
 
-This rewrites `docs/index.html` and `docs/pages/theory.html`. Open them locally in a
-browser to verify the MathJax rendering before publishing.
+This rewrites `docs/index.html`, `docs/pages/theory.html`, and `docs/pages/plan.html`. Open them
+locally in a browser to verify the MathJax rendering before publishing.
 
 ## Math rendering
 

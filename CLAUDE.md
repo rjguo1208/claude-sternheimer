@@ -59,9 +59,13 @@ Stdlib-only Markdown→HTML converter. Key invariant: it **protects** fenced cod
 `$…$`, and `` `code` `` as placeholders *before* any Markdown processing, then restores math
 **verbatim** (raw) and code **HTML-escaped**. So MathJax — not the converter — renders math.
 
-- `convert_research()` turns `research.md` into the theory page (title/subtitle → header,
-  each `## ` section → a `<section>` panel, `### ` → `<h3>`, pipe tables, blockquotes, lists,
-  fenced code, display/inline math). Section ids are `sec-<N>`; an auto TOC is built from `## `.
+- `convert_doc(md, want_subtitle)` turns any Markdown doc into HTML pieces: H1 → header title,
+  optional H3 → subtitle, content before the first `## ` → **preamble**, each `## ` section → a
+  `<section>` panel, `### ` → `<h3>`, pipe tables, blockquotes, lists, fenced code, display/inline
+  math. Section ids are `sec-<N>`; an auto TOC is built from `## `.
+- `build_theory()` (`research.md`, `want_subtitle=True`) and `build_plan()` (`plan.md`,
+  `want_subtitle=False`) both call `convert_doc`, then wrap with `page_shell` + `_topnav`. Copy one
+  of them for a new page, and **add a link in `_topnav`**.
 - `CATALOG` (a Python list) drives the landing-page Test Catalog table.
 - `build_index()` assembles the landing page from `CATALOG` + summary/glance/warnings blocks.
 - Self-checks print section/eq/table counts and assert no placeholder leaked (`\x00`).
@@ -71,9 +75,9 @@ Stdlib-only Markdown→HTML converter. Key invariant: it **protects** fenced cod
 1. Put the writeup in `content/<test>.md` (Markdown + LaTeX, same conventions as `research.md`).
    Summarize numbers in **tables**; copy any figures to `docs/assets/` and reference relatively.
 2. In `tools/build_site.py`:
-   - add a small `build_<test>()` (mirror `build_theory()`; or generalize it to take a source
-     path + output path), writing `docs/pages/<test>.html`;
-   - add a row to `CATALOG` with the right **Status** badge, date, one-line key result, and link.
+   - add a small `build_<test>()` (mirror `build_plan()`: read the file, `convert_doc(md, want_subtitle=False)`,
+     wrap with `page_shell`+`_topnav`), writing `docs/pages/<test>.html`;
+   - add a link in `_topnav`, and a row to `CATALOG` with the right **Status** badge, date, one-line result, link.
 3. Rebuild and verify:
    ```bash
    ml anaconda && conda activate Tmat

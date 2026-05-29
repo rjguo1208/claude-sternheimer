@@ -24,6 +24,7 @@ import os, re, html, datetime
 
 ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESEARCH  = os.path.join(ROOT, "research.md")
+PLAN      = os.path.join(ROOT, "plan.md")
 DOCS      = os.path.join(ROOT, "docs")
 PAGES_DIR = os.path.join(DOCS, "pages")
 
@@ -170,50 +171,49 @@ def _parse_blocks(md):
         out.append("<p>%s</p>" % _inline(" ".join(b.strip() for b in buf)))
     return "\n".join(out)
 
-def convert_research(md):
-    """Return dict(title_html, subtitle_html, body_html, toc) for research.md."""
+def convert_doc(md, want_subtitle=True):
+    """Convert a Markdown doc (research.md / plan.md / per-test) to HTML pieces.
+    Returns dict(title, subtitle, preamble, body, toc). 'preamble' is any content
+    between the H1 (and optional H3 subtitle) and the first '## ' section."""
     lines = md.split("\n")
     title_md = lines[0][2:].strip() if lines[0].startswith("# ") else SITE_TITLE
-    subtitle_md = ""
-    body_start = 1
-    for j in range(1, min(8, len(lines))):
-        if lines[j].startswith("### "):
-            subtitle_md = lines[j][4:].strip(); body_start = j + 1; break
-        if lines[j].startswith("## "):
-            body_start = j; break
-    # locate first '## '
-    for j in range(body_start, len(lines)):
-        if lines[j].startswith("## "):
-            body_start = j; break
-    body_md = "\n".join(lines[body_start:])
+    start, subtitle_md = 1, ""
+    if want_subtitle:
+        for j in range(1, min(8, len(lines))):
+            if lines[j].startswith("### "):
+                subtitle_md = lines[j][4:].strip(); start = j + 1; break
+            if lines[j].startswith("## "):
+                break
+    rest_md = "\n".join(lines[start:])
 
     store = {"c": [], "d": [], "i": [], "k": []}
-    body_md = _protect(body_md, store)
+    rest_md = _protect(rest_md, store)
 
-    # split into H2 sections
-    seclines = body_md.split("\n")
-    sections, cur = [], None
-    for ln in seclines:
+    # preamble (before first '## ') + H2 sections
+    pre_lines, sections, cur = [], [], None
+    for ln in rest_md.split("\n"):
         if ln.startswith("## "):
             if cur: sections.append(cur)
             cur = {"head": ln[3:].strip(), "body": []}
         elif re.match(r"^---+\s*$", ln.strip()):
             continue
+        elif cur is None:
+            pre_lines.append(ln)
         else:
-            if cur is not None: cur["body"].append(ln)
+            cur["body"].append(ln)
     if cur: sections.append(cur)
+
+    preamble_html = _parse_blocks("\n".join(pre_lines)) if any(l.strip() for l in pre_lines) else ""
 
     toc, html_sections = [], []
     for s in sections:
-        slug = _slug(s["head"])
-        head_html = _inline(s["head"])
+        slug = _slug(s["head"]); head_html = _inline(s["head"])
         toc.append((slug, head_html))
         inner = _parse_blocks("\n".join(s["body"]))
         html_sections.append(
             '<section id="%s"><h2>%s</h2>\n%s\n</section>' % (slug, head_html, inner))
     body_html = "\n".join(html_sections)
 
-    # title/subtitle may contain inline math -> protect+restore via the same store-less path
     def inline_only(t):
         st = {"c": [], "d": [], "i": [], "k": []}
         return _restore(_inline(_protect(t, st)), st)
@@ -221,6 +221,7 @@ def convert_research(md):
     return {
         "title": inline_only(title_md),
         "subtitle": inline_only(subtitle_md),
+        "preamble": _restore(preamble_html, store),
         "body": _restore(body_html, store),
         "toc": [(sl, _restore(tx, store)) for sl, tx in toc],
     }
@@ -242,8 +243,9 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s</div></nav>' % (a("index.html", "Home", "home"),
-                                   a("pages/theory.html", "Theory &amp; Method", "theory")))
+            '%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+                                    a("pages/theory.html", "Theory &amp; Method", "theory"),
+                                    a("pages/plan.html", "Implementation Plan", "plan")))
 
 def page_shell(title, head_html, nav_html, body_html, css_href):
     return """<!doctype html><html lang="en"><head>
@@ -267,7 +269,7 @@ binaries, or logs are published.</footer>
 def build_theory():
     with open(RESEARCH, encoding="utf-8") as f:
         md = f.read()
-    r = convert_research(md)
+    r = convert_doc(md, want_subtitle=True)
     toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
     header = ('<header><div class="header-inner"><h1>{t}</h1>'
               '<p class="subtitle">{s}</p>'
@@ -278,10 +280,33 @@ def build_theory():
              ).format(t=r["title"], s=r["subtitle"], n=len(r["toc"]), d=GEN_DATE)
     toc_section = ('<section id="contents"><h2>Contents</h2>'
                    '<div class="toc">%s</div></section>' % toc_links)
-    body = toc_section + "\n" + r["body"]
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
     out = page_shell(SITE_TITLE + " — Theory & Method",
                      header, _topnav("theory", prefix="../"), body, "../assets/style.css")
     with open(os.path.join(PAGES_DIR, "theory.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
+def build_plan():
+    with open(PLAN, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=False)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>EDT &mdash; Implementation Plan</h1>'
+              '<p class="subtitle">How to build the downfolding + Sternheimer electron&ndash;defect '
+              '$T$-matrix package on Quantum ESPRESSO, reusing the EDI code for $\\Delta V$, '
+              'Wannier rotation/interpolation, and transport.</p>'
+              '<div class="meta"><span class="pill">Implementation plan</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">MathJax v3</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " — Implementation Plan",
+                     header, _topnav("plan", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "plan.html"), "w", encoding="utf-8") as f:
         f.write(out)
     return r
 
@@ -293,6 +318,11 @@ CATALOG = [
      "(exact to all orders in $V_{QQ}$) feeding an exact active-space inversion "
      "$T_{PP}=[1-\\tilde V G^A]^{-1}\\tilde V$.",
      '<a href="pages/theory.html">Open theory &amp; method &rarr;</a>'),
+    ("EDT package implementation plan", "Plan", GEN_DATE, "ok", "Complete",
+     "File-by-file outline + code snippets for the QE plug-in: reuses EDI for $\\Delta V$/Wannier/transport; "
+     "new rest-space Sternheimer solve (QE <code>ccgsolve_all</code>), $V_{QQ}$ ladder, $\\tilde V$ assembly, "
+     "and the small active inversion. Rest sum over the full BZ.",
+     '<a href="pages/plan.html">Open implementation plan &rarr;</a>'),
     ("Rest-space partial $T$-matrix (numerical)", "Test", "&mdash;", "plan", "Planned",
      "Numerical $\\tilde V=PT^RP$ from the per-$k$ Sternheimer solve; validate against a "
      "finite-rest-band explicit sum and the Born limit $T\\!\\to\\!V$.", "&mdash;"),
@@ -318,8 +348,8 @@ def build_index():
     catalog = (
         '<section id="catalog"><h2>Test Catalog</h2>'
         '<p>One row per piece of work: what it is, when, status, the key result, and a link. '
-        'No numerical tests have been run yet &mdash; the theory/method note is complete and the '
-        'planned validation tests below follow directly from it.</p>'
+        'The theory/method note and the EDT implementation plan are complete; no numerical tests '
+        'have been run yet &mdash; the planned validation tests below follow directly from them.</p>'
         '<div class="table-wrap"><table><thead><tr>'
         '<th>Item</th><th>Type</th><th>Date</th><th>Status</th><th>Key result / summary</th><th>Link</th>'
         '</tr></thead><tbody>%s</tbody></table></div>'
@@ -399,26 +429,32 @@ def build_index():
 # ======================================================================
 def main():
     os.makedirs(PAGES_DIR, exist_ok=True)
-    r = build_theory()
+    build_theory()
+    build_plan()
     build_index()
 
     th = open(os.path.join(PAGES_DIR, "theory.html"), encoding="utf-8").read()
-    ix = open(os.path.join(DOCS, "index.html"), encoding="utf-8").read()
+    pl = open(os.path.join(PAGES_DIR, "plan.html"),   encoding="utf-8").read()
+    ix = open(os.path.join(DOCS, "index.html"),       encoding="utf-8").read()
 
-    def check(name, txt):
+    def check(txt):
         problems = []
         if NUL in txt: problems.append("UNRESTORED placeholder (\\x00) present!")
         leftover = re.findall(r"%s[A-Z]\d+%s" % (NUL, NUL), txt)
         if leftover: problems.append("leftover tokens: %s" % leftover[:5])
         return problems
 
+    def stats(name, txt):
+        print("%-12s: %d bytes, %d sections, %d display-eq, %d tables, %d <pre>" % (
+            name, len(txt), txt.count('<section id="sec-'),
+            txt.count('class="math"'), txt.count("<table>"), txt.count("<pre>")))
+
     print("=== build_site.py ===")
-    print("theory.html : %d bytes, %d sections, %d display-eq, %d tables, %d <pre>" % (
-        len(th), th.count('<section id="sec-') + th.count('<section id="rel'),
-        th.count('class="math"'), th.count("<table>"), th.count("<pre>")))
+    stats("theory.html", th)
+    stats("plan.html",   pl)
     print("index.html  : %d bytes, %d catalog rows" % (len(ix), ix.count("<tr")))
-    for nm, txt in (("theory.html", th), ("index.html", ix)):
-        p = check(nm, txt)
+    for nm, txt in (("theory.html", th), ("plan.html", pl), ("index.html", ix)):
+        p = check(txt)
         print("  [%s] %s" % (nm, "OK" if not p else " ; ".join(p)))
 
 if __name__ == "__main__":

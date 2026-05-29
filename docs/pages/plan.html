@@ -1,0 +1,291 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sternheimer Electron-Defect T-matrix — Implementation Plan</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head><body>
+<nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/plan.html" style="color:#fff;text-decoration:underline">Implementation Plan</a></div></nav>
+<header><div class="header-inner"><h1>EDT &mdash; Implementation Plan</h1><p class="subtitle">How to build the downfolding + Sternheimer electron&ndash;defect $T$-matrix package on Quantum ESPRESSO, reusing the EDI code for $\Delta V$, Wannier rotation/interpolation, and transport.</p><div class="meta"><span class="pill">Implementation plan</span><span class="pill">17 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<main>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-0">0. The algorithm in one paragraph (and where each piece comes from)</a><a href="#sec-1">1. Theory recap (see <code>research.md</code> for derivations)</a><a href="#sec-2">2. Architecture</a><a href="#sec-3">3. Active/rest partition in code</a><a href="#sec-4">4. Stage A — inputs (reuse EDI verbatim)</a><a href="#sec-5">5. Stage B — Sternheimer source $|s\rangle = Q\,\Delta V\,|n k_i\rangle$ (reuse EDI ΔV-action)</a><a href="#sec-6">6. Stage C — the per-$k$ Sternheimer solve (NEW core)</a><a href="#sec-7">7. Stage D — $k$-decoupled rest dressing ladder (NEW, optional)</a><a href="#sec-8">8. Stage E — assemble $\tilde V$ (Hermitian bilinear form)</a><a href="#sec-9">9. Stage F — active-layer resummation $T_{PP}(\omega)$ (NEW, small dense solve)</a><a href="#sec-10">10. Stage G — Wannierize, interpolate, transport (reuse EDI)</a><a href="#sec-11">11. Parallelization (mirror EDI + the codex run)</a><a href="#sec-12">12. Input namelist <code>&amp;edt_nml</code> (extends EDI's <code>&amp;edinput_nml</code>)</a><a href="#sec-13">13. Build system</a><a href="#sec-14">14. Validation &amp; tests (feed the website Test Catalog)</a><a href="#sec-15">15. Milestones</a><a href="#sec-16">16. File checklist</a></div></section>
+<p>A QE-based package that computes the electron–defect <strong>$T$-matrix</strong> beyond the first Born approximation, using the active/rest (cRPA-style) downfolding and the $k$-decoupled Sternheimer solve described in <a href="research.md"><code>research.md</code></a>. It is built as a Quantum ESPRESSO plug-in that <strong>reuses the EDI code</strong> (<code>/anvil/projects/x-che190065/rjguo/qe-7.5/edi-dev</code>) for everything to do with the difference potential, the Wannier rotation, and the matrix-element / transport machinery; the genuinely new code is the Sternheimer rest-dressing layer and the small active-space resummation.</p>
+<blockquote><p>Working name: <strong>EDT</strong> (Electron–Defect <em>T</em>-matrix), executable <code>edt.x</code>. It can ship either as a sibling plug-in next to <code>edi-dev/</code> or as a new run-mode inside EDI; this plan assumes a sibling that links EDI's compiled objects (see §13).</p></blockquote>
+<section id="sec-0"><h2>0. The algorithm in one paragraph (and where each piece comes from)</h2>
+<p>For each active Bloch state $|n k_i\rangle$ we (i) form the source $|s\rangle = Q\,\Delta V\,|n k_i\rangle$ [<strong>EDI</strong> $\Delta V$-action], (ii) solve the per-$k'$ Sternheimer equation $Q(\omega_0-H_0)Q\,|\chi\rangle = |s\rangle$ for the rest-space response <strong>on a dense full-BZ $k'$-grid</strong> (the defect scatters into a continuum of $k'$, not the supercell folding set — §5) [<strong>NEW</strong>, QE <code>ccgsolve_all</code>+<code>h_psi</code>], (iii) optionally dress it to all orders in $V_{QQ}$ by a $k$-decoupled ladder [<strong>NEW</strong>], then (iv) assemble the downfolded effective potential $\tilde V_{m k_f,\,n k_i}=\langle m k_f|\Delta V|n k_i\rangle+\langle\chi_{m k_f}|(\omega_0-H_0^Q-V_{QQ})|\chi_{n k_i}\rangle$ [bilinear form, Hermitian]. Finally (v) the active-space dynamics are resummed by the small inversion $T_{PP}(\omega)=[1-\tilde V\,G^A(\omega)]^{-1}\tilde V$ [<strong>NEW</strong>, small dense solve], (vi) $\tilde V$/$T_{PP}$ are Wannierized and interpolated to a fine grid [<strong>EDI</strong> <code>edbloch2wane</code>/<code>edmatwan2bloch_2d</code>], and $|T_{PP}|^2$ replaces $|M|^2$ in the golden-rule rate [<strong>EDI</strong> <code>compute_transport</code>].</p>
+<p>Setting the rest response to zero recovers $\tilde V\to\Delta V$ and, with the active resummation off, $T_{PP}\to M$ — i.e. <strong>exactly today's EDI first-Born result</strong>. That is the primary regression test (§14).</p>
+</section>
+<section id="sec-1"><h2>1. Theory recap (see <code>research.md</code> for derivations)</h2>
+<p>Active projector $P$ (bands near $\omega_0$), rest $Q=1-P$, $[P,H_0]=0$. Host propagator splits $G_0=G^A+G^R$. Two layers:</p>
+<ul><li><strong>Layer 1 (rest, static):</strong> Feshbach downfolding gives the <em>exact</em> (2nd-order-in-coupling) effective potential <div class="math">
+$$\tilde V(\omega)=V_{PP}+V_{PQ}\,\mathcal G^Q(\omega)\,V_{QP},\qquad \mathcal G^Q=[\omega-H_0^Q-V_{QQ}]^{-1},$$
+</div> obtained from the <strong>dressed Sternheimer equation</strong> <div class="math">
+$$Q(\omega_0-H_0-V)Q\,|\delta\psi_n^R\rangle = Q\,V\,|n\rangle,\qquad P|\delta\psi_n^R\rangle=0 ,$$
+</div> whose operator is lattice-periodic ⇒ <strong>block-diagonal in $k$</strong> (bare) and reachable to all orders in $V_{QQ}$ by a $k$-decoupled Neumann/GMRES ladder (<code>research.md</code> §7–§9).</li><li><strong>Layer 2 (active, dynamic):</strong> exact resummation <div class="math">
+$$T_{PP}(\omega)=[1-\tilde V\,G^A(\omega)]^{-1}\tilde V .$$
+</div></li></ul>
+<p>EDI today computes only $M=\langle\psi|\Delta V|\psi'\rangle=T^{(1)}$ (first Born). EDT adds Layers 1–2.</p>
+</section>
+<section id="sec-2"><h2>2. Architecture</h2>
+<pre><code>                ┌─────────────────────────  EDT pipeline  ─────────────────────────┐
+ QE NSCF  ─┐    │ A. inputs        B. source        C. Sternheimer    D. dress      │
+ (primit.) │    │  ΔV=V_colin       |s&gt;=QΔV|nk_i&gt;     Q(ω0−H0)Q|χ&gt;=|s&gt;   ladder V_QQ  │
+ SC pots  ─┼──▶ │  U(k),H_W=chw  ─▶ (EDI ΔV-action)─▶ (QE ccgsolve)  ─▶ (Neumann)─┐  │
+ (def/pri) │    │  active set                                                    │  │
+           │    │ E. assemble Ṽ  ◀───────────────────────────────────────────────┘  │
+           │    │  Ṽ = &lt;m|ΔV|n&gt; + &lt;χ_m|(ω0−H0^Q−V_QQ)|χ_n&gt;   (Hermitian bilinear)    │
+           │    │ F. active T_PP = [1−Ṽ G^A(ω)]^{-1} Ṽ   (small dense solve)         │
+           │    │ G. Wannierize Ṽ/T_PP → M(R,R&#x27;) → fine grid → transport |T_PP|^2   │
+           │    └───────────────────────────────────────────────────────────────────┘
+           └─ reuse EDI: load_supercell_pot, build_vcolin_*, range_sep, get_betavkb,
+              read_filukk_edi, read_hr_file, hamwan2bloch_with_evec, edbloch2wane,
+              edmatwan2bloch_2d, compute_transport</code></pre>
+<h3>Module map</h3>
+<div class="table-wrap"><table><thead><tr><th>Module / file</th><th>Status</th><th>Role</th></tr></thead><tbody><tr><td><code>edt.f90</code></td><td><strong>new</strong></td><td>main program: input, orchestration of stages A–G</td></tr><tr><td><code>edt_input.f90</code></td><td><strong>new</strong></td><td><code>&amp;edt_nml</code> namelist (extends <code>edinput_nml</code>)</td></tr><tr><td><code>edt_partition.f90</code></td><td><strong>new</strong></td><td>active/rest definition $P(k),Q(k)$; <code>apply_Qproj</code></td></tr><tr><td><code>edt_source.f90</code></td><td><strong>new</strong></td><td>$|s\rangle=Q\,\Delta V|nk_i\rangle$ (wraps EDI ΔV-action as a <em>ket</em>)</td></tr><tr><td><code>edt_sternheimer.f90</code></td><td><strong>new</strong></td><td><code>ch_psi_rest</code>, <code>solve_sternheimer_k</code>, complex shift</td></tr><tr><td><code>edt_dress.f90</code></td><td><strong>new</strong></td><td>$k$-decoupled $V_{QQ}$ ladder (Neumann/GMRES)</td></tr><tr><td><code>edt_vtilde.f90</code></td><td><strong>new</strong></td><td>assemble $\tilde V_{mk_f,nk_i}$ (bilinear form, Hermitian)</td></tr><tr><td><code>edt_active.f90</code></td><td><strong>new</strong></td><td>$G^A(\omega)$ + small inversion $T_{PP}$</td></tr><tr><td><code>ed_coarse.f90</code></td><td><strong>reuse</strong></td><td><code>load_supercell_pot</code>,<code>build_vcolin_*</code>,<code>read_filukk_edi</code>,<code>read_edmatw_2d_file</code>, the ΔV local-fold + KB nonlocal kernels</td></tr><tr><td><code>range_sep.f90</code></td><td><strong>reuse</strong></td><td>LR/SR split (route SR through Sternheimer, LR analytic)</td></tr><tr><td><code>get_betavkb.f90</code></td><td><strong>reuse</strong></td><td>supercell KB projectors $|\beta^{d/p}(k)\rangle$</td></tr><tr><td><code>wan2bloch.f90</code></td><td><strong>reuse</strong></td><td><code>hamwan2bloch_with_evec</code> → $\varepsilon_a(k),U(k)$ for $G^A$</td></tr><tr><td><code>edbloch2wan.f90</code></td><td><strong>reuse</strong></td><td>$\tilde V(k_i,k_f)\to\tilde V(R,R')$ (double FT)</td></tr><tr><td><code>transport.f90</code></td><td><strong>reuse</strong></td><td>golden-rule rate / SERTA-MRTA with $|T_{PP}|^2$</td></tr><tr><td><code>edic_mod.f90</code></td><td><strong>reuse</strong></td><td><code>V_file</code>, <code>V_d/V_p</code>, <code>V_colin</code>, shared state</td></tr><tr><td>QE <code>LR_Modules</code> (<code>liblrmod.a</code>)</td><td><strong>link</strong></td><td><code>cgsolve_all</code> / <code>ccgsolve_all</code>, <code>cg_psi</code></td></tr><tr><td>QE <code>PW/src</code> (<code>libpw.a</code>)</td><td><strong>link</strong></td><td><code>h_psi</code>, <code>g_psi</code>, <code>calbec</code>, FFT, <code>read_file_new</code></td></tr></tbody></table></div>
+</section>
+<section id="sec-3"><h2>3. Active/rest partition in code</h2>
+<p>The decisive design choice (<code>research.md</code> §8): the projector lives <strong>in the source/solution</strong>, never inside a $k$-coupled operator, so each $k$ is independent.</p>
+<ul><li><strong>Active set</strong> $A(k)$: kept bands ( <code>excluded_band</code> filter ) whose interpolated energy lies in the window <code>[active_win_min, active_win_max]</code> (= EDI's transport window / Wannier disentanglement window). Stored as a per-$k$ logical mask <code>is_active(ibnd,ik)</code> plus the count <code>n_act(ik)</code>.</li><li><strong>$\omega_0$</strong> = window center (input <code>omega0</code>, default = midpoint or VBM/$E_F$).</li><li><strong>$Q$</strong> = "project out the active manifold at this $k$." Implemented as Gram–Schmidt against the active Bloch states (norm-conserving ⇒ $S=1$), exactly the standard DFPT <code>orthogonalize</code>/<code>P_c^+</code> step.</li></ul>
+<pre><code class="language-fortran">SUBROUTINE apply_Qproj(npw, npol, ik, nact, evc_act, psi)
+  !! In-place: psi &lt;- Q(ik) psi = psi - sum_{a in active(ik)} |a&gt;&lt;a|psi&gt;
+  !! evc_act(npwx*npol, nact) holds the active Bloch states at ik (periodic part).
+  USE kinds,    ONLY : dp
+  USE mp,       ONLY : mp_sum
+  USE mp_bands, ONLY : intra_bgrp_comm
+  IMPLICIT NONE
+  INTEGER,     INTENT(IN)    :: npw, npol, ik, nact
+  COMPLEX(dp), INTENT(IN)    :: evc_act(:, :)
+  COMPLEX(dp), INTENT(INOUT) :: psi(:)
+  COMPLEX(dp) :: ovlp(nact)
+  INTEGER     :: a
+  ! ovlp(a) = &lt;evc_act(a)|psi&gt;   (sum over G, reduce over band-group)
+  CALL ZGEMV(&#x27;C&#x27;, npw*npol, nact, (1._dp,0._dp), evc_act, SIZE(evc_act,1), &amp;
+             psi, 1, (0._dp,0._dp), ovlp, 1)
+  CALL mp_sum(ovlp, intra_bgrp_comm)
+  DO a = 1, nact
+     psi(1:npw*npol) = psi(1:npw*npol) - ovlp(a) * evc_act(1:npw*npol, a)
+  END DO
+END SUBROUTINE apply_Qproj</code></pre>
+</section>
+<section id="sec-4"><h2>4. Stage A — inputs (reuse EDI verbatim)</h2>
+<p>Nothing new. EDT calls the exact EDI entry points:</p>
+<pre><code class="language-fortran">CALL read_file()                                   ! primitive NSCF (QE) -&gt; et, xk, evc, igk_k
+CALL load_supercell_pot(defect_prefix , defect_outdir , V_d)   ! ed_coarse.f90
+CALL load_supercell_pot(pristine_prefix, pristine_outdir, V_p)
+CALL build_vcolin_aligned(V_d, V_p, V_colin, SIZE(V_colin), vac_shift)   ! ΔV on SC grid
+IF (range_sep) CALL compute_range_separation(...)              ! ΔV = ΔV_SR + ΔV_LR
+CALL read_filukk_edi(filukk, nbnd, nkstot, nks, nbndsub)       ! U(k) (u_kc)
+CALL read_hr_file(prefix, nbndsub, nrr, ndegen, irvec, chw)    ! H_W(R) = chw</code></pre>
+<p>The active eigensystem $\{\varepsilon_a(k),U(k)\}$ comes from <code>hamwan2bloch_with_evec</code> (used both to define $A(k)$ and to build $G^A$ in Stage F). <strong>Run EDT on $\Delta V_{\rm SR}$</strong> (the short-range part) so $\lVert V\rVert/\Delta\ll1$ and the rest ladder converges (§7.4); keep the long-range Coulomb channel in EDI's analytic <code>lr_matelem</code> path (<code>research.md</code> §16.5).</p>
+</section>
+<section id="sec-5"><h2>5. Stage B — Sternheimer source $|s\rangle = Q\,\Delta V\,|n k_i\rangle$ (reuse EDI ΔV-action)</h2>
+<blockquote><p><strong>The rest grid must span <em>all</em> $k$ — not the supercell-commensurate set.</strong> The supercell is only a device to <em>capture the isolated, all-space defect potential</em> $\Delta V$. The physical defect breaks translation symmetry completely and scatters $k_i$ into a <strong>continuum</strong> of $k'$, so the rest-space resolvent $G^R(\omega_0)=\sum_{n\in R}\!\int_{\rm BZ}\!\frac{dk'\,|nk'\rangle\langle nk'|}{\omega_0-\varepsilon_{nk'}}$ is a <strong>BZ integral</strong>: the source $|s\rangle$ and the Sternheimer response must be sampled on a <strong>dense, full-BZ rest $k'$-grid</strong>, <em>not</em> on the $N_{\rm sc}$ supercell-commensurate channels $k_i\oplus g$. We obtain $\Delta V$'s action at an <em>arbitrary</em> momentum transfer $q=k'-k_i$ from the <strong>localized real-space</strong> $\Delta V$ via EDI's exact-$q$ fold <code>build_V_folded(q)</code> — valid because $\Delta V$ has decayed to $\approx 0$ inside the supercell, the very same mechanism EDI uses for arbitrary fine-grid matrix elements (<code>ed_direct_from_files</code>). The rest-grid density is an explicit <strong>convergence parameter</strong> <code>rest_nk*</code> (baseline = the primitive NSCF grid, densified until $\lVert\tilde V\rVert$ converges; cf. the codex "Rest k-grid convergence" 4→12→144 sweep). The operator stays $k'$-block-diagonal, so this is just "more independent per-$k'$ solves," never a $k$-coupled system.</p></blockquote>
+<p>The only change from EDI is that we keep the <strong>ket</strong> $\Delta V|nk_i\rangle$ resolved per output channel $k'$ (over the full-BZ rest grid above), instead of contracting it into a matrix element. EDI already builds the folded potential <code>V_folded</code> for arbitrary $q$ and the KB projectors; we reuse them.</p>
+<h3>5.1 Local part (real-space fold of <code>V_colin</code>, then FFT to the $k'$ channel)</h3>
+<p>In <code>ed_coarse_full_q</code>, the local matrix element is <code>mlocal = Σ_r conj(u_{k_i}) · V_folded^{q}(r) · u_{k_f}(r) / nnr</code> with <code>q = k_f − k_i</code>. The corresponding <strong>ket</strong> in channel $k'$ is <code>ζ(r) = V_folded^{q=k&#x27;−k_i}(r) · u_{n k_i}(r)</code>, then FFT-forward onto the $k'$ plane-wave set.</p>
+<pre><code class="language-fortran">SUBROUTINE dV_local_ket(ik_i, ibnd, ik_f, zeta_g)
+  !! zeta_g(1:npw(ik_f)) = [ΔV_loc |ψ_{ibnd,ik_i}&gt;] projected on channel k_f.
+  USE fft_base,       ONLY : dffts
+  USE fft_interfaces, ONLY : invfft, fwfft
+  USE klist,          ONLY : igk_k, ngk, xk_cryst =&gt; xk   ! crystal coords used for q-phase
+  USE edic_mod,       ONLY : V_colin, V_d
+  IMPLICIT NONE
+  INTEGER,     INTENT(IN)  :: ik_i, ibnd, ik_f
+  COMPLEX(dp), INTENT(OUT) :: zeta_g(:)
+  COMPLEX(dp), ALLOCATABLE :: psir(:), Vfold(:)
+  ! 1) u_{ibnd,ik_i}(r): scatter evc(:,ibnd) onto FFT grid via dffts%nl(igk_k(:,ik_i)), invfft
+  ! 2) Vfold(r) = build_V_folded(q = xk_cryst(:,ik_f) - xk_cryst(:,ik_i))   ! EXACT q (ed_coarse.f90 logic)
+  ! 3) psir(r) &lt;- Vfold(r) * psir(r)
+  ! 4) fwfft, gather coefficients at the k_f G-set: zeta_g(ig) = psir(dffts%nl(igk_k(ig,ik_f)))
+  ! (npol&gt;1: repeat per spinor component)
+END SUBROUTINE dV_local_ket</code></pre>
+<p><code>build_V_folded(q)</code> is lifted directly from <code>ed_coarse_full_q</code> (the <code>V_folded_kf</code> fold loop with the <code>d1/d2/d3</code> crystal-coordinate phase — the <em>exact</em> $q=k_f-k_i$, <strong>no BZ wrapping</strong>, per EDI's <code>double_ft_bug</code> fix).</p>
+<h3>5.2 Nonlocal part (KB difference, reuse <code>get_betavkb</code>)</h3>
+<p>$\Delta V_{\rm NL}|\psi\rangle=\big(V^{d}_{\rm NL}-V^{p}_{\rm NL}\big)|\psi\rangle =\sum_{a,ij}|\beta^{d}_i(k_f)\rangle D^{d}_{ij}\langle\beta^{d}_j(k_i)|\psi\rangle-(d\!\to\!p)$.</p>
+<pre><code class="language-fortran">SUBROUTINE dV_nonlocal_ket(ik_i, ibnd, ik_f, zeta_g)
+  USE uspp,    ONLY : dvan, dvan_so, nh =&gt; nh
+  USE becmod,  ONLY : calbec
+  IMPLICIT NONE
+  ! vkb_d_ki = get_betavkb(ngk(ik_i), igk_k(:,ik_i), xk(:,ik_i), ..., V_d%nat, V_d%tau, V_d%ityp)
+  ! bec_d(jkb) = &lt;beta^d_j(k_i)|psi_{ibnd,ik_i}&gt;            (calbec)
+  ! vkb_d_kf = get_betavkb(ngk(ik_f), igk_k(:,ik_f), xk(:,ik_f), ..., V_d%nat, ...)
+  ! coeff_d(ikb) = sum_jkb dvan(ih,jh,nt) * bec_d(jkb)      ! same (na,nt,ih,jh) bookkeeping as ed_coarse
+  ! zeta_g += sum_ikb vkb_d_kf(:,ikb) * coeff_d(ikb)
+  ! ... subtract the pristine analog (V_p) ...
+END SUBROUTINE dV_nonlocal_ket</code></pre>
+<h3>5.3 Assemble the source over all channels and project onto rest</h3>
+<pre><code class="language-fortran">DO ikp = 1, nrest                         ! channels k&#x27; over the FULL-BZ rest grid (rest_nk*), not k_i(+)g
+   CALL dV_local_ket   (ik_i, ibnd, ikp, s(:,ikp))   ! build_V_folded uses the EXACT q = k&#x27;(ikp) - k_i
+   CALL dV_nonlocal_ket(ik_i, ibnd, ikp, tmp); s(:,ikp) = s(:,ikp) + tmp
+   CALL apply_Qproj(ngk(ikp), npol, ikp, n_act(ikp), evc_act(:,:,ikp), s(:,ikp))
+END DO</code></pre>
+</section>
+<section id="sec-6"><h2>6. Stage C — the per-$k$ Sternheimer solve (NEW core)</h2>
+<p>We solve, <strong>independently for each channel $k'$ on the full-BZ rest grid</strong> (§5 callout; <code>research.md</code> §8.1),</p>
+<div class="math">
+$$Q(k')\big(\omega_0 - H_0(k')\big)Q(k')\,|\chi(k')\rangle = |s(k')\rangle .$$
+</div>
+<p><strong>Indefiniteness / arbitrary $\omega_0$.</strong> On $Q$ the operator $\omega_0-H_0$ is <em>indefinite</em> (rest bands lie both below and above $\omega_0$), so plain real CG is not appropriate. Use a <strong>complex shift</strong> $\omega_0\to\omega_0+i\eta$ and QE's complex solver <code>ccgsolve_all</code> (this also covers the metallic / continuum case, <code>research.md</code> §12). For a strictly gapped problem one may instead split $R$ into $R^{\pm}$ (below/above $\omega_0$) and use the real <code>cgsolve_all</code> on each definite block.</p>
+<h3>6.1 The $A$-operator wrapper (analog of QE <code>ch_psi_all</code>)</h3>
+<pre><code class="language-fortran">SUBROUTINE ch_psi_rest(n, psi, A_psi, e, ik, m)
+  !! A_psi = (H0(ik) - e) psi + alpha * P_act psi      [e = omega0, REAL]
+  !! ccgsolve_all carries the complex shift omega0 -&gt; omega0 + i*eta via its freq_c arg,
+  !! so ch_psi only needs the real reference e = omega0.
+  !! The alpha*P_act term lifts the active eigenvalues so A is nonsingular on the
+  !! full space while the iterate stays in the rest space (cf. ch_psi_all&#x27;s P_v).
+  USE kinds, ONLY : dp
+  IMPLICIT NONE
+  INTEGER,     INTENT(IN)  :: n, ik, m
+  COMPLEX(dp), INTENT(IN)  :: psi(:,:), e
+  COMPLEX(dp), INTENT(OUT) :: A_psi(:,:)
+  COMPLEX(dp), ALLOCATABLE :: hpsi(:,:), ppsi(:,:)
+  INTEGER :: i
+  CALL h_psi(npwx, n, m, psi, hpsi)                 ! QE: H0(ik) psi  (NC: no S)
+  DO i = 1, m
+     A_psi(1:n,i) = hpsi(1:n,i) - e*psi(1:n,i)
+  END DO
+  ! + alpha * P_act psi   (project onto active and add back, alpha ~ 2*(rest bandwidth))
+  CALL build_Pact_psi(n, ik, m, psi, ppsi)
+  A_psi(1:n,1:m) = A_psi(1:n,1:m) + alpha_shift * ppsi(1:n,1:m)
+END SUBROUTINE ch_psi_rest</code></pre>
+<h3>6.2 Driver per channel</h3>
+<pre><code class="language-fortran">SUBROUTINE solve_sternheimer_k(ik, nrhs, rhs, chi, conv)
+  !! Solve Q(ik)(omega0 - H0(ik))Q(ik) chi = rhs  for nrhs right-hand sides.
+  USE lr_module_shim, ONLY : ccgsolve_all          ! from LR_Modules/liblrmod.a
+  IMPLICIT NONE
+  INTEGER,     INTENT(IN)  :: ik, nrhs
+  COMPLEX(dp), INTENT(IN)  :: rhs(:,:)
+  COMPLEX(dp), INTENT(OUT) :: chi(:,:)
+  LOGICAL,     INTENT(OUT) :: conv
+  REAL(dp)    :: e0, h_diag(npwx*npol, nrhs), anorm
+  COMPLEX(dp) :: freq_c
+  INTEGER     :: kter
+  ! ccgsolve_all(ch_psi, ccg_psi, e, d0psi, dpsi, h_diag, ndmx, ndim, ethr,
+  !              ik, kter, conv_root, anorm, nbnd, npol, freq_c)  solves (H - e + Q + freq_c) x = b
+  e0     = omega0                       ! REAL reference energy
+  freq_c = CMPLX(0._dp, eta, dp)        ! complex shift: omega0 -&gt; omega0 + i*eta  (research.md §12)
+  CALL g2_kin(ik)                       ! set g2kin for h_psi / preconditioner at ik
+  CALL build_h_diag(ik, e0, freq_c, h_diag)         ! precond ~ 1/(g^2 - e0 - freq_c)
+  chi = (0._dp,0._dp)
+  ! d0psi = -rhs  (since Q(omega0-H0)Q = -(H0-omega0) on Q)
+  CALL ccgsolve_all(ch_psi_rest, ccg_psi, e0, -rhs, chi, h_diag, &amp;
+                    npwx*npol, ngk(ik)*npol, sternheimer_thr, ik, kter, conv, anorm, &amp;
+                    nrhs, npol, freq_c)
+  ! enforce P|chi&gt;=0 exactly on exit
+  CALL apply_Qproj(ngk(ik), npol, ik, n_act(ik), evc_act(:,:,ik), chi)   ! per rhs
+END SUBROUTINE solve_sternheimer_k</code></pre>
+<p>This is the <strong>only</strong> linear-algebra novelty; everything is per-$k$, well-conditioned (<code>research.md</code> §7.1), and embarrassingly parallel over the $k$-grid (§11).</p>
+</section>
+<section id="sec-7"><h2>7. Stage D — $k$-decoupled rest dressing ladder (NEW, optional)</h2>
+<p>Bare ($V_{QQ}=0$) gives the coupling-second-order $\tilde V^{(2)}$. To reach the <em>exact</em> dressed $\tilde V$ while staying $k$-decoupled, Neumann-iterate (<code>research.md</code> §9.1):</p>
+<div class="math">
+$$|\chi^{(0)}\rangle=G^R V_{QP}|n\rangle,\qquad |\chi^{(m)}\rangle=G^R\,V_{QQ}\,|\chi^{(m-1)}\rangle,\qquad
+|\chi\rangle=\textstyle\sum_m|\chi^{(m)}\rangle .$$
+</div>
+<p>Each step is <strong>one $V_{QQ}$ matvec</strong> (reuse §5's ΔV-action restricted to $Q$, <em>no $k$-coupling in the solve</em>) followed by the <strong>same</strong> per-$k$ bare solve $A_0=Q(\omega_0-H_0)Q$.</p>
+<pre><code class="language-fortran">chi = chi0                                   ! = G^R Q ΔV |n&gt;  (Stage C with bare A0)
+DO mstep = 1, max_dress
+   CALL apply_dV_to_ket(chi, vqq_chi)        ! V_QQ * chi  (ΔV-action, then apply_Qproj)
+   DO ik = 1, nks
+      CALL solve_sternheimer_k(ik, nrhs, vqq_chi(:,:,ik), dchi(:,:,ik), conv)  ! A0^{-1} on Q
+   END DO
+   chi = chi + dchi
+   ratio = norm(dchi) / norm_prev            ! successive-ratio diagnostic (research.md §10)
+   IF (ratio &lt; dress_tol) EXIT               ! geometric rate ρ ~ ||V_QQ||/Δ
+   norm_prev = norm(dchi)
+END DO</code></pre>
+<p>(GMRES with $A_0$ as preconditioner and $V_{QQ}$ as the FFT matvec is the accelerated cousin; drop-in once Neumann works.)</p>
+</section>
+<section id="sec-8"><h2>8. Stage E — assemble $\tilde V$ (Hermitian bilinear form)</h2>
+<p>Per $(n k_i, m k_f)$ active pair (<code>research.md</code> §7.3, bare: $V_{QQ}\to0$):</p>
+<div class="math">
+$$\tilde V_{m k_f,\,n k_i}=\underbrace{\langle m k_f|\Delta V|n k_i\rangle}_{=\,M\ (\text{EDI})}
+\;+\;\big\langle\chi_{m k_f}\big|(\omega_0-H_0^Q-V_{QQ})\big|\chi_{n k_i}\big\rangle .$$
+</div>
+<pre><code class="language-fortran">! M-term: reuse EDI&#x27;s coarse matrix element (ed_coarse_full_q kernel) -&gt; edmat_bloch(m,n,ki,kf)
+! rest-term: contract the stored responses over channels k&#x27;
+DO ik_f = ...; DO ik_i = ...
+  DO m = 1, n_act(ik_f); DO n = 1, n_act(ik_i)
+     rest = (0._dp,0._dp)
+     DO ikp = 1, nks                                   ! channels k&#x27;
+        ! &lt;chi_m| (omega0 - H0^Q - V_QQ) |chi_n&gt;  at channel k&#x27;
+        CALL ch_rest_metric(ikp, chi(:,m,ik_f,ikp), chi(:,n,ik_i,ikp), val)
+        rest = rest + val
+     END DO
+     Vtilde_B(m,n,ik_i,ik_f) = edmat_bloch(m,n,ik_i,ik_f) + rest
+  END DO; END DO
+END DO; END DO
+! Hermitize in (m k_f) &lt;-&gt; (n k_i): Vtilde &lt;- (Vtilde + Vtilde^H)/2   (real omega0)</code></pre>
+<p><code>ch_rest_metric</code> reuses <code>ch_psi_rest</code> (it <em>is</em> $\omega_0-H_0$ on $Q$, plus the $V_{QQ}$ term via §5's matvec). At the bare level there is a cheaper identity (<code>research.md</code> §7.3 derivation): $\langle\chi_m^{(0)}|(\omega_0-H_0^Q)|\chi_n^{(0)}\rangle=\langle\chi_m^{(0)}|s_n\rangle$, i.e. just overlap the response with the source — no extra operator application.</p>
+</section>
+<section id="sec-9"><h2>9. Stage F — active-layer resummation $T_{PP}(\omega)$ (NEW, small dense solve)</h2>
+<p>Active space $A=\{(a,k):a\in\text{active}(k)\}$, dimension $N_A=\sum_k n_{\rm act}(k)$ (coarse grid: $\sim$ bands$\times N_k$, e.g. $11\times144=1584$). $G^A(\omega)$ is <strong>diagonal</strong> in this basis from the interpolated active eigenvalues; $\tilde V$ is the dense block from Stage E. <em>(This is the small <strong>active</strong> manifold only — distinct from §5's dense <strong>rest</strong> BZ grid: the rest sum is the expensive BZ integral, the active inversion is the cheap small block.)</em></p>
+<pre><code class="language-fortran">SUBROUTINE active_tmatrix(omega, eta_a, Vtilde, eig_act, Tpp)
+  !! Tpp = (I - Vtilde * G^A(omega))^{-1} * Vtilde   ,  G^A diagonal: 1/(omega - eig_act + i eta_a)
+  USE kinds, ONLY : dp
+  IMPLICIT NONE
+  REAL(dp),    INTENT(IN)  :: omega, eta_a, eig_act(:)        ! eig_act(NA)
+  COMPLEX(dp), INTENT(IN)  :: Vtilde(:,:)                     ! (NA,NA)  active basis
+  COMPLEX(dp), INTENT(OUT) :: Tpp(:,:)
+  COMPLEX(dp), ALLOCATABLE :: A(:,:), ga(:)
+  INTEGER,     ALLOCATABLE :: ipiv(:)
+  INTEGER :: NA, j, info
+  NA = SIZE(eig_act)
+  ALLOCATE(A(NA,NA), ga(NA), ipiv(NA))
+  DO j = 1, NA
+     ga(j) = 1._dp / CMPLX(omega - eig_act(j), eta_a, dp)
+  END DO
+  A = -MATMUL(Vtilde, DIAG(ga));  DO j=1,NA; A(j,j)=A(j,j)+1._dp; END DO   ! A = I - Vtilde G^A
+  Tpp = Vtilde
+  CALL ZGESV(NA, NA, A, NA, ipiv, Tpp, NA, info)              ! Tpp = A^{-1} Vtilde
+END SUBROUTINE active_tmatrix</code></pre>
+<p><strong>Resolution choice (the main Layer-2 approximation — flag for validation):</strong> <em>baseline</em> = do this inversion on the <strong>coarse</strong> active space, then Wannierize $T_{PP}(k_i,k_f)$ and interpolate to the fine grid (mirrors EDI's M-flow). <em>Advanced</em> = keep the static $\tilde V$ Wannier- interpolated and solve the Dyson equation $T_{PP}=\tilde V+\tilde V G^A(\omega)T_{PP}$ iteratively on the fine grid (matvec with interpolated $\tilde V$; never form the dense inverse), exploiting that $G^A(\omega)$ is dominated by the energy shell near $\omega$. Start with baseline; validate against advanced on a medium grid.</p>
+</section>
+<section id="sec-10"><h2>10. Stage G — Wannierize, interpolate, transport (reuse EDI)</h2>
+<p>$\tilde V_{m k_f,n k_i}$ has <strong>exactly the shape of EDI's</strong> $M(k_i,k_f)$, so EDI's interpolation is reused unchanged:</p>
+<pre><code class="language-fortran">CALL edbloch2wane(... Vtilde_B ..., Vtilde_W)        ! M(R,R&#x27;) double FT  (edbloch2wan.f90)
+! fine grid: per (k_i,k_f)
+CALL edmatwan2bloch_2d(nbndsub, nrr, ndegen, Vtilde_W, cfac_ki, cfac_kf, Vtilde_f)
+! Layer 2 at the transport energy, then golden rule:
+CALL active_tmatrix(eig(n,ki), eta_a, Vtilde_f_block, eig_shell, Tpp_f)
+! in transport.f90&#x27;s kernel, replace M by T_PP:
+!   inv_tau += twopi*n_d*wqf*ABS(Tpp_b(n,m))**2 * w_delta        (was ABS(edmatf_b)**2)</code></pre>
+<p>So <code>transport.f90</code>/<code>compute_transport</code>, <code>delta_weights</code>, <code>bz_symmetry</code>, the SERTA/MRTA assembly, and the Fermi-level bisection are <strong>reused unchanged</strong> — only the matrix element fed in changes from $M$ to $T_{PP}$.</p>
+</section>
+<section id="sec-11"><h2>11. Parallelization (mirror EDI + the codex run)</h2>
+<ul><li><strong>Outer:</strong> distribute <em>source states</em> $(\text{initial }k_i,\ \text{active band }n)$ across MPI images / pools (EDI's <code>mp_pools</code> + panel-broadcast pattern). The reference codex run did fixed $k_i$, rest/final $k=1\!:\!144$, <strong>1584 RHS solves</strong> in $\sim$2h27m on 72 image-MPI ranks — EDT reproduces this layout.</li><li><strong>Inner:</strong> per source, the rest-$k'$ channel solves (§6, over the full-BZ rest grid <code>rest_nk*</code>) are independent → vectorize as <code>nrhs</code> columns to <code>ccgsolve_all</code>, or split across the pool. The rest grid is typically the dominant cost (sources × rest-$k'$ × solve), so its density is the main convergence/cost knob.</li><li><strong>Reductions:</strong> the rest-term contraction (§8) sums over channels with <code>mp_sum(inter_pool_comm)</code>, like <code>edbloch2wane</code>.</li><li>Cache per-$k$ real-space wavefunctions and <code>becd</code>/<code>becp</code> once (EDI already does this in <code>ed_coarse_full_q</code>).</li></ul>
+</section>
+<section id="sec-12"><h2>12. Input namelist <code>&amp;edt_nml</code> (extends EDI's <code>&amp;edinput_nml</code>)</h2>
+<div class="table-wrap"><table><thead><tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr></thead><tbody><tr><td><em>(all EDI keys)</em></td><td>—</td><td>—</td><td><code>edi_prefix/outdir</code>, <code>potfile_*</code>, <code>pot_align</code>, <code>coarse_nk*</code>, <code>fine_nk*</code>, Wannier keys, transport keys, <code>range_sep</code>, …</td></tr><tr><td><code>do_tmatrix</code></td><td>logical</td><td><code>.false.</code></td><td>master switch for the EDT path</td></tr><tr><td><code>active_win_min/max</code></td><td>real (eV)</td><td>—</td><td>active window $[\,]$ defining $A(k)$ (defaults to transport window)</td></tr><tr><td><code>rest_nk1/2/3</code></td><td>integer</td><td>= coarse</td><td><strong>rest BZ grid</strong> for $G^R$ / the Sternheimer sum — spans the <em>full</em> BZ, $\ge$ coarse, densified to convergence (§5 callout). Not the supercell folding set.</td></tr><tr><td><code>omega0</code></td><td>real (eV)</td><td>window center</td><td>Sternheimer reference energy</td></tr><tr><td><code>eta</code></td><td>real (eV)</td><td><code>0.01</code></td><td>imaginary shift for <code>ccgsolve_all</code> (and metallic case)</td></tr><tr><td><code>sternheimer_thr</code></td><td>real</td><td><code>1e-10</code></td><td>linear-solver residual (codex reached <code>9.98e-11</code>)</td></tr><tr><td><code>dress_order</code></td><td>integer</td><td><code>0</code></td><td>$V_{QQ}$ ladder steps; <code>0</code> = coupling-2nd-order $\tilde V^{(2)}$</td></tr><tr><td><code>dress_tol</code></td><td>real</td><td><code>1e-3</code></td><td>successive-ratio stop for the ladder (§7)</td></tr><tr><td><code>active_resum</code></td><td>logical</td><td><code>.true.</code></td><td>do Layer 2 ($T_{PP}$); <code>.false.</code> ⇒ stop at $\tilde V$</td></tr><tr><td><code>resum_grid</code></td><td>char</td><td><code>&#x27;coarse&#x27;</code></td><td><code>&#x27;coarse&#x27;</code> (invert+interpolate) or <code>&#x27;fine&#x27;</code> (iterative Dyson)</td></tr><tr><td><code>omega_grid_*</code></td><td>real</td><td>transport win</td><td>frequencies for $T_{PP}(\omega)$</td></tr><tr><td><code>rest_split</code></td><td>char</td><td><code>&#x27;complex&#x27;</code></td><td><code>&#x27;complex&#x27;</code> (ccgsolve, $\omega_0+i\eta$) or <code>&#x27;pm&#x27;</code> (split $R^\pm$, cgsolve)</td></tr></tbody></table></div>
+</section>
+<section id="sec-13"><h2>13. Build system</h2>
+<p><code>edt/src/makefile</code> mirrors EDI's but additionally links <code>LR_Modules</code> (for the Sternheimer solver) and the EDI objects:</p>
+<pre><code class="language-make">include ../../make.inc
+QEMODS = ../../Modules/libqemod.a ../../upflib/libupf.a \
+         ../../KS_Solvers/libks_solvers.a ../../LR_Modules/liblrmod.a \   # &lt;-- NEW: cgsolve/ccgsolve
+         ../../FFTXlib/src/libqefft.a ../../UtilXlib/libutil.a \
+         ../../XClib/xc_lib.a ../../LAXlib/libqela.a
+PWOBJS = ../../PW/src/libpw.a
+EDIOBJS = ../../edi-code/src/ed_coarse.o ../../edi-code/src/range_sep.o \
+          ../../edi-code/src/get_betavkb.o ../../edi-code/src/wan2bloch.o \
+          ../../edi-code/src/edbloch2wan.o ../../edi-code/src/transport.o \
+          ../../edi-code/src/edic_mod.o ../../edi-code/src/wann_common.o   # reuse compiled EDI
+edt.x : $(EDT_OBJS) ; $(LD) -o $@ $(EDT_OBJS) $(EDIOBJS) $(PWOBJS) $(QEMODS) $(QELIBS) $(LIBS)</code></pre>
+<p>(If EDI's <code>.o</code> ABI drifts, vendor the handful of reused EDI source files into <code>edt/src/</code> instead.)</p>
+</section>
+<section id="sec-14"><h2>14. Validation &amp; tests (feed the website Test Catalog)</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>Test</th><th>Pass criterion</th><th>Maps to</th></tr></thead><tbody><tr><td>T1</td><td><strong>Born limit</strong></td><td><code>dress_order=0, active_resum=.false.</code> and rest-term zeroed ⇒ $\tilde V \equiv M$ to $\lesssim10^{-12}$ Ry vs <code>ed_coarse_full_q</code></td><td>regression vs EDI</td></tr><tr><td>T2</td><td><strong>Sternheimer vs explicit sum</strong></td><td>$\tilde V^{(2)}$ from <code>ccgsolve</code> matches the explicit finite-rest-band sum $\sum_{r\in R}V_{Pr}V_{rP}/(\omega_0-\varepsilon_r)$ as band cutoff → all</td><td><code>research.md</code> §3.2; codex "explicit vs QE Sternheimer"</td></tr><tr><td>T3</td><td><strong>Solver health</strong></td><td>all RHS converge below <code>sternheimer_thr</code>; report residual, $A_0(k)$ smallest-$|{\rm eig}|$ / condition number vs $\lVert V\rVert$</td><td><code>research.md</code> §10</td></tr><tr><td>T4</td><td><strong>Ladder convergence</strong></td><td>successive ratio $\to\rho\sim\lVert V_{QQ}\rVert/\Delta\ll1$; $\tilde V$(dressed) stable vs <code>dress_order</code></td><td>§7, §10</td></tr><tr><td>T5</td><td><strong>Gauge sanity</strong></td><td>$\lVert U^\dagger U-I\rVert\!\lesssim\!10^{-13}$; $\tilde V$ invariant under $U^\dagger(\!\cdot\!)U$</td><td>EDI <code>filukk</code></td></tr><tr><td>T6</td><td><strong>$k$-MPI invariance</strong></td><td>result independent of pool/image count to machine precision</td><td>codex image-MPI check</td></tr><tr><td>T7</td><td><strong>Active resummation</strong></td><td>coarse-grid $T_{PP}$ vs fine-grid iterative Dyson agree within tol; $T_{PP}\to\tilde V$ as $G^A\to0$</td><td>§9</td></tr><tr><td>T9</td><td><strong>Rest BZ-grid convergence</strong></td><td>$\lVert\tilde V\rVert$ (and mobility) converge as <code>rest_nk*</code> densifies over the <em>full</em> BZ; result is <strong>independent of the supercell folding set</strong></td><td><code>research.md</code> §2; §5 callout; codex rest-k table</td></tr><tr><td>T8</td><td><strong>Transport</strong></td><td>mobility with $|T_{PP}|^2$ vs EDI $|M|^2$; quantify beyond-Born shift</td><td><code>transport.f90</code></td></tr></tbody></table></div>
+<p>Each test emits an <code>ionode</code> report + a small CSV (numbers only), summarized as a row in the <code>claude-sternheimer</code> site Test Catalog (see repo <code>CLAUDE.md</code> for the page recipe). <strong>Never</strong> publish wavefunctions/cubes/<code>.npy</code>/logs.</p>
+</section>
+<section id="sec-15"><h2>15. Milestones</h2>
+<ul><li><strong>P0 — scaffold:</strong> <code>edt.f90</code> + <code>&amp;edt_nml</code>; call EDI Stage A; define $A(k)$, <code>apply_Qproj</code>; print active/rest audit (counts, $\omega_0$, gap $\Delta$). <em>(no solve yet)</em></li><li><strong>P1 — source:</strong> <code>edt_source</code> (<code>dV_local_ket</code>+<code>dV_nonlocal_ket</code>); <strong>T1</strong> Born-limit check that $\langle m k_f|$source$\rangle$ reproduces $M$.</li><li><strong>P2 — Sternheimer:</strong> <code>ch_psi_rest</code> + <code>solve_sternheimer_k</code> (ccgsolve); single $(k_i,n)$ smoke; <strong>T2/T3</strong>.</li><li><strong>P3 — $\tilde V$:</strong> Stage E bilinear assembly + Hermitize; <strong>T5</strong>; full $\tilde V$ for fixed $k_i$ over the rest grid (the codex "1584 RHS" milestone), then <strong>T9</strong> rest-BZ-grid convergence.</li><li><strong>P4 — dressing:</strong> <code>edt_dress</code> ladder; <strong>T4</strong>.</li><li><strong>P5 — active layer:</strong> <code>active_tmatrix</code>; <strong>T7</strong>.</li><li><strong>P6 — interpolate+transport:</strong> reuse <code>edbloch2wane</code>/<code>edmatwan2bloch_2d</code>/<code>compute_transport</code>; <strong>T6/T8</strong>; first beyond-Born mobility.</li></ul>
+</section>
+<section id="sec-16"><h2>16. File checklist</h2>
+<p><strong>New:</strong> <code>edt.f90</code>, <code>edt_input.f90</code>, <code>edt_partition.f90</code>, <code>edt_source.f90</code>, <code>edt_sternheimer.f90</code>, <code>edt_dress.f90</code>, <code>edt_vtilde.f90</code>, <code>edt_active.f90</code>, <code>src/makefile</code>, <code>tests/</code> (T1–T8 inputs + report scripts). <strong>Reused from EDI (link or vendor):</strong> <code>ed_coarse.f90</code>, <code>range_sep.f90</code>, <code>get_betavkb.f90</code>, <code>wan2bloch.f90</code>, <code>edbloch2wan.f90</code>, <code>transport.f90</code>, <code>delta_weights.f90</code>, <code>bz_symmetry.f90</code>, <code>edic_mod.f90</code>, <code>wann_common.f90</code>, <code>global_var.f90</code>, <code>edi_input.f90</code> (extended). <strong>QE libs:</strong> <code>libpw.a</code>, <code>libqemod.a</code>, <code>liblrmod.a</code> (<strong>new link</strong>), <code>libks_solvers.a</code>, <code>libqefft.a</code>, <code>libupf.a</code>, <code>xc_lib.a</code>, <code>libutil.a</code>, <code>libqela.a</code>.</p>
+<p><em>Cross-references are to <code>research.md</code> (theory). This plan reuses the EDI implementation for the difference potential, KB projectors, Wannier rotation/interpolation, and transport; the new code is the rest-space Sternheimer solve, the $k$-decoupled $V_{QQ}$ ladder, the $\tilde V$ assembly, and the small active-space resummation.</em></p>
+</section>
+</main>
+<footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
+Static HTML; equations rendered client-side with MathJax v3. No raw wavefunctions, cubes,
+binaries, or logs are published.</footer>
+</body></html>
