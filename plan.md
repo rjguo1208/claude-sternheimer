@@ -649,6 +649,90 @@ wavefunctions/cubes/`.npy`/logs.
 
 ---
 
+## 17. Detailed TODO checklist (all phases & tasks)
+
+Granular, checkable expansion of the §15 milestones. **Legend:** `[ ]` to do · `[x]` done · **(§n)**
+stage/section · **(Tn)** validation test (§14) · `[file]` target source. Phases are ordered for
+incremental validation — **each phase ends in a test gate that must pass before the next**. Nothing here
+is implemented yet (this is the plan only).
+
+### P0 — Scaffold, build system, inputs & active/rest partition
+- [ ] Decide packaging: sibling plug-in `edt/` linking EDI objects, vs. vendoring EDI sources, vs. an EDI run-mode (§2)
+- [ ] Create `edt/src/` tree; write `src/makefile` linking `libpw.a`, `libqemod.a`, **`liblrmod.a`** (new), `libks_solvers.a`, FFT/upf/xc/util/lax (§13) `[makefile]`
+- [ ] Verify the link resolves `h_psi`, `ccgsolve_all`, `cgsolve_all`, `ccg_psi`/`cg_psi` from `LR_Modules` (§6)
+- [ ] `&edt_nml` extending `&edinput_nml`: `do_tmatrix, active_win_min/max, omega0, eta, rest_nk1/2/3, sternheimer_thr, dress_order, dress_tol, active_resum, resum_grid, rest_split, omega_grid_*` (§12); `mp_bcast` every key `[edt_input.f90]`
+- [ ] Main program: read+broadcast input, dispatch stages A–G behind flags `[edt.f90]`
+- [ ] Stage A loaders (reuse EDI): `read_file`, `load_supercell_pot`/`load_pot_from_file`, `build_vcolin_aligned`/`_corealign`, `read_filukk_edi`, `read_hr_file` (§4)
+- [ ] Optional range separation: `compute_range_separation` → $\Delta V_{\rm SR}/\Delta V_{\rm LR}$; run EDT on $\Delta V_{\rm SR}$ (§4; `research.md` §16.5)
+- [ ] Build active set `is_active(ibnd,ik)`, `n_act(ik)` from the window; set $\omega_0$, compute gap $\Delta$ `[edt_partition.f90]`
+- [ ] `apply_Qproj` — Gram–Schmidt against active states (NC: $S=1$) (§3) `[edt_partition.f90]`
+- [ ] Active/rest audit print (ionode): $N_A$, $N_R$, $\omega_0$, $\Delta$, window, per-$k$ counts
+- [ ] **Gate:** `edt.x` builds and runs the audit on MoS2 (no solve yet)
+
+### P1 — Stage B: Sternheimer source $|s\rangle=Q\,\Delta V\,|nk_i\rangle$
+- [ ] `dV_local_ket(ik_i,ibnd,ikp)`: reuse `build_V_folded` (**exact** $q$) + `invfft`/`fwfft`, gather on the $k'$ G-set (§5.1) `[edt_source.f90]`
+- [ ] `gk_sort` / G-vector set for arbitrary fine rest-$k'$ when `rest_nk*` $\ne$ coarse (§5 callout)
+- [ ] `dV_nonlocal_ket`: `get_betavkb`($k_i$,$k_f$) + `calbec` + `dvan`/`dvan_so`, defect − pristine (§5.2) `[edt_source.f90]`
+- [ ] Assemble source over the **full-BZ rest grid**; `apply_Qproj` per channel (§5.3)
+- [ ] Cache per-$k$ real-space $\psi$ + `becp` once (panel-broadcast pattern, reuse EDI) (§11)
+- [ ] **(T1) Gate — Born limit:** $\langle m k_f|\text{source}(n k_i)\rangle$ reproduces EDI $M$ (`ed_coarse_full_q`) to $\lesssim10^{-12}$ Ry
+
+### P2 — Stage C: bare per-$k'$ Sternheimer solve
+- [ ] `ch_psi_rest(n,psi,A_psi,e,ik,m)`: $(H_0-e)\psi+\alpha P_{\rm act}\psi$ (§6.1) `[edt_sternheimer.f90]`
+- [ ] `build_Pact_psi`; `build_h_diag` preconditioner $\sim 1/(g^2-e_0-\text{freq}_c)$ (§6)
+- [ ] `solve_sternheimer_k`: drive `ccgsolve_all` ($e_0=\omega_0$, $\text{freq}_c=i\eta$); enforce $Q|\chi\rangle$ on exit (§6.2) `[edt_sternheimer.f90]`
+- [ ] `rest_split`: implement `'complex'` (ccgsolve) path; stub `'pm'` (split $R^\pm$ + real `cgsolve`)
+- [ ] Single $(k_i,n)$ smoke: solve all rest-$k'$, log iterations/residual
+- [ ] **(T3) Gate — solver health:** all RHS converge $<$ `sternheimer_thr`; report $A_0(k)$ smallest $|\text{eig}|$ / condition number vs $\|V\|$
+- [ ] **(T2)** vs explicit sum: $\chi^{(0)}$ reproduces $\sum_{r\in R}V_{Pr}V_{rP}/(\omega_0-\varepsilon_r)$ as the band cutoff → all (`research.md` §3.2)
+
+### P3 — Stage E: assemble the coupling-second-order $\tilde V^{(2)}$
+- [ ] Bilinear form $\tilde V_{mn}=\langle m|\Delta V|n\rangle+\langle\chi_m|(\omega_0-H_0^Q)|\chi_n\rangle$; bare shortcut $\langle\chi_m|s_n\rangle$ (§8) `[edt_vtilde.f90]`
+- [ ] Reuse EDI $M$-term (`ed_coarse_full_q` kernel) for $\langle m k_f|\Delta V|n k_i\rangle$
+- [ ] Contract the rest term over full-BZ rest channels; `mp_sum`
+- [ ] Hermitize $(m k_f)\leftrightarrow(n k_i)$
+- [ ] Full coarse $\tilde V^{(2)}$ for fixed $k_i$ (the codex "1584 RHS" milestone)
+- [ ] **(T5)** gauge: $\|U^\dagger U-I\|\lesssim10^{-13}$; $\tilde V$ invariant under $U^\dagger(\cdot)U$
+- [ ] **(T9)** rest BZ-grid convergence: $\|\tilde V\|$ converges as `rest_nk*` densifies (full BZ), independent of the SC folding set
+- [ ] **(T6) Gate — MPI invariance:** result independent of pool/image count to machine precision
+
+### P4 — Stage D: $k$-decoupled $V_{QQ}$ dressing ladder (optional)
+- [ ] Neumann ladder $\chi^{(m)}=G^R V_{QQ}\chi^{(m-1)}$; $V_{QQ}$ via the ΔV-action $\oplus\,Q$ (§7) `[edt_dress.f90]`
+- [ ] Reuse `solve_sternheimer_k` (same $A_0$) per rung — only the RHS changes
+- [ ] Successive-ratio diagnostic + `dress_tol` stop; honor `dress_order` ($0$ = keep $\tilde V^{(2)}$)
+- [ ] (optional) GMRES variant: $A_0$ preconditioner, $V_{QQ}$ matvec
+- [ ] **(T4) Gate — ladder convergence:** ratio $\to\rho\sim\|V_{QQ}\|/\Delta$; $\tilde V$ stable vs `dress_order`
+- [ ] Deep/bound-level guard: detect $\rho\gtrsim1$ / $A_0$ near-singular → advise enlarging the active window (`research.md` §10)
+
+### P5 — Stage F: active-space resummation $T_{PP}(\omega)$
+- [ ] `active_tmatrix`: build diagonal $G^A(\omega)$, solve $[1-\tilde V G^A]^{-1}\tilde V$ via `ZGESV` (§9) `[edt_active.f90]`
+- [ ] Pack the coarse active space (band$\times k$ indexing) for $\tilde V$ and `eig_act`
+- [ ] $\omega$-grid loop (`omega_grid_*`); shell smearing `eta_a`
+- [ ] **(T7a) Gate — sanity:** $T_{PP}\to\tilde V$ as $G^A\to0$
+
+### P6 — Stage G: Wannierize, interpolate, transport
+- [ ] Bloch→Wannier (G.1): reuse `edbloch2wane` on $\tilde V_B\to\tilde V(R_e,R_p)$; write `decay.V` (§10.2)
+- [ ] Wannier→Bloch (G.2)+(G.3): reuse `edmatwan2bloch_2d` + `hamwan2bloch_with_evec` band gauge (§10.3)
+- [ ] Route **B1**: Wannierize $T_{PP}$ directly — **check `decay.T`** before trusting (§10.4)
+- [ ] Route **B2**: fine-grid Dyson (G.4) iterative solve (matvec with interpolated $\tilde V_B$) (§10.4)
+- [ ] `resum_grid` switch (coarse B1 / fine B2)
+- [ ] Transport hook: feed $|T_{PP}|^2$ into `compute_transport` (`ABS(edmatf_b)**2 → ABS(Tpp_b)**2`) (§10.5)
+- [ ] Reuse `delta_weights`, `bz_symmetry`, Fermi-level bisection unchanged
+- [ ] **(T7b)** B1 vs B2 agree within tol on a medium grid
+- [ ] **(T8) Gate — transport:** mobility with $|T_{PP}|^2$ vs EDI $|M|^2$; quantify the beyond-Born shift
+
+### P7 — Validation suite, long-range, performance, docs/release
+- [ ] Assemble **T1–T9** into ionode reports + numbers-only CSVs (EDI diagnostic style)
+- [ ] Add each test as a Test Catalog row on the site (repo `CLAUDE.md` recipe); flip badges `plan → ok/prod`
+- [ ] Long-range: verify $\Delta V_{\rm SR}$ (Sternheimer) + analytic $M^{\rm LR}$ (`lr_matelem`) recombine (`research.md` §16.5)
+- [ ] Performance: vectorize `nrhs` → `ccgsolve_all`; cache $\psi$/`becp`; profile rest-grid cost; MPI scaling (§11)
+- [ ] Convergence study: `rest_nk*`, `dress_order`, `eta`, active-window sensitivity → short writeup
+- [ ] End-to-end regression: the Born-limit pipeline reproduces EDI mobility
+- [ ] (stretch) SOC path (`dvan_so`, `npol=2`) parity with EDI nonlocal
+- [ ] (stretch) metallic host: complex $\omega_0+i\eta$ absorptive $\tilde V$ (`research.md` §12)
+
+---
+
 *Cross-references are to `research.md` (theory). This plan reuses the EDI implementation for the
 difference potential, KB projectors, Wannier rotation/interpolation, and transport; the new code is the
 rest-space Sternheimer solve, the $k$-decoupled $V_{QQ}$ ladder, the $\tilde V$ assembly, and the small

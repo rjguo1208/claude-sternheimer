@@ -84,6 +84,11 @@ tr.planned td { color:var(--muted); background:#fcfcfd; }
 .toc a:hover { text-decoration:underline; color:var(--accent); }
 @media (max-width:640px){ .toc { columns:1; } }
 
+/* ---- task list (TODO checkboxes) ---- */
+ul.tasklist, ol.tasklist { list-style:none; padding-left:6px; }
+.tasklist li.task { margin:4px 0; }
+.tasklist li.task input[type=checkbox] { margin-right:9px; transform:translateY(1px); accent-color:var(--accent); }
+
 /* ---- misc ---- */
 .warning { border-color:#fed7aa; background:#fff7ed; }
 .warning h2 { color:var(--warn); border-bottom-color:#fed7aa; }

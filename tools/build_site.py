@@ -118,8 +118,19 @@ def _render_list(lines):
         else:                                   # continuation line
             cur = (cur + " " + ln.strip()) if cur is not None else ln.strip()
     if cur is not None: items.append(cur)
-    lis = "".join("<li>%s</li>" % _inline(it) for it in items)
-    return "<%s>%s</%s>" % (tag, lis, tag)
+    # GitHub-style task list: "[ ] ..." / "[x] ..." -> disabled checkboxes
+    has_task = any(re.match(r"\[[ xX]\]\s+", it) for it in items)
+    lis = []
+    for it in items:
+        mt = re.match(r"\[([ xX])\]\s+(.*)$", it)
+        if mt:
+            chk = " checked" if mt.group(1) in ("x", "X") else ""
+            lis.append('<li class="task"><input type="checkbox" disabled%s> %s</li>'
+                       % (chk, _inline(mt.group(2))))
+        else:
+            lis.append("<li>%s</li>" % _inline(it))
+    cls = ' class="tasklist"' if has_task else ""
+    return "<%s%s>%s</%s>" % (tag, cls, "".join(lis), tag)
 
 def _is_block_start(line):
     s = line.strip()
