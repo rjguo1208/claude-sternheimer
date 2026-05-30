@@ -1,0 +1,15 @@
+&edt_nml
+  edi_prefix  = 'mos2'
+  edi_outdir  = '/anvil/projects/x-che190065/rjguo/qe-7.5/T-matrix/data/primitive_highbands_12x12/dout/'
+  coarse_nk1  = 12
+  coarse_nk2  = 12
+  coarse_nk3  = 1
+
+  nbndsub     = 11
+  filukk      = '/anvil/projects/x-che190065/rjguo/qe-7.5/T-matrix/data/filukk'
+  hr_seedname = '/anvil/projects/x-che190065/rjguo/qe-7.5/T-matrix/data/mos2'
+
+  ! active window left at sentinel -> defaults to the Wannier-manifold span
+  do_tmatrix  = .true.
+  eta         = 0.05
+/

@@ -656,18 +656,20 @@ stage/section · **(Tn)** validation test (§14) · `[file]` target source. Phas
 incremental validation — **each phase ends in a test gate that must pass before the next**. Nothing here
 is implemented yet (this is the plan only).
 
-### P0 — Scaffold, build system, inputs & active/rest partition
-- [ ] Decide packaging: sibling plug-in `edt/` linking EDI objects, vs. vendoring EDI sources, vs. an EDI run-mode (§2)
-- [ ] Create `edt/src/` tree; write `src/makefile` linking `libpw.a`, `libqemod.a`, **`liblrmod.a`** (new), `libks_solvers.a`, FFT/upf/xc/util/lax (§13) `[makefile]`
-- [ ] Verify the link resolves `h_psi`, `ccgsolve_all`, `cgsolve_all`, `ccg_psi`/`cg_psi` from `LR_Modules` (§6)
-- [ ] `&edt_nml` extending `&edinput_nml`: `do_tmatrix, active_win_min/max, omega0, eta, rest_nk1/2/3, sternheimer_thr, dress_order, dress_tol, active_resum, resum_grid, rest_split, omega_grid_*` (§12); `mp_bcast` every key `[edt_input.f90]`
-- [ ] Main program: read+broadcast input, dispatch stages A–G behind flags `[edt.f90]`
-- [ ] Stage A loaders (reuse EDI): `read_file`, `load_supercell_pot`/`load_pot_from_file`, `build_vcolin_aligned`/`_corealign`, `read_filukk_edi`, `read_hr_file` (§4)
-- [ ] Optional range separation: `compute_range_separation` → $\Delta V_{\rm SR}/\Delta V_{\rm LR}$; run EDT on $\Delta V_{\rm SR}$ (§4; `research.md` §16.5)
-- [ ] Build active set `is_active(ibnd,ik)`, `n_act(ik)` from the window; set $\omega_0$, compute gap $\Delta$ `[edt_partition.f90]`
-- [ ] `apply_Qproj` — Gram–Schmidt against active states (NC: $S=1$) (§3) `[edt_partition.f90]`
-- [ ] Active/rest audit print (ionode): $N_A$, $N_R$, $\omega_0$, $\Delta$, window, per-$k$ counts
-- [ ] **Gate:** `edt.x` builds and runs the audit on MoS2 (no solve yet)
+### P0 — Scaffold, build system, inputs & active/rest partition  ✅ **DONE (2026-05-30)**
+*Validated on MoS₂ (150-band NSCF, 12×12): active = 11 Wannier valence bands, rest = 133 per k
+(19152 total); Wannier interp vs NSCF = 1.8×10⁻⁵ eV; ΔV cube load (S-vacancy, 240×240×300) OK.*
+- [x] Decide packaging: **sibling plug-in `edt/src/` in the repo, linking compiled EDI objects + QE libs by absolute path** (§2, §13)
+- [x] `edt/src/` tree; `src/makefile` links `libpw.a`, `libqemod.a`, **`liblrmod.a`** (new), `libks_solvers.a`, FFT/upf/xc/util/lax via `--start-group` (§13) `[makefile]`
+- [x] Link resolves `h_psi`, `ccgsolve_all`, `cgsolve_all`, `cg_psi` from `LR_Modules` (edt.x links clean; solver *called* in P2) (§6)
+- [x] `&edt_nml` with all keys + `mp_bcast` every key (§12) `[edt_input.f90]`
+- [x] Main program: read+broadcast input, run Stage A + audit `[edt.f90]`
+- [x] Stage A loaders (reuse EDI): `read_file`, `load_pot_from_file`, `build_vcolin_aligned`/`_corealign`, `read_hr_file`, Wannier-interp sanity (1.8e-5 eV) (§4). **NOTE:** `read_filukk_edi` overruns when NSCF nbnd ≠ Wannierization nbnd → wrote minimal robust reader `edt_wannier.f90::edt_read_filukk` (`nbndep`/`ibndkept`/`u_kc` only)
+- [x] Optional range separation: `compute_range_separation` wired + guarded (coded; not exercised — no `rhofile_d/p` in the MoS₂ test) (§4; `research.md` §16.5)
+- [x] Build active set `is_active(ibnd,ik)`, `n_act(ik)` from window; set $\omega_0$ (=VBM default), compute gap $\Delta$ `[edt_partition.f90]`
+- [x] `apply_Qproj` — Gram–Schmidt against active states (NC: $S=1$) (§3) `[edt_partition.f90]` (defined; first *exercised* in P1)
+- [x] Active/rest audit print (ionode): $N_A$, $N_R$, $\omega_0$, $\Delta$, window, per-$k$ counts
+- [x] **Gate:** `edt.x` builds and runs the audit on MoS₂ (no solve yet) ✓
 
 ### P1 — Stage B: Sternheimer source $|s\rangle=Q\,\Delta V\,|nk_i\rangle$
 - [ ] `dV_local_ket(ik_i,ibnd,ikp)`: reuse `build_V_folded` (**exact** $q$) + `invfft`/`fwfft`, gather on the $k'$ G-set (§5.1) `[edt_source.f90]`
