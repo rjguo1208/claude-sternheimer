@@ -237,6 +237,30 @@ END DO
 
 ## 6. Stage C — the per-$k$ Sternheimer solve (NEW core)
 
+> **What Stage C and Stage D are — and what "second order" means here.**
+> Stage C is the **bare** per-$k'$ Sternheimer solve; its output (assembled in Stage E) is the
+> **coupling-second-order** effective potential $\tilde V^{(2)}=V_{PP}+V_{PQ}\,G^R\,V_{QP}$, with
+> $G^R=[\omega_0-H_0^Q]^{-1}$. Two things that name does **not** mean:
+>
+> - **"Second order" is the *exact* order in the active–rest *coupling* $V_{PQ}$ (Feshbach), not a
+>   truncation.** The $PP$ block intrinsically contains $V_{PQ}/V_{QP}$ exactly twice (`research.md` §3.1);
+>   higher *coupling* orders are not lost — they are restored by Layer 2's resummation
+>   $T_{PP}=[1-\tilde V G^A]^{-1}\tilde V$ (Stage F).
+> - **The solve itself is exact.** The linear solver inverts the full $G^R$ (all rest bands at once via
+>   `h_psi`), so Stage C is *not* a low-order / approximate solver. Its **only** approximation is dropping
+>   the rest self-dressing $V_{QQ}$.
+>
+> **Stage D removes exactly that one approximation** — it is the $k$-decoupled ladder that adds $V_{QQ}$ to
+> *all* orders, $\mathcal G^Q=[\omega_0-H_0^Q-V_{QQ}]^{-1}$. **Stage C is just the $m=0$ rung of Stage D:**
+> each higher rung acts once with $V_{QQ}$ and **re-solves the same bare operator** $A_0=Q(\omega_0-H_0)Q$
+> (only the right-hand side changes). So there are three *independent* "orders":
+>
+> | knob | Stage C (bare, $m{=}0$) | Stage D (ladder, $m{\ge}1$) | higher orders restored by |
+> |---|---|---|---|
+> | active–rest coupling $V_{PQ}$ | exactly 2 — *exact* (Feshbach) | exactly 2 | Layer 2 / $T_{PP}$ (Stage F) |
+> | rest self-energy $V_{QQ}$ | 0 (dropped) | all orders | Stage D |
+> | rest-band sum in $G^R$ | all bands — *exact* | all bands | (already exact) |
+
 We solve, **independently for each channel $k'$ on the full-BZ rest grid** (§5 callout; `research.md` §8.1),
 $$Q(k')\big(\omega_0 - H_0(k')\big)Q(k')\,|\chi(k')\rangle = |s(k')\rangle .$$
 
@@ -309,8 +333,8 @@ This is the **only** linear-algebra novelty; everything is per-$k$, well-conditi
 
 ## 7. Stage D — $k$-decoupled rest dressing ladder (NEW, optional)
 
-Bare ($V_{QQ}=0$) gives the coupling-second-order $\tilde V^{(2)}$. To reach the *exact* dressed
-$\tilde V$ while staying $k$-decoupled, Neumann-iterate (`research.md` §9.1):
+Bare ($V_{QQ}=0$) — i.e. **Stage C, the $m=0$ rung** — gives the coupling-second-order $\tilde V^{(2)}$.
+To reach the *exact* dressed $\tilde V$ while staying $k$-decoupled, Neumann-iterate (`research.md` §9.1):
 $$|\chi^{(0)}\rangle=G^R V_{QP}|n\rangle,\qquad |\chi^{(m)}\rangle=G^R\,V_{QQ}\,|\chi^{(m-1)}\rangle,\qquad
 |\chi\rangle=\textstyle\sum_m|\chi^{(m)}\rangle .$$
 Each step is **one $V_{QQ}$ matvec** (reuse §5's ΔV-action restricted to $Q$, *no $k$-coupling in the
