@@ -358,10 +358,10 @@ CATALOG = [
      "new rest-space Sternheimer solve (QE <code>ccgsolve_all</code>), $V_{QQ}$ ladder, $\\tilde V$ assembly, "
      "and the small active inversion. Rest sum over the full BZ.",
      '<a href="pages/plan.html">Open implementation plan &rarr;</a>'),
-    ("Note: $k'$-sum normalization (P2&rarr;P3)", "Note", GEN_DATE, "warn", "Open",
-     "How to fix the rest-space $k'$-sum normalization (Bloch norm; BZ completeness vs the "
-     "golden-rule $1/N_k$; supercell $1/N_{sc}$) before a physical $\\tilde V$ — pinned by a "
-     "closure sum rule + the Born-limit mobility anchor.",
+    ("Note: $k'$-sum normalization (P2&rarr;P3)", "Note", GEN_DATE, "ok", "Resolved",
+     "The rest-space $k'$-sum is a BZ-integral discretization ⇒ carries $1/N_k$, turning the naive "
+     "$\\sum_{k'}\\!\\approx\\!-70$ Ry into the physical $\\Sigma_{nn}\\!\\approx\\!-0.5$ Ry. Closure "
+     "sum rule + Born-limit mobility anchor to confirm (and expose any residual $N_{sc}$).",
      '<a href="pages/note-kprime-normalization.html">Open implementation note &rarr;</a>'),
     ("Rest-space partial $T$-matrix (numerical)", "Test", "&mdash;", "plan", "Planned",
      "Numerical $\\tilde V=PT^RP$ from the per-$k$ Sternheimer solve; validate against a "

@@ -698,7 +698,8 @@ all-band result that explicit-150 misses by ~9–22% (the high-band tail) — th
 - [x] **(T2)** explicit sum → Sternheimer all-band value ✓ (monotone approach + correct tail)
 - [x] **(T3)** solver health: CG converges, residual ~$10^{-11}<$ `sternheimer_thr` ✓
 - [ ] *(deferred):* full QE `ccgsolve_all` complex-shift path for the **indefinite/metallic** case (§12) — here the operator is definite so PCG suffices; the `ch_psi`/`euc` interface is mapped out.
-- [ ] **⚠ open (→ P3):** absolute normalization of the **k′-sum** into the physical $\tilde V_{nn}=\sum_{k'}\Delta\tilde V_{\rm chan}$ — per-channel values are large (~0.3–0.7 Ry), so the BZ $1/N_k$ + supercell-ΔV normalization + rest-grid convergence (§5 callout) must be pinned before quoting a physical $\tilde V$.
+- [x] **k′-sum normalization resolved:** the $k'$-sum is the **BZ-integral discretization** ⇒ carries **$1/N_k$** ($\mathbb 1=\frac1{N_k}\sum_{nk}|nk\rangle\langle nk|$, QE per-cell states), so $\Sigma_{mn}=\frac1{N_k}\sum_{k'}\sum_r MM/(\omega_0-\varepsilon)$. This turns the naive $\sum_{k'}\!\approx\!-70$ Ry into the physical $\Sigma_{nn}\!\approx\!-0.5$ Ry (≈ Born $M$). $G^A$ also carries $1/N_k$; ties to the §5 rest-grid BZ convergence and EDI's golden-rule $1/N_k$. See the [Implementation Note](note-kprime-normalization.html).
+- [ ] **(→ P3) confirm:** closure $\sum_{n'}|M|^2\!=\!\lVert s\rVert^2$ (per channel) and $\frac1{N_k}\sum_{k'}\sum_{n'}|M|^2\!=\!\langle\Delta V^2\rangle$ (exposes any residual supercell $N_{\rm sc}$ factor); then Born-limit mobility == EDI as the gold-standard anchor.
 
 ### P3 — Stage E: assemble the coupling-second-order $\tilde V^{(2)}$
 - [ ] Bilinear form $\tilde V_{mn}=\langle m|\Delta V|n\rangle+\langle\chi_m|(\omega_0-H_0^Q)|\chi_n\rangle$; bare shortcut $\langle\chi_m|s_n\rangle$ (§8) `[edt_vtilde.f90]`
