@@ -25,6 +25,7 @@ import os, re, html, datetime
 ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESEARCH  = os.path.join(ROOT, "research.md")
 PLAN      = os.path.join(ROOT, "plan.md")
+NOTE_KNORM = os.path.join(ROOT, "content", "note_kprime_norm.md")
 DOCS      = os.path.join(ROOT, "docs")
 PAGES_DIR = os.path.join(DOCS, "pages")
 
@@ -254,9 +255,10 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
-                                    a("pages/theory.html", "Theory &amp; Method", "theory"),
-                                    a("pages/plan.html", "Implementation Plan", "plan")))
+            '%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+                                      a("pages/theory.html", "Theory &amp; Method", "theory"),
+                                      a("pages/plan.html", "Implementation Plan", "plan"),
+                                      a("pages/note-kprime-normalization.html", "Note: k&prime;-norm", "note")))
 
 def page_shell(title, head_html, nav_html, body_html, css_href):
     return """<!doctype html><html lang="en"><head>
@@ -321,6 +323,28 @@ def build_plan():
         f.write(out)
     return r
 
+def build_note():
+    with open(NOTE_KNORM, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=False)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">EDT implementation note: fixing the rest-space '
+              '$k\'$-sum normalization before quoting a physical $\\tilde V$ (P2 &rarr; P3).</p>'
+              '<div class="meta"><span class="pill">Implementation note</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">MathJax v3</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " — Note: k'-sum normalization",
+                     header, _topnav("note", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "note-kprime-normalization.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
@@ -334,6 +358,11 @@ CATALOG = [
      "new rest-space Sternheimer solve (QE <code>ccgsolve_all</code>), $V_{QQ}$ ladder, $\\tilde V$ assembly, "
      "and the small active inversion. Rest sum over the full BZ.",
      '<a href="pages/plan.html">Open implementation plan &rarr;</a>'),
+    ("Note: $k'$-sum normalization (P2&rarr;P3)", "Note", GEN_DATE, "warn", "Open",
+     "How to fix the rest-space $k'$-sum normalization (Bloch norm; BZ completeness vs the "
+     "golden-rule $1/N_k$; supercell $1/N_{sc}$) before a physical $\\tilde V$ — pinned by a "
+     "closure sum rule + the Born-limit mobility anchor.",
+     '<a href="pages/note-kprime-normalization.html">Open implementation note &rarr;</a>'),
     ("Rest-space partial $T$-matrix (numerical)", "Test", "&mdash;", "plan", "Planned",
      "Numerical $\\tilde V=PT^RP$ from the per-$k$ Sternheimer solve; validate against a "
      "finite-rest-band explicit sum and the Born limit $T\\!\\to\\!V$.", "&mdash;"),
@@ -442,10 +471,12 @@ def main():
     os.makedirs(PAGES_DIR, exist_ok=True)
     build_theory()
     build_plan()
+    build_note()
     build_index()
 
     th = open(os.path.join(PAGES_DIR, "theory.html"), encoding="utf-8").read()
     pl = open(os.path.join(PAGES_DIR, "plan.html"),   encoding="utf-8").read()
+    nt = open(os.path.join(PAGES_DIR, "note-kprime-normalization.html"), encoding="utf-8").read()
     ix = open(os.path.join(DOCS, "index.html"),       encoding="utf-8").read()
 
     def check(txt):
@@ -463,8 +494,9 @@ def main():
     print("=== build_site.py ===")
     stats("theory.html", th)
     stats("plan.html",   pl)
+    stats("note-knorm",  nt)
     print("index.html  : %d bytes, %d catalog rows" % (len(ix), ix.count("<tr")))
-    for nm, txt in (("theory.html", th), ("plan.html", pl), ("index.html", ix)):
+    for nm, txt in (("theory.html", th), ("plan.html", pl), ("note-knorm", nt), ("index.html", ix)):
         p = check(txt)
         print("  [%s] %s" % (nm, "OK" if not p else " ; ".join(p)))
 
