@@ -658,7 +658,8 @@ is implemented yet (this is the plan only).
 
 ### P0 — Scaffold, build system, inputs & active/rest partition  ✅ **DONE (2026-05-30)**
 *Validated on MoS₂ (150-band NSCF, 12×12): active = 11 Wannier valence bands, rest = 133 per k
-(19152 total); Wannier interp vs NSCF = 1.8×10⁻⁵ eV; ΔV cube load (S-vacancy, 240×240×300) OK.*
+(19152 total); Wannier interp vs NSCF = 1.8×10⁻⁵ eV; ΔV cube load (S-vacancy, 240×240×300) OK;
+MPI pool-invariant (npool=2 ≡ npool=1, early T6 check).*
 - [x] Decide packaging: **sibling plug-in `edt/src/` in the repo, linking compiled EDI objects + QE libs by absolute path** (§2, §13)
 - [x] `edt/src/` tree; `src/makefile` links `libpw.a`, `libqemod.a`, **`liblrmod.a`** (new), `libks_solvers.a`, FFT/upf/xc/util/lax via `--start-group` (§13) `[makefile]`
 - [x] Link resolves `h_psi`, `ccgsolve_all`, `cgsolve_all`, `cg_psi` from `LR_Modules` (edt.x links clean; solver *called* in P2) (§6)
@@ -671,13 +672,14 @@ is implemented yet (this is the plan only).
 - [x] Active/rest audit print (ionode): $N_A$, $N_R$, $\omega_0$, $\Delta$, window, per-$k$ counts
 - [x] **Gate:** `edt.x` builds and runs the audit on MoS₂ (no solve yet) ✓
 
-### P1 — Stage B: Sternheimer source $|s\rangle=Q\,\Delta V\,|nk_i\rangle$
-- [ ] `dV_local_ket(ik_i,ibnd,ikp)`: reuse `build_V_folded` (**exact** $q$) + `invfft`/`fwfft`, gather on the $k'$ G-set (§5.1) `[edt_source.f90]`
-- [ ] `gk_sort` / G-vector set for arbitrary fine rest-$k'$ when `rest_nk*` $\ne$ coarse (§5 callout)
+### P1 — Stage B: Sternheimer source $|s\rangle=Q\,\Delta V\,|nk_i\rangle$  🔄 **IN PROGRESS**
+*Local part done & validated: source-ket vs EDI local kernel max|ΔM| = 2.2×10⁻¹³ Ry (MoS₂, q=(0,1/12,0), 5 bands).*
+- [x] `build_V_folded` (exact $q$, no BZ wrap) + `dV_local_ket` via `invfft`/`fwfft`, gather on the $k'$ G-set (§5.1) `[edt_source.f90]` — **T1-local PASS (2.2e-13)**
+- [ ] `gk_sort` / G-vector set for arbitrary fine rest-$k'$ when `rest_nk*` $\ne$ coarse (current test uses coarse-grid channels) (§5 callout)
 - [ ] `dV_nonlocal_ket`: `get_betavkb`($k_i$,$k_f$) + `calbec` + `dvan`/`dvan_so`, defect − pristine (§5.2) `[edt_source.f90]`
 - [ ] Assemble source over the **full-BZ rest grid**; `apply_Qproj` per channel (§5.3)
 - [ ] Cache per-$k$ real-space $\psi$ + `becp` once (panel-broadcast pattern, reuse EDI) (§11)
-- [ ] **(T1) Gate — Born limit:** $\langle m k_f|\text{source}(n k_i)\rangle$ reproduces EDI $M$ (`ed_coarse_full_q`) to $\lesssim10^{-12}$ Ry
+- [ ] **(T1) Gate — Born limit:** full $\langle m k_f|\text{source}(n k_i)\rangle$ (local + nonlocal) vs EDI $M$ to $\lesssim10^{-12}$ Ry — *local part ✓ (2.2e-13); nonlocal pending*
 
 ### P2 — Stage C: bare per-$k'$ Sternheimer solve
 - [ ] `ch_psi_rest(n,psi,A_psi,e,ik,m)`: $(H_0-e)\psi+\alpha P_{\rm act}\psi$ (§6.1) `[edt_sternheimer.f90]`
