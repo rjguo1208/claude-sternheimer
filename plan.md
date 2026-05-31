@@ -672,14 +672,16 @@ MPI pool-invariant (npool=2 ≡ npool=1, early T6 check).*
 - [x] Active/rest audit print (ionode): $N_A$, $N_R$, $\omega_0$, $\Delta$, window, per-$k$ counts
 - [x] **Gate:** `edt.x` builds and runs the audit on MoS₂ (no solve yet) ✓
 
-### P1 — Stage B: Sternheimer source $|s\rangle=Q\,\Delta V\,|nk_i\rangle$  🔄 **IN PROGRESS**
-*Local part done & validated: source-ket vs EDI local kernel max|ΔM| = 2.2×10⁻¹³ Ry (MoS₂, q=(0,1/12,0), 5 bands).*
-- [x] `build_V_folded` (exact $q$, no BZ wrap) + `dV_local_ket` via `invfft`/`fwfft`, gather on the $k'$ G-set (§5.1) `[edt_source.f90]` — **T1-local PASS (2.2e-13)**
-- [ ] `gk_sort` / G-vector set for arbitrary fine rest-$k'$ when `rest_nk*` $\ne$ coarse (current test uses coarse-grid channels) (§5 callout)
-- [ ] `dV_nonlocal_ket`: `get_betavkb`($k_i$,$k_f$) + `calbec` + `dvan`/`dvan_so`, defect − pristine (§5.2) `[edt_source.f90]`
-- [ ] Assemble source over the **full-BZ rest grid**; `apply_Qproj` per channel (§5.3)
-- [ ] Cache per-$k$ real-space $\psi$ + `becp` once (panel-broadcast pattern, reuse EDI) (§11)
-- [ ] **(T1) Gate — Born limit:** full $\langle m k_f|\text{source}(n k_i)\rangle$ (local + nonlocal) vs EDI $M$ to $\lesssim10^{-12}$ Ry — *local part ✓ (2.2e-13); nonlocal pending*
+### P1 — Stage B: Sternheimer source $|s\rangle=Q\,\Delta V\,|nk_i\rangle$  ✅ **DONE (2026-05-30)**
+*Full source ket (local + nonlocal KB, defect−pristine) reproduces EDI's matrix-element kernels to
+**max|ΔM| = 2.3×10⁻¹³ Ry** (MoS₂, q=(0,1/12,0), 5 bands; |M_loc|≈0.65, |M_nl|≈0.12 Ry; nkb_d=1926,
+nkb_p=1944 — the S-vacancy removes exactly 18 KB projectors).*
+- [x] `build_V_folded` (exact $q$, no BZ wrap) + local ΔV ket via `invfft`/`fwfft` on the $k'$ G-set (§5.1) `[edt_source.f90]` — T1-local 2.2e-13
+- [x] nonlocal ket: `get_betavkb`($k_a$,$k_b$) + $\langle\beta|\psi\rangle$ + `dvan` contraction, defect − pristine (§5.2) `[edt_source.f90]` — T1-nonlocal 1.0e-13
+- [x] **(T1) Gate — Born limit:** full local+nonlocal source-ket vs EDI kernels = **2.3e-13** ✓ (`test_source`; reuses EDI's `get_betavkb`/`dvan` verbatim, so it validates against EDI's exact kernels)
+- [ ] *(folds into P2)* refactor `test_source` → reusable `dV_*_ket` + per-channel **full-BZ assembly** of $|s\rangle$ with `apply_Qproj` — built where the RHS is consumed (P2)
+- [ ] *(deferred opt.)* `gk_sort` for fine rest-$k'$ (`rest_nk*`≠coarse) + ψ/`becp` caching (§11)
+- [ ] *(nice-to-have)* end-to-end cross-check of full $M$ vs an actual `ed_coarse_full_q` run (current check is kernel-level)
 
 ### P2 — Stage C: bare per-$k'$ Sternheimer solve
 - [ ] `ch_psi_rest(n,psi,A_psi,e,ik,m)`: $(H_0-e)\psi+\alpha P_{\rm act}\psi$ (§6.1) `[edt_sternheimer.f90]`
