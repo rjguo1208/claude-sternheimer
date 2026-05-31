@@ -2,7 +2,7 @@
 
 *为什么 Layer-1 下折叠里的 rest 空间求和带一个 $1/N_k$ 因子,以及这如何把"逐通道相加过大"的问题一次性解决。EDT P2 → P3,详见 [Implementation Plan](plan.html)。*
 
-> **结论(已定):** 对 $k'$ 的离散求和就是 BZ 积分的离散化,所以它带一个 **$1/N_k$**(BZ 测度)因子。这把朴素相加得到的 $\sim-70$ Ry 修正为物理的 $\sim-0.5$ Ry。下面给出推导、与"逐通道闭合"的协调,以及确认用的数值检验。
+> **结论(已定):** 对 $k'$ 的离散求和就是 BZ 积分的离散化,所以它带一个 **$1/N_k$**(BZ 测度)因子;这把朴素相加得到的 $\sim-70$ Ry 修正为物理的 $\sim-0.5$ Ry。此外,只要 $\Delta V$ 在超胞内收敛,矩阵元 $M$(进而 $\tilde V$)就**与超胞大小无关**,因此 $1/N_k$ 之外**没有**额外的 $N_{\rm sc}$ 因子(§4)。下面给出推导、与"逐通道闭合"的协调、超胞无关性,以及确认用的数值检验。
 
 ## 0. 待定的量
 
@@ -67,12 +67,23 @@ $$
 
 与 Born 自能 $M_{nn}\sim0.7$ Ry 同量级——是个**大但物理**的修正(空位是强散射,Born 本就该被显著修正,这正是 T-matrix 的用武之地)。
 
-## 4. 确认用的检验(P3 起点)
+## 4. 超胞无关性 ⇒ 没有 $N_{\rm sc}$ 因子
 
-$1/N_k$ 已由 BZ 测度定下;以下检验用来**确认**实现无误,并排查可能残留的超胞因子:
+**物理要求:** 只要 $\Delta V$ 在超胞内**收敛**(局域、在边界前衰减为零),电子–缺陷矩阵元 $M=\langle\psi_{nk_i}|\Delta V|\psi_{mk_f}\rangle$ 就**与超胞大小无关** —— 更大的超胞只是多出 $\Delta V=0$ 的体/真空区,不改变只在缺陷邻域有贡献的积分。
 
-- **逐通道闭合**:单个 $k'$,$\sum_{n'=1}^{150}|M_{n,n'k'}|^2\overset?=\sum_G|s(k',G)|^2$(差额=高带不完备,应与 Sternheimer 高带尾一致)。确认扇区内无因子。
-- **全和 $=\langle\Delta V^2\rangle$**:$\dfrac1{N_k}\sum_{k'}\sum_{n'}|M|^2\overset?=\dfrac1\Omega\int_{\rm cell}|\psi_{nk_i}|^2\,\Delta V^2$(用 `V_folded^{q=0}`)。确认 $1/N_k$ 测度,并暴露任何残留的超胞 $N_{\rm sc}$ 归一。
-- **Born 极限锚定(金标准)**:关掉 rest dressing 与 active 重求和 ⇒ $\tilde V\to M$、$T_{PP}\to M$,跑 transport,**必须逐位复现 EDI 迁移率**(含 $n_d$、$\frac1{N_k}$)。T1 已在矩阵元层面证明 $M$ 与 EDI 一致($2.3\times10^{-13}$),这一步在 observable 层面锁死整体归一化。
+**实现一致:** EDI 的 $M=\frac1{N_{\rm nnr}}\sum_{r}u^*\,V^q_{\rm folded}\,u$ 用的是**原胞**测度 $\frac1{N_{\rm nnr}}$(不是超胞测度 $\frac1{N_{\rm nnr}^{\rm SC}}$),作用在把局域 $\Delta V$ 折回原胞的 $V^q_{\rm folded}$ 上;局域性 ⇒ 求和只在缺陷区有贡献(固定)⇒ $M$ **不随 $N_{\rm sc}$ 变**(T1 已证 $M$ 与 EDI 一致到 $2.3\times10^{-13}$)。单缺陷浓度由金规则里的 $n_d$ 处理,**不进 $M$**。
 
-> **小结**:$k'$ 求和带 $1/N_k$(BZ 积分测度);逐通道带求和不带因子;两者一致地给出 $\frac1{N_k}\sum_{k'}\sum_{n'}|M|^2=\langle\Delta V^2\rangle$。残留的超胞 $N_{\rm sc}$ 因子(若有)由上面的"全和"检验暴露,最终由 Born 极限复现 EDI 迁移率作总锚定。
+**推论:** $\Sigma=\frac1{N_k}\sum_{k'}\sum_r MM/(\omega_0-\varepsilon)$ 由超胞无关的 $M$ 构成 ⇒ $\Sigma$、$\tilde V$ 也**超胞无关**,前面估出的 $\Sigma_{nn}\approx-0.5$ Ry 是个 **per-defect 的物理量**。**所以 $1/N_k$ 之外没有额外的 $N_{\rm sc}$ 因子。**
+
+**两条独立的收敛轴(别混):** (i) **超胞大小** —— 决定 $\Delta V$(进而 $M$)是否收敛、是否超胞无关;(ii) **rest BZ 网格 $N_k$** —— $\frac1{N_k}\sum_{k'}\to\int_{BZ}$ 的积分收敛($N_k$ 可比超胞折叠更密,用任意 $q$ 的实空间折叠取 $\Delta V(q)$)。
+
+## 5. 确认用的检验(P3 起点)
+
+$1/N_k$ 由 BZ 测度定下、$M$ 超胞无关(§4)⇒ 归一化已完全确定。以下检验**确认实现无误**:
+
+- **逐通道闭合**:单个 $k'$,$\sum_{n'=1}^{150}|M_{n,n'k'}|^2\overset?=\sum_G|s(k',G)|^2$(差额=高带不完备,应与 Sternheimer 高带尾一致)。
+- **全和 $=\langle\Delta V^2\rangle$**:$\dfrac1{N_k}\sum_{k'}\sum_{n'}|M|^2\overset?=\dfrac1\Omega\int_{\rm cell}|\psi_{nk_i}|^2\,\Delta V^2$;两边都应超胞无关。
+- **超胞无关性**:若有两个超胞尺寸,$M$(及 $\Sigma$)应不变;EDI 输运已隐含验证(收敛后迁移率与超胞无关)。
+- **Born 极限锚定(金标准)**:关掉 rest/active 重求和 ⇒ $\tilde V\to M$、$T_{PP}\to M$,跑 transport,**必须逐位复现 EDI 迁移率**(含 $n_d$、$\frac1{N_k}$)。
+
+> **小结**:归一化已完全定下 —— $k'$ 求和带 BZ 测度 $1/N_k$;$M$ 因 $\Delta V$ 局域而**超胞无关**(无 $N_{\rm sc}$ 因子);逐通道带求和无因子,$\frac1{N_k}\sum_{k'}\sum_{n'}|M|^2=\langle\Delta V^2\rangle$。两条收敛轴:超胞大小($\Delta V$)与 rest BZ 网格($N_k$)。最终由 Born 极限复现 EDI 迁移率作总锚定。

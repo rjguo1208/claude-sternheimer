@@ -6,11 +6,11 @@
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head><body>
 <nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/note-kprime-normalization.html" style="color:#fff;text-decoration:underline">Note: k&prime;-norm</a></div></nav>
-<header><div class="header-inner"><h1>Implementation Note — the $k'$-sum normalization convention</h1><p class="subtitle">EDT implementation note: fixing the rest-space $k'$-sum normalization before quoting a physical $\tilde V$ (P2 &rarr; P3).</p><div class="meta"><span class="pill">Implementation note</span><span class="pill">5 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<header><div class="header-inner"><h1>Implementation Note — the $k'$-sum normalization convention</h1><p class="subtitle">EDT implementation note: fixing the rest-space $k'$-sum normalization before quoting a physical $\tilde V$ (P2 &rarr; P3).</p><div class="meta"><span class="pill">Implementation note</span><span class="pill">6 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
 <main>
-<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-0">0. 待定的量</a><a href="#sec-1">1. 为什么是 $1/N_k$:$k'$ 求和 = BZ 积分</a><a href="#sec-2">2. 与"逐通道闭合"的协调(两件不同的事)</a><a href="#sec-3">3. 数量级:$-70$ Ry → $-0.5$ Ry</a><a href="#sec-4">4. 确认用的检验(P3 起点)</a></div></section>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-0">0. 待定的量</a><a href="#sec-1">1. 为什么是 $1/N_k$:$k'$ 求和 = BZ 积分</a><a href="#sec-2">2. 与"逐通道闭合"的协调(两件不同的事)</a><a href="#sec-3">3. 数量级:$-70$ Ry → $-0.5$ Ry</a><a href="#sec-4">4. 超胞无关性 ⇒ 没有 $N_{\rm sc}$ 因子</a><a href="#sec-5">5. 确认用的检验(P3 起点)</a></div></section>
 <p><em>为什么 Layer-1 下折叠里的 rest 空间求和带一个 $1/N_k$ 因子,以及这如何把"逐通道相加过大"的问题一次性解决。EDT P2 → P3,详见 <a href="plan.html">Implementation Plan</a>。</em></p>
-<blockquote><p><strong>结论(已定):</strong> 对 $k'$ 的离散求和就是 BZ 积分的离散化,所以它带一个 <strong>$1/N_k$</strong>(BZ 测度)因子。这把朴素相加得到的 $\sim-70$ Ry 修正为物理的 $\sim-0.5$ Ry。下面给出推导、与"逐通道闭合"的协调,以及确认用的数值检验。</p></blockquote>
+<blockquote><p><strong>结论(已定):</strong> 对 $k'$ 的离散求和就是 BZ 积分的离散化,所以它带一个 <strong>$1/N_k$</strong>(BZ 测度)因子;这把朴素相加得到的 $\sim-70$ Ry 修正为物理的 $\sim-0.5$ Ry。此外,只要 $\Delta V$ 在超胞内收敛,矩阵元 $M$(进而 $\tilde V$)就<strong>与超胞大小无关</strong>,因此 $1/N_k$ 之外<strong>没有</strong>额外的 $N_{\rm sc}$ 因子(§4)。下面给出推导、与"逐通道闭合"的协调、超胞无关性,以及确认用的数值检验。</p></blockquote>
 <section id="sec-0"><h2>0. 待定的量</h2>
 <p>rest 自能(Feshbach 下折叠的二阶项):</p>
 <div class="math">
@@ -70,10 +70,16 @@ $$
 </div>
 <p>与 Born 自能 $M_{nn}\sim0.7$ Ry 同量级——是个<strong>大但物理</strong>的修正(空位是强散射,Born 本就该被显著修正,这正是 T-matrix 的用武之地)。</p>
 </section>
-<section id="sec-4"><h2>4. 确认用的检验(P3 起点)</h2>
-<p>$1/N_k$ 已由 BZ 测度定下;以下检验用来<strong>确认</strong>实现无误,并排查可能残留的超胞因子:</p>
-<ul><li><strong>逐通道闭合</strong>:单个 $k'$,$\sum_{n'=1}^{150}|M_{n,n'k'}|^2\overset?=\sum_G|s(k',G)|^2$(差额=高带不完备,应与 Sternheimer 高带尾一致)。确认扇区内无因子。</li><li><strong>全和 $=\langle\Delta V^2\rangle$</strong>:$\dfrac1{N_k}\sum_{k'}\sum_{n'}|M|^2\overset?=\dfrac1\Omega\int_{\rm cell}|\psi_{nk_i}|^2\,\Delta V^2$(用 <code>V_folded^{q=0}</code>)。确认 $1/N_k$ 测度,并暴露任何残留的超胞 $N_{\rm sc}$ 归一。</li><li><strong>Born 极限锚定(金标准)</strong>:关掉 rest dressing 与 active 重求和 ⇒ $\tilde V\to M$、$T_{PP}\to M$,跑 transport,<strong>必须逐位复现 EDI 迁移率</strong>(含 $n_d$、$\frac1{N_k}$)。T1 已在矩阵元层面证明 $M$ 与 EDI 一致($2.3\times10^{-13}$),这一步在 observable 层面锁死整体归一化。</li></ul>
-<blockquote><p><strong>小结</strong>:$k'$ 求和带 $1/N_k$(BZ 积分测度);逐通道带求和不带因子;两者一致地给出 $\frac1{N_k}\sum_{k'}\sum_{n'}|M|^2=\langle\Delta V^2\rangle$。残留的超胞 $N_{\rm sc}$ 因子(若有)由上面的"全和"检验暴露,最终由 Born 极限复现 EDI 迁移率作总锚定。</p></blockquote>
+<section id="sec-4"><h2>4. 超胞无关性 ⇒ 没有 $N_{\rm sc}$ 因子</h2>
+<p><strong>物理要求:</strong> 只要 $\Delta V$ 在超胞内<strong>收敛</strong>(局域、在边界前衰减为零),电子–缺陷矩阵元 $M=\langle\psi_{nk_i}|\Delta V|\psi_{mk_f}\rangle$ 就<strong>与超胞大小无关</strong> —— 更大的超胞只是多出 $\Delta V=0$ 的体/真空区,不改变只在缺陷邻域有贡献的积分。</p>
+<p><strong>实现一致:</strong> EDI 的 $M=\frac1{N_{\rm nnr}}\sum_{r}u^*\,V^q_{\rm folded}\,u$ 用的是<strong>原胞</strong>测度 $\frac1{N_{\rm nnr}}$(不是超胞测度 $\frac1{N_{\rm nnr}^{\rm SC}}$),作用在把局域 $\Delta V$ 折回原胞的 $V^q_{\rm folded}$ 上;局域性 ⇒ 求和只在缺陷区有贡献(固定)⇒ $M$ <strong>不随 $N_{\rm sc}$ 变</strong>(T1 已证 $M$ 与 EDI 一致到 $2.3\times10^{-13}$)。单缺陷浓度由金规则里的 $n_d$ 处理,<strong>不进 $M$</strong>。</p>
+<p><strong>推论:</strong> $\Sigma=\frac1{N_k}\sum_{k'}\sum_r MM/(\omega_0-\varepsilon)$ 由超胞无关的 $M$ 构成 ⇒ $\Sigma$、$\tilde V$ 也<strong>超胞无关</strong>,前面估出的 $\Sigma_{nn}\approx-0.5$ Ry 是个 <strong>per-defect 的物理量</strong>。<strong>所以 $1/N_k$ 之外没有额外的 $N_{\rm sc}$ 因子。</strong></p>
+<p><strong>两条独立的收敛轴(别混):</strong> (i) <strong>超胞大小</strong> —— 决定 $\Delta V$(进而 $M$)是否收敛、是否超胞无关;(ii) <strong>rest BZ 网格 $N_k$</strong> —— $\frac1{N_k}\sum_{k'}\to\int_{BZ}$ 的积分收敛($N_k$ 可比超胞折叠更密,用任意 $q$ 的实空间折叠取 $\Delta V(q)$)。</p>
+</section>
+<section id="sec-5"><h2>5. 确认用的检验(P3 起点)</h2>
+<p>$1/N_k$ 由 BZ 测度定下、$M$ 超胞无关(§4)⇒ 归一化已完全确定。以下检验<strong>确认实现无误</strong>:</p>
+<ul><li><strong>逐通道闭合</strong>:单个 $k'$,$\sum_{n'=1}^{150}|M_{n,n'k'}|^2\overset?=\sum_G|s(k',G)|^2$(差额=高带不完备,应与 Sternheimer 高带尾一致)。</li><li><strong>全和 $=\langle\Delta V^2\rangle$</strong>:$\dfrac1{N_k}\sum_{k'}\sum_{n'}|M|^2\overset?=\dfrac1\Omega\int_{\rm cell}|\psi_{nk_i}|^2\,\Delta V^2$;两边都应超胞无关。</li><li><strong>超胞无关性</strong>:若有两个超胞尺寸,$M$(及 $\Sigma$)应不变;EDI 输运已隐含验证(收敛后迁移率与超胞无关)。</li><li><strong>Born 极限锚定(金标准)</strong>:关掉 rest/active 重求和 ⇒ $\tilde V\to M$、$T_{PP}\to M$,跑 transport,<strong>必须逐位复现 EDI 迁移率</strong>(含 $n_d$、$\frac1{N_k}$)。</li></ul>
+<blockquote><p><strong>小结</strong>:归一化已完全定下 —— $k'$ 求和带 BZ 测度 $1/N_k$;$M$ 因 $\Delta V$ 局域而<strong>超胞无关</strong>(无 $N_{\rm sc}$ 因子);逐通道带求和无因子,$\frac1{N_k}\sum_{k'}\sum_{n'}|M|^2=\langle\Delta V^2\rangle$。两条收敛轴:超胞大小($\Delta V$)与 rest BZ 网格($N_k$)。最终由 Born 极限复现 EDI 迁移率作总锚定。</p></blockquote>
 </section>
 </main>
 <footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
