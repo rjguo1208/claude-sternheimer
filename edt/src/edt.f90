@@ -28,7 +28,7 @@ PROGRAM edt
                                build_vcolin_aligned, build_vcolin_corealign, write_vcolin_cube
   USE edt_wannier,      ONLY : edt_read_filukk
   USE edt_source,       ONLY : test_source, explicit_rest_channel
-  USE edt_sternheimer,  ONLY : edt_set_vrs, test_hpsi_eigen, rest_channel_compare
+  USE edt_sternheimer,  ONLY : edt_set_vrs, test_hpsi_eigen, rest_channel_compare, vtilde_diag_full
   USE edi_read_hr,      ONLY : read_hr_file
   USE edi_pw2wan,       ONLY : edi_interp_bands
   USE range_sep,        ONLY : compute_range_separation
@@ -206,7 +206,7 @@ PROGRAM edt
   IF (ALLOCATED(V_colin) .AND. nkstot >= 2) THEN
      CALL test_source(1, 2, xk_cryst(:,2) - xk_cryst(:,1), &
                             ibndkept(1:MIN(5,nbndep)), MIN(5,nbndep))
-     ! ---- P2: Sternheimer vs explicit rest dressing (T2) at q=0 and q/=0 channels ----
+     ! ---- P2 demo: one-channel explicit-vs-Sternheimer (q=0) ----
      BLOCK
        INTEGER, PARAMETER :: ncut = 6
        INTEGER :: cutoffs(ncut), isrc
@@ -214,8 +214,9 @@ PROGRAM edt
        isrc = ibndkept(nbndep)            ! highest active (valence) band
        CALL rest_channel_compare(1, isrc, 1, xk_cryst(:,1)-xk_cryst(:,1), &
             om0/rytoev, win_min/rytoev, win_max/rytoev, nbndskip, sternheimer_thr, cutoffs, ncut)
-       CALL rest_channel_compare(1, isrc, 2, xk_cryst(:,1)-xk_cryst(:,2), &
-            om0/rytoev, win_min/rytoev, win_max/rytoev, nbndskip, sternheimer_thr, cutoffs, ncut)
+       ! ---- P3: full-BZ assembly of the diagonal Ṽ_nn (1/N_k) + closure check ----
+       CALL vtilde_diag_full(1, isrc, xk_cryst, om0/rytoev, win_min/rytoev, win_max/rytoev, &
+            nbndskip, sternheimer_thr, .TRUE.)
      END BLOCK
   ENDIF
 

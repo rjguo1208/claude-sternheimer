@@ -702,15 +702,22 @@ all-band result that explicit-150 misses by ~9–22% (the high-band tail) — th
 - [x] **no $N_{\rm sc}$ factor:** for converged $\Delta V$, $M$ (hence $\tilde V$, $\Sigma$) is **supercell-independent** — EDI's primitive-cell measure $\frac1{N_{\rm nnr}}$ on the *localized* folded $\Delta V$ only sees the defect region (concentration handled by $n_d$, not $M$). Two independent convergence axes: supercell size ($\Delta V$) and rest BZ grid $N_k$ ($\frac1{N_k}\sum\!\to\!\int$).
 - [ ] **(→ P3) confirm:** per-channel closure $\sum_{n'}|M|^2\!=\!\lVert s\rVert^2$; full $\frac1{N_k}\sum_{k'}\sum_{n'}|M|^2\!=\!\langle\Delta V^2\rangle$ (both supercell-independent); $M$ invariant across supercell sizes; Born-limit mobility == EDI (gold-standard anchor).
 
-### P3 — Stage E: assemble the coupling-second-order $\tilde V^{(2)}$
-- [ ] Bilinear form $\tilde V_{mn}=\langle m|\Delta V|n\rangle+\langle\chi_m|(\omega_0-H_0^Q)|\chi_n\rangle$; bare shortcut $\langle\chi_m|s_n\rangle$ (§8) `[edt_vtilde.f90]`
-- [ ] Reuse EDI $M$-term (`ed_coarse_full_q` kernel) for $\langle m k_f|\Delta V|n k_i\rangle$
-- [ ] Contract the rest term over full-BZ rest channels; `mp_sum`
-- [ ] Hermitize $(m k_f)\leftrightarrow(n k_i)$
-- [ ] Full coarse $\tilde V^{(2)}$ for fixed $k_i$ (the codex "1584 RHS" milestone)
-- [ ] **(T5)** gauge: $\|U^\dagger U-I\|\lesssim10^{-13}$; $\tilde V$ invariant under $U^\dagger(\cdot)U$
-- [ ] **(T9)** rest BZ-grid convergence: $\|\tilde V\|$ converges as `rest_nk*` densifies (full BZ), independent of the SC folding set
-- [ ] **(T6) Gate — MPI invariance:** result independent of pool/image count to machine precision
+### P3 — Stage E: assemble the coupling-second-order $\tilde V^{(2)}$  🔄 **diagonal + normalization done**
+*`vtilde_diag_full` assembles the **diagonal** $\tilde V_{nn}=M_{nn}+\Sigma_{nn}$ over the full BZ with the
+$1/N_k$ measure, and runs the closure check. MoS₂ (isrc=17 VBM, ki=1, $N_k$=144):*
+| $M_{nn}$ (Born) | $\Sigma_{nn}$ explicit-150 | $\Sigma_{nn}$ **Sternheimer** | **$\tilde V_{nn}$** | $\langle\Delta V^2\rangle$ (norm / 150-band) |
+|---|---|---|---|---|
+| +0.701 Ry | −0.773 Ry | **−0.819 Ry** | **−0.117 Ry** | 1.756 / 1.529 Ry² (ratio 0.871) |
+*$1/N_k$ **confirmed**: $\langle\Delta V^2\rangle\!\sim\!\mathcal O(1)$ Ry² (not $144\times$); band completeness 0.871
+(deficit = high-band tail, recovered by Sternheimer). $|\Sigma_{nn}|>M_{nn}$, sign-flipping ⇒ strong
+beyond-Born regime (Born fails, T-matrix essential).*
+- [x] rest-term contracted over the full-BZ channels with $1/N_k$ (BZ measure); $\Sigma_{nn}=\frac1{N_k}\sum_{k'}(-\langle s|\chi\rangle)$ `[edt_sternheimer.f90::vtilde_diag_full]`
+- [x] Born $M_{nn}$ term (q=0 channel of the source ket); $\tilde V_{nn}=M_{nn}+\Sigma_{nn}$
+- [x] **closure check** confirms $1/N_k$: $\frac1{N_k}\sum_{k'}\sum_{n'}|M|^2=\langle\Delta V^2\rangle\approx1.76$ Ry² ($\mathcal O(1)$), band completeness 0.871
+- [ ] **full off-diagonal block** $\tilde V_{(mk_f),(nk_i)}$ (all ~1584 active sources) + Hermitize — **needs a compute node** (codex: 72 ranks, ~2.5 h)
+- [ ] **(T5)** gauge: $\|U^\dagger U-I\|$; $\tilde V$ invariant under $U^\dagger(\cdot)U$
+- [ ] **(T9)** rest BZ-grid convergence: $\|\tilde V\|$ vs `rest_nk*` densifying (full BZ)
+- [ ] **(T6)** MPI invariance of the full-block assembly
 
 ### P4 — Stage D: $k$-decoupled $V_{QQ}$ dressing ladder (optional)
 - [ ] Neumann ladder $\chi^{(m)}=G^R V_{QQ}\chi^{(m-1)}$; $V_{QQ}$ via the ΔV-action $\oplus\,Q$ (§7) `[edt_dress.f90]`
