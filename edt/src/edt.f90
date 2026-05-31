@@ -27,7 +27,7 @@ PROGRAM edt
   USE ed_coarse,        ONLY : load_pot_from_file, &
                                build_vcolin_aligned, build_vcolin_corealign, write_vcolin_cube
   USE edt_wannier,      ONLY : edt_read_filukk
-  USE edt_source,       ONLY : test_source
+  USE edt_source,       ONLY : test_source, explicit_rest_channel
   USE edi_read_hr,      ONLY : read_hr_file
   USE edi_pw2wan,       ONLY : edi_interp_bands
   USE range_sep,        ONLY : compute_range_separation
@@ -199,6 +199,17 @@ PROGRAM edt
   IF (ALLOCATED(V_colin) .AND. nkstot >= 2) THEN
      CALL test_source(1, 2, xk_cryst(:,2) - xk_cryst(:,1), &
                             ibndkept(1:MIN(5,nbndep)), MIN(5,nbndep))
+     ! ---- P2a: explicit rest-band dressing at q=0 and q/=0 channels (T2 reference) ----
+     BLOCK
+       INTEGER, PARAMETER :: ncut = 6
+       INTEGER :: cutoffs(ncut), isrc
+       cutoffs = (/ 30, 60, 90, 120, 140, nbnd /)
+       isrc = ibndkept(nbndep)            ! highest active (valence) band
+       CALL explicit_rest_channel(1, isrc, 1, xk_cryst(:,1)-xk_cryst(:,1), &
+            om0/rytoev, win_min/rytoev, win_max/rytoev, nbndskip, cutoffs, ncut)
+       CALL explicit_rest_channel(1, isrc, 2, xk_cryst(:,1)-xk_cryst(:,2), &
+            om0/rytoev, win_min/rytoev, win_max/rytoev, nbndskip, cutoffs, ncut)
+     END BLOCK
   ENDIF
 
   IF (ionode) THEN

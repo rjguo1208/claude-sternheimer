@@ -14,7 +14,7 @@ MODULE edt_source
   USE kinds, ONLY : dp
   IMPLICIT NONE
   PRIVATE
-  PUBLIC :: build_V_folded, test_source
+  PUBLIC :: build_V_folded, test_source, build_source_ket, explicit_rest_channel
 
   REAL(dp), PARAMETER :: tpi = 6.283185307179586_dp
 
@@ -290,5 +290,173 @@ CONTAINS
     ENDDO
     DEALLOCATE(coeff, znl)
   END SUBROUTINE nl_contrib
+
+
+  SUBROUTINE make_coeff(vf_nat, vf_ityp, vf_ntyp, nkb, bec_src, coeff)
+    ! coeff(ijkb0+ih) = Σ_jh dvan(ih,jh,nt) bec_src(ijkb0+jh)   (KB D-contraction)
+    USE uspp,       ONLY : dvan
+    USE uspp_param, ONLY : nh
+    IMPLICIT NONE
+    INTEGER, INTENT(IN) :: vf_nat, vf_ntyp, vf_ityp(vf_nat), nkb
+    COMPLEX(dp), INTENT(IN)  :: bec_src(nkb)
+    COMPLEX(dp), INTENT(OUT) :: coeff(nkb)
+    INTEGER :: na, nt, ih, jh, ijkb0
+    coeff = (0.0_dp,0.0_dp); ijkb0 = 0
+    DO nt = 1, vf_ntyp
+       DO na = 1, vf_nat
+          IF (vf_ityp(na) == nt) THEN
+             DO ih = 1, nh(nt)
+                DO jh = 1, nh(nt)
+                   coeff(ijkb0+ih) = coeff(ijkb0+ih) + dvan(ih,jh,nt) * bec_src(ijkb0+jh)
+                ENDDO
+             ENDDO
+             ijkb0 = ijkb0 + nh(nt)
+          ENDIF
+       ENDDO
+    ENDDO
+  END SUBROUTINE make_coeff
+
+
+  SUBROUTINE build_source_ket(kp, q_cryst, u_src, coeff_d, nkb_d, coeff_p, nkb_p, zeta)
+    !-------------------------------------------------------------------------
+    ! Build [ΔV|ψ_src>] on the output channel kp (G-space, kp basis):
+    !   ζ = fwfft(V_folded^{q}·u_src) + Σ β^d(kp) coeff_d − Σ β^p(kp) coeff_p
+    ! u_src = real-space periodic part of the source band at k_src;
+    ! coeff_{d,p} = dvan-contracted <β(k_src)|ψ_src> (from make_coeff); q = k_src − kp.
+    ! This is the reusable RHS generator for the Sternheimer solve (before Q-projection).
+    !-------------------------------------------------------------------------
+    USE wvfct,          ONLY : npwx
+    USE klist,          ONLY : ngk, igk_k, xk
+    USE fft_base,       ONLY : dffts
+    USE fft_interfaces, ONLY : fwfft
+    USE edic_mod,       ONLY : V_d, V_p
+    IMPLICIT NONE
+    INTEGER,  INTENT(IN)  :: kp, nkb_d, nkb_p
+    REAL(dp), INTENT(IN)  :: q_cryst(3)
+    COMPLEX(dp), INTENT(IN)  :: u_src(:), coeff_d(nkb_d), coeff_p(nkb_p)
+    COMPLEX(dp), INTENT(OUT) :: zeta(:)
+    COMPLEX(dp), ALLOCATABLE :: Vf(:), g(:), vkb_d(:,:), vkb_p(:,:)
+    INTEGER :: ig, ikb, npw
+
+    npw = ngk(kp)
+    ALLOCATE(Vf(dffts%nnr), g(dffts%nnr))
+    CALL build_V_folded(q_cryst, Vf)
+    g = Vf * u_src
+    CALL fwfft('Wave', g, dffts)
+    zeta = (0.0_dp,0.0_dp)
+    DO ig = 1, npw
+       zeta(ig) = g(dffts%nl(igk_k(ig,kp)))
+    ENDDO
+    ALLOCATE(vkb_d(npwx,nkb_d), vkb_p(npwx,nkb_p))
+    CALL get_betavkb(npw, igk_k(1,kp), xk(1,kp), vkb_d, V_d%nat, V_d%ityp, V_d%tau, nkb_d)
+    CALL get_betavkb(npw, igk_k(1,kp), xk(1,kp), vkb_p, V_p%nat, V_p%ityp, V_p%tau, nkb_p)
+    DO ikb = 1, nkb_d
+       zeta(1:npw) = zeta(1:npw) + vkb_d(1:npw,ikb) * coeff_d(ikb)
+    ENDDO
+    DO ikb = 1, nkb_p
+       zeta(1:npw) = zeta(1:npw) - vkb_p(1:npw,ikb) * coeff_p(ikb)
+    ENDDO
+    DEALLOCATE(Vf, g, vkb_d, vkb_p)
+  END SUBROUTINE build_source_ket
+
+
+  SUBROUTINE explicit_rest_channel(ki, isrc, kp, q_cryst, omega0_ry, &
+                                    win_min_ry, win_max_ry, nbndskip_in, cutoffs, ncut)
+    !-------------------------------------------------------------------------
+    ! Explicit rest-band spectral form of the Layer-1 rest dressing at ONE output
+    ! channel kp, for source state (isrc,ki):
+    !   ΔṼ_chan(cut) = Σ_{r∈rest at kp, r≤cut} |<ψ_{r,kp}|ΔV|ψ_{isrc,ki}>|² / (ω0 − ε_{r,kp})
+    ! This is the T2 reference the per-k' Sternheimer solve must reproduce
+    ! (<s|χ> = <s|G^R|s> with the same channel).  Reports band-cutoff convergence.
+    !-------------------------------------------------------------------------
+    USE io_global,        ONLY : ionode, stdout
+    USE wvfct,            ONLY : npwx, nbnd, et
+    USE klist,            ONLY : ngk, igk_k, xk
+    USE fft_base,         ONLY : dffts
+    USE fft_interfaces,   ONLY : invfft
+    USE noncollin_module, ONLY : npol
+    USE pw_restart_new,   ONLY : read_collected_wfc
+    USE io_files,         ONLY : restart_dir
+    USE constants,        ONLY : rytoev
+    USE edic_mod,         ONLY : V_d, V_p
+    IMPLICIT NONE
+    INTEGER,  INTENT(IN) :: ki, isrc, kp, nbndskip_in, ncut, cutoffs(ncut)
+    REAL(dp), INTENT(IN) :: q_cryst(3), omega0_ry, win_min_ry, win_max_ry
+
+    COMPLEX(dp), ALLOCATABLE :: evc_ki(:,:), evc_kp(:,:), u_src(:), psic(:)
+    COMPLEX(dp), ALLOCATABLE :: vkb_d_ki(:,:), vkb_p_ki(:,:), bec_d(:), bec_p(:)
+    COMPLEX(dp), ALLOCATABLE :: coeff_d(:), coeff_p(:), zeta(:)
+    COMPLEX(dp), ALLOCATABLE :: dv(:)
+    COMPLEX(dp) :: ovlp, born
+    INTEGER :: nkb_d, nkb_p, ig, r, c, npw_ki, npw_kp, nrest
+    REAL(dp) :: eR
+
+    IF (.NOT. ionode) RETURN
+    npw_ki = ngk(ki); npw_kp = ngk(kp)
+
+    ALLOCATE(evc_ki(npwx*npol,nbnd), evc_kp(npwx*npol,nbnd))
+    CALL read_collected_wfc(restart_dir(), ki, evc_ki)
+    CALL read_collected_wfc(restart_dir(), kp, evc_kp)
+
+    ! real-space periodic part of the source band
+    ALLOCATE(u_src(dffts%nnr), psic(dffts%nnr))
+    psic = (0.0_dp,0.0_dp)
+    DO ig = 1, npw_ki
+       psic(dffts%nl(igk_k(ig,ki))) = evc_ki(ig, isrc)
+    ENDDO
+    CALL invfft('Wave', psic, dffts); u_src = psic
+
+    ! source-side KB data at ki
+    CALL count_nkb(V_d%nat, V_d%ityp, V_d%ntyp, nkb_d)
+    CALL count_nkb(V_p%nat, V_p%ityp, V_p%ntyp, nkb_p)
+    ALLOCATE(vkb_d_ki(npwx,nkb_d), vkb_p_ki(npwx,nkb_p))
+    CALL get_betavkb(npw_ki, igk_k(1,ki), xk(1,ki), vkb_d_ki, V_d%nat, V_d%ityp, V_d%tau, nkb_d)
+    CALL get_betavkb(npw_ki, igk_k(1,ki), xk(1,ki), vkb_p_ki, V_p%nat, V_p%ityp, V_p%tau, nkb_p)
+    ALLOCATE(bec_d(nkb_d), bec_p(nkb_p), coeff_d(nkb_d), coeff_p(nkb_p))
+    DO c = 1, nkb_d
+       bec_d(c) = SUM(CONJG(vkb_d_ki(1:npw_ki,c)) * evc_ki(1:npw_ki,isrc))
+    ENDDO
+    DO c = 1, nkb_p
+       bec_p(c) = SUM(CONJG(vkb_p_ki(1:npw_ki,c)) * evc_ki(1:npw_ki,isrc))
+    ENDDO
+    CALL make_coeff(V_d%nat, V_d%ityp, V_d%ntyp, nkb_d, bec_d, coeff_d)
+    CALL make_coeff(V_p%nat, V_p%ityp, V_p%ntyp, nkb_p, bec_p, coeff_p)
+
+    ! source ket on channel kp
+    ALLOCATE(zeta(npwx))
+    CALL build_source_ket(kp, q_cryst, u_src, coeff_d, nkb_d, coeff_p, nkb_p, zeta)
+
+    ! rest-band spectral sum with cutoff convergence
+    ALLOCATE(dv(ncut)); dv = (0.0_dp,0.0_dp); born = (0.0_dp,0.0_dp); nrest = 0
+    DO r = nbndskip_in+1, nbnd
+       ovlp = SUM(CONJG(evc_kp(1:npw_kp,r)) * zeta(1:npw_kp))
+       eR = et(r,kp)
+       IF (eR >= win_min_ry .AND. eR <= win_max_ry) THEN
+          IF (kp == ki .AND. r == isrc) born = ovlp     ! Born self matrix element (context)
+          CYCLE                                          ! active band -> not in rest sum
+       ENDIF
+       nrest = nrest + 1
+       DO c = 1, ncut
+          IF (r <= cutoffs(c)) dv(c) = dv(c) + ABS(ovlp)**2 / (omega0_ry - eR)
+       ENDDO
+    ENDDO
+
+    WRITE(stdout,'(/,5X,A)') REPEAT('=',64)
+    WRITE(stdout,'(5X,A)') 'P2a — explicit rest dressing at one channel (T2 reference)'
+    WRITE(stdout,'(5X,A,I4,A,I4,A,I4)') 'source band isrc=', isrc, '  k_src(ki)=', ki, '  channel kp=', kp
+    WRITE(stdout,'(5X,A,3F8.4)') 'q (cryst, ki-kp) = ', q_cryst
+    WRITE(stdout,'(5X,A,F10.4,A,I5)') 'omega0 = ', omega0_ry*rytoev, ' eV   rest bands at kp = ', nrest
+    IF (kp == ki) WRITE(stdout,'(5X,A,ES13.5,A)') 'Born self <isrc|dV|isrc> = ', DBLE(born), ' Ry'
+    WRITE(stdout,'(5X,A)') '  cutoff   ΔṼ_chan (Ry)        (rest 2nd-order correction)'
+    DO c = 1, ncut
+       WRITE(stdout,'(7X,I4,3X,ES16.8)') cutoffs(c), DBLE(dv(c))
+    ENDDO
+    IF (ncut >= 2) WRITE(stdout,'(5X,A,ES12.4)') &
+         'last-step rel. change = ', ABS(DBLE(dv(ncut)-dv(ncut-1)))/MAX(ABS(DBLE(dv(ncut))),1d-30)
+    WRITE(stdout,'(5X,A)') REPEAT('=',64)
+    FLUSH(stdout)
+
+    DEALLOCATE(evc_ki,evc_kp,u_src,psic,vkb_d_ki,vkb_p_ki,bec_d,bec_p,coeff_d,coeff_p,zeta,dv)
+  END SUBROUTINE explicit_rest_channel
 
 END MODULE edt_source

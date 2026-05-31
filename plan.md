@@ -683,14 +683,19 @@ nkb_p=1944 — the S-vacancy removes exactly 18 KB projectors).*
 - [ ] *(deferred opt.)* `gk_sort` for fine rest-$k'$ (`rest_nk*`≠coarse) + ψ/`becp` caching (§11)
 - [ ] *(nice-to-have)* end-to-end cross-check of full $M$ vs an actual `ed_coarse_full_q` run (current check is kernel-level)
 
-### P2 — Stage C: bare per-$k'$ Sternheimer solve
-- [ ] `ch_psi_rest(n,psi,A_psi,e,ik,m)`: $(H_0-e)\psi+\alpha P_{\rm act}\psi$ (§6.1) `[edt_sternheimer.f90]`
-- [ ] `build_Pact_psi`; `build_h_diag` preconditioner $\sim 1/(g^2-e_0-\text{freq}_c)$ (§6)
-- [ ] `solve_sternheimer_k`: drive `ccgsolve_all` ($e_0=\omega_0$, $\text{freq}_c=i\eta$); enforce $Q|\chi\rangle$ on exit (§6.2) `[edt_sternheimer.f90]`
-- [ ] `rest_split`: implement `'complex'` (ccgsolve) path; stub `'pm'` (split $R^\pm$ + real `cgsolve`)
-- [ ] Single $(k_i,n)$ smoke: solve all rest-$k'$, log iterations/residual
-- [ ] **(T3) Gate — solver health:** all RHS converge $<$ `sternheimer_thr`; report $A_0(k)$ smallest $|\text{eig}|$ / condition number vs $\|V\|$
-- [ ] **(T2)** vs explicit sum: $\chi^{(0)}$ reproduces $\sum_{r\in R}V_{Pr}V_{rP}/(\omega_0-\varepsilon_r)$ as the band cutoff → all (`research.md` §3.2)
+### P2 — Stage C: bare per-$k'$ Sternheimer solve  🔄 **IN PROGRESS**
+*T2 reference built: `build_source_ket` (reusable RHS) + `explicit_rest_channel` give the per-channel
+rest dressing $\Delta\tilde V_{\rm chan}=\sum_{r\in R(k')}|\langle r k'|\Delta V|n k_i\rangle|^2/(\omega_0-\varepsilon)$.
+MoS₂ (isrc=17, ω₀=−1.09 eV): q=0 channel converges −0.095→−0.233 Ry over cutoff 30→150 but is still
+changing 8.5%/step at 150 bands → **explicit band sum converges slowly ⇒ Sternheimer needed** (the
+whole point). q≠0 channel −0.51→−0.67 Ry (1.5%/step).*
+- [x] `build_source_ket` — reusable RHS $\Delta V|n k_i\rangle$ on channel $k'$ (local+nonlocal), reuses T1 machinery `[edt_source.f90]`
+- [x] `explicit_rest_channel` — per-channel rest spectral sum with band-cutoff convergence (the **T2 reference**) `[edt_source.f90]`
+- [ ] `ch_psi_rest(n,psi,A_psi,e,ik,m)` + `ccg_psi`/`build_h_diag` (§6.1) `[edt_sternheimer.f90]`
+- [ ] `solve_sternheimer_k`: drive `ccgsolve_all` ($e_0=\omega_0$, $\text{freq}_c=i\eta$); needs `h_psi` setup at $k'$ (`current_k`,`g2_kin`,`init_us_2`) + enforce $Q|\chi\rangle$ (§6.2). *For this MoS₂ active=valence case the rest is entirely above ω₀ ⇒ operator is definite (real `cgsolve_all` also valid).*
+- [ ] **(T2) Gate:** Sternheimer $\langle s|\chi\rangle$ at a channel == the explicit all-band limit of `explicit_rest_channel` (validates the implicit all-band sum)
+- [ ] **(T3) Gate — solver health:** residual $<$ `sternheimer_thr`; conditioning of $A_0(k')$
+- [ ] **⚠ open (→ P3):** absolute normalization of the **k′-sum** into the physical $\tilde V_{nn}=\sum_{k'}\Delta\tilde V_{\rm chan}$ — the per-channel values are large (~0.2–0.7 Ry), so the BZ 1/$N_k$ factor + supercell-ΔV normalization + rest-$k'$-grid convergence (§5 callout) must be pinned down before quoting a physical $\tilde V$.
 
 ### P3 — Stage E: assemble the coupling-second-order $\tilde V^{(2)}$
 - [ ] Bilinear form $\tilde V_{mn}=\langle m|\Delta V|n\rangle+\langle\chi_m|(\omega_0-H_0^Q)|\chi_n\rangle$; bare shortcut $\langle\chi_m|s_n\rangle$ (§8) `[edt_vtilde.f90]`
