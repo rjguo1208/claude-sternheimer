@@ -15,6 +15,7 @@ MODULE edt_source
   IMPLICIT NONE
   PRIVATE
   PUBLIC :: build_V_folded, test_source, build_source_ket, explicit_rest_channel
+  PUBLIC :: count_nkb, make_coeff
 
   REAL(dp), PARAMETER :: tpi = 6.283185307179586_dp
 

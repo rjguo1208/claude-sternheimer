@@ -22,12 +22,13 @@ PROGRAM edt
                                coarse_nk1, coarse_nk2, coarse_nk3, nbndsub, filukk, &
                                hr_seedname, active_win_min, active_win_max, omega0, eta, &
                                potfile_d, potfile_p, pot_align, defect_center, core_align_radius, &
-                               range_sep, rhofile_d, rhofile_p, coulomb_2d, alpha_gauss
+                               range_sep, rhofile_d, rhofile_p, coulomb_2d, alpha_gauss, sternheimer_thr
   USE edt_partition,    ONLY : build_active_set, print_partition_audit
   USE ed_coarse,        ONLY : load_pot_from_file, &
                                build_vcolin_aligned, build_vcolin_corealign, write_vcolin_cube
   USE edt_wannier,      ONLY : edt_read_filukk
   USE edt_source,       ONLY : test_source, explicit_rest_channel
+  USE edt_sternheimer,  ONLY : edt_set_vrs, test_hpsi_eigen, rest_channel_compare
   USE edi_read_hr,      ONLY : read_hr_file
   USE edi_pw2wan,       ONLY : edi_interp_bands
   USE range_sep,        ONLY : compute_range_separation
@@ -78,6 +79,9 @@ PROGRAM edt
   ENDIF
   IF (coarse_nk1*coarse_nk2*coarse_nk3 /= nkstot) &
        CALL errore('edt', 'coarse_nk1*nk2*nk3 /= nkstot', nkstot)
+
+  ! ---- set up vrs so h_psi evaluates the host Hamiltonian H0 (P2b) ----
+  CALL edt_set_vrs()
 
   ! ---- crystal-coordinate k-points (for Wannier interpolation) ----
   ALLOCATE(xk_all(3, nkstot), xk_cryst(3, nkstot))
@@ -148,6 +152,9 @@ PROGRAM edt
                          win_min, win_max, om0, eta, n_act, n_rest_k, &
                          n_active_tot, n_rest_tot, vbm, cbm, gap)
 
+  ! ---- P2b gate: h_psi reproduces NSCF eigenvalues? (validates H0 setup) ----
+  CALL test_hpsi_eigen(2, ibndkept(1:MIN(5,nbndep)), MIN(5,nbndep))
+
   ! ---- Stage A: supercell difference potential (cube files) ----
   IF (LEN_TRIM(potfile_d) > 0 .AND. LEN_TRIM(potfile_p) > 0) THEN
      IF (ionode) WRITE(stdout,'(/,5X,A)') 'Loading supercell potentials (cube) ...'
@@ -199,16 +206,16 @@ PROGRAM edt
   IF (ALLOCATED(V_colin) .AND. nkstot >= 2) THEN
      CALL test_source(1, 2, xk_cryst(:,2) - xk_cryst(:,1), &
                             ibndkept(1:MIN(5,nbndep)), MIN(5,nbndep))
-     ! ---- P2a: explicit rest-band dressing at q=0 and q/=0 channels (T2 reference) ----
+     ! ---- P2: Sternheimer vs explicit rest dressing (T2) at q=0 and q/=0 channels ----
      BLOCK
        INTEGER, PARAMETER :: ncut = 6
        INTEGER :: cutoffs(ncut), isrc
        cutoffs = (/ 30, 60, 90, 120, 140, nbnd /)
        isrc = ibndkept(nbndep)            ! highest active (valence) band
-       CALL explicit_rest_channel(1, isrc, 1, xk_cryst(:,1)-xk_cryst(:,1), &
-            om0/rytoev, win_min/rytoev, win_max/rytoev, nbndskip, cutoffs, ncut)
-       CALL explicit_rest_channel(1, isrc, 2, xk_cryst(:,1)-xk_cryst(:,2), &
-            om0/rytoev, win_min/rytoev, win_max/rytoev, nbndskip, cutoffs, ncut)
+       CALL rest_channel_compare(1, isrc, 1, xk_cryst(:,1)-xk_cryst(:,1), &
+            om0/rytoev, win_min/rytoev, win_max/rytoev, nbndskip, sternheimer_thr, cutoffs, ncut)
+       CALL rest_channel_compare(1, isrc, 2, xk_cryst(:,1)-xk_cryst(:,2), &
+            om0/rytoev, win_min/rytoev, win_max/rytoev, nbndskip, sternheimer_thr, cutoffs, ncut)
      END BLOCK
   ENDIF
 

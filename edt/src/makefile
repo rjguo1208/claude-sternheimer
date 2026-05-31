@@ -44,7 +44,7 @@ EDIOBJ = $(EDIROOT)/src/edic_mod.o $(EDIROOT)/src/delta_weights.o $(EDIROOT)/src
          $(EDIROOT)/src/get_betavkb.o $(EDIROOT)/src/get_vloc_onthefly.o \
          $(EDIROOT)/src/pw2wan_edi.o $(EDIROOT)/src/edi_pw2wan.o
 
-EDT_OBJ = edt_input.o edt_partition.o edt_wannier.o edt_source.o edt.o
+EDT_OBJ = edt_input.o edt_partition.o edt_wannier.o edt_source.o edt_sternheimer.o edt.o
 
 .DEFAULT_GOAL := edt.x
 
@@ -57,8 +57,9 @@ edt.x : $(EDT_OBJ)
 # intra-package module dependencies
 edt_partition.o : edt_partition.f90
 edt_wannier.o   : edt_wannier.f90
-edt_source.o    : edt_source.f90
-edt.o           : edt.f90 edt_input.o edt_partition.o edt_wannier.o edt_source.o
+edt_source.o     : edt_source.f90
+edt_sternheimer.o : edt_sternheimer.f90
+edt.o            : edt.f90 edt_input.o edt_partition.o edt_wannier.o edt_source.o edt_sternheimer.o
 
 clean:
 	rm -f *.o *.mod edt.x
