@@ -97,9 +97,21 @@ reproduces the NSCF bands to $2\times10^{-5}$ eV).
 $q\!\neq\!0$ is flat — the gauge mismatch. **Right (new `filukk`, re-Wannierized on the 150-band
 NSCF):** every $q$ now decays together by $\sim10^{3}\times$ over $\sim5$ cells.*
 
-**With the consistent gauge, the Wannier / Koster–Slater route works.** $\tilde V^W$ is now
-localized — peaked on the defect cell and decaying $\sim250\times$ — and the truncated inversion
-$T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converges quickly:
+**With the consistent gauge, $\tilde V^W$ is localized.** Wannierizing the downfolded potential
+$\tilde V=M+\Sigma$ itself (both Bloch indices) gives a short-ranged object: peaked on the defect
+cell and decaying $\sim250\times$, both as a two-point matrix and in the electron index for every
+momentum transfer $q$.
+
+![Wannierized downfolded potential V~^W: both-index locality (left, old flat vs new peaked+decaying) and electron-index decay (right, all q decay).](../assets/vtilde_W_locality.png)
+
+*Figure 2. Wannierization of $\tilde V$ and its locality. **Left:** both-index
+$\lVert\tilde V^W(R',R)\rVert_F$ by shell $\max(|R'|,|R|)$ — flat with the mismatched gauge (red),
+but with `filukk_150` (blue) it peaks on the defect cell ($\sim3$ cells from the Wannier origin)
+and decays $\sim250\times$. **Right:** electron-index $\lVert\tilde V^W(R_e;q)\rVert$ decays
+$\sim10^{3}\times$ for every $q$ — $\tilde V^W$ is genuinely short-ranged.*
+
+The localized $\tilde V^W$ is exactly what makes the truncated Koster–Slater inversion
+$T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converge quickly:
 
 | $R_{\rm cut}$ | subspace dim | $\lVert T\rVert$ old (mismatched gauge) | $\lVert T\rVert$ new (consistent gauge) |
 |---|---|---|---|
@@ -110,7 +122,7 @@ $T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converges quickly:
 
 ![Koster-Slater truncation: ||T(Rcut)|| vs cutoff, converges by Rcut=4 with the consistent gauge.](../assets/vtilde_ks_converge.png)
 
-*Figure 2. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
+*Figure 3. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
 dimension under each tick). With the gauge-consistent `filukk_150` (blue) the inversion converges
 by $R_{\rm cut}=4$ (dim 891, $\sim56\%$ of the full 1584); with the mismatched gauge (red) it only
 reaches the full value at the full subspace. The localized $\tilde V^W$ is what makes the truncation
