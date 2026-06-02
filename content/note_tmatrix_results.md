@@ -110,6 +110,19 @@ but with `filukk_150` (blue) it peaks on the defect cell ($\sim3$ cells from the
 and decays $\sim250\times$. **Right:** electron-index $\lVert\tilde V^W(R_e;q)\rVert$ decays
 $\sim10^{3}\times$ for every $q$ — $\tilde V^W$ is genuinely short-ranged.*
 
+A real-space cut makes the localization concrete. The **on-site** block $\tilde V^W_{ij}(R,R)$
+(same cell $R$, an $11\times11$ Wannier matrix) is largest on the defect cell — here $R_d=(3,3)$,
+dominant orbital $|\tilde V^W_{55}(R_d,R_d)|=0.52$ Ry — and for a fixed pair $(i,j)$ it falls off
+with the minimum-image distance of $R$ from the defect:
+
+![On-site |V~^W_ij(R,R)| for a fixed Wannier pair vs distance from the defect; drops 0.52 Ry to ~1e-3 in one cell, envelope decay length ~2 Angstrom.](../assets/vtilde_onsite_decay.png)
+
+*Figure 3. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
+$i\!=\!j\!=\!6$; $(1,1)$ and $(1,2)$ shown for context) vs the minimum-image distance of cell $R$
+from the defect. It drops from $0.52$ Ry on the defect cell to $\sim\!10^{-3}$ Ry one cell
+($\sim3.2$ Å) away, with envelope decay length $\lambda\approx2$ Å ($<1$ cell) — the downfolded
+potential is confined to the defect site.*
+
 The localized $\tilde V^W$ is exactly what makes the truncated Koster–Slater inversion
 $T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converge quickly:
 
@@ -122,7 +135,7 @@ $T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converge quickly:
 
 ![Koster-Slater truncation: ||T(Rcut)|| vs cutoff, converges by Rcut=4 with the consistent gauge.](../assets/vtilde_ks_converge.png)
 
-*Figure 3. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
+*Figure 4. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
 dimension under each tick). With the gauge-consistent `filukk_150` (blue) the inversion converges
 by $R_{\rm cut}=4$ (dim 891, $\sim56\%$ of the full 1584); with the mismatched gauge (red) it only
 reaches the full value at the full subspace. The localized $\tilde V^W$ is what makes the truncation
