@@ -74,45 +74,46 @@ the VBM** — the active multiple scattering is *resonant at the band edge, wher
 The textbook way to avoid the large $(N_b N_k)$ inversion on fine grids is the Koster–Slater /
 defect-Green's-function trick: rotate $\tilde V$ to a localized Wannier basis,
 $\tilde V^W(R',R)=\!\big[U^\dagger(k_f)\,\tilde V(k_f,k_i)\,U(k_i)\big]$ Fourier-transformed, and
-invert only on the defect's compact support. **This requires $\tilde V^W(R',R)$ to be short-ranged.**
+invert only on the defect's compact support. This requires $\tilde V^W(R',R)$ to be short-ranged —
+which in turn requires the Wannier rotation $U(k)$ to be in the **same Bloch gauge** as the
+$\psi_{nk}$ that build $M$ (exactly the consistency EDI's `edbloch2wane` enforces by construction).
 
-**The Wannierization itself is correct.** Reconstructing $H^W(R)$ from the same $U(k)$ pipeline
-used for $\tilde V$ reproduces the independently-built `hr.dat` $H_W(R)$ to $2.3\times10^{-3}$ eV
-(Fig. 1, left), and $H_W(R)$ decays cleanly ($\sim23$ eV at $R=0$ to $<0.01$ eV by $|R|=5$) — the
-Wannier functions are well localized and the gauge is consistent.
+**A gauge mismatch — found and fixed.** Our first attempt reused the existing `filukk`, which had
+been produced by a *separate* 17-band Wannier90 run, whereas `edt.x` computes $\tilde V$ from the
+**150-band NSCF** evc. Different runs carry different per-$k$ Bloch phases (and degenerate-subspace
+bases), so $U^\dagger M U$ was not smooth. The fingerprint: the electron-index decay of
+$M^W(R_e;q)$ collapsed at $q=0$ (phase-insensitive) but stayed **flat for $q\neq0$**
+(phase-sensitive) — a per-$k$ gauge mismatch, *not* a real non-locality. (Band/eigenvalue checks
+pass either way, since eigenvalues are gauge-free, which is why this hid initially.)
 
-![Left: gauge test — H_W(R) from hr.dat vs the P5-b pipeline (overlap, clean decay). Right: the downfolded-potential coupling from the origin cell, which does not decay.](../assets/vtilde_locality.png)
+The fix is to **re-Wannierize on the 150-band NSCF with the identical Wannier space** — same
+projections (Mo:$d$, S:$p$), same windows, the same 11 valence bands 7–17 (`exclude_bands = 1-6,
+18-150`) — giving a `filukk` consistent with the evc that build $M$ (its Wannier interpolation
+reproduces the NSCF bands to $2\times10^{-5}$ eV).
 
-*Figure 1. **Left:** the gauge test — $H_W(R)$ from `hr.dat` (blue) and reconstructed from the
-P5-b rotation (orange) coincide and decay $\sim3000\times$ over six cells, so the rotation/FT is
-correct. **Right:** the coupling $\lVert O^W(R',R{=}0)\rVert$ for the Born $M$, rest $\Sigma$, and
-$\tilde V$ — all essentially **flat** in $|R'|$, i.e. not localized.*
+![Electron-index decay of M before (left, q!=0 flat) and after (right, all q decay) the gauge fix.](../assets/vtilde_gauge_fix.png)
 
-**But $\tilde V^W$ does not localize for this data.** $M^W$, $\Sigma^W$ and $\tilde V^W$ are flat
-in $R$ (Fig. 1, right), and a truncated Koster–Slater inversion only converges to the full result
-when the cutoff covers nearly the entire grid — no speed-up. The cause is visible in the bare
-matrix element $M(k_f,k_i)$ itself (Fig. 2): it is $\approx f(k_f-k_i)$ (translation-invariant to
-$77\%$) with weight concentrated on **commensurate momentum transfers** — the diagonal stripes are
-the Bragg structure of a *periodic vacancy array*.
+*Figure 1. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
+$q\!\neq\!0$ is flat — the gauge mismatch. **Right (new `filukk`, re-Wannierized on the 150-band
+NSCF):** every $q$ now decays together by $\sim10^{3}\times$ over $\sim5$ cells.*
 
-![Structure of the Born matrix element M(k_f,k_i): diagonal stripes (left), the k_f map at k_i=Gamma (middle), and |M| collapsed onto q=k_f-k_i (right).](../assets/vtilde_qstructure.png)
+**With the consistent gauge, the Wannier / Koster–Slater route works.** $\tilde V^W$ is now
+localized — peaked on the defect cell and decaying $\sim250\times$ — and the truncated inversion
+$T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converges quickly:
 
-*Figure 2. The Born matrix element $\lVert M(k_f,k_i)\rVert$ shows diagonal stripes (left) — the
-hallmark of an $M\!\approx\!f(q)$, periodic-potential-like operator — with $|M(q)|$ broad across
-the BZ and peaked on commensurate transfers (right), not a single smooth $q\!=\!0$ form factor.*
+| $R_{\rm cut}$ | subspace dim | $\lVert T\rVert$ old (mismatched gauge) | $\lVert T\rVert$ new (consistent gauge) |
+|---|---|---|---|
+| 2 | 275 | 0.057 | 0.057 |
+| 3 | 539 | 0.19 | 1.72 |
+| 4 | 891 | 0.59 | **2.06 (99.6%)** |
+| 6 | 1584 | 2.06 | 2.06 |
 
-**Diagnosis.** The $V_d/V_p$ cubes are a **$6\times6$ supercell** (cell $\approx36$ Bohr $\approx6\times$
-the primitive $5.97$ Bohr). The vacancy potential does not fully decay within $6\times6$, so the
-periodic defect images interact and $M$ carries the array's commensurate Bragg structure;
-Wannierized on the $12\times12$ Born–von-Kármán grid, $\tilde V^W$ inherits the $6\times6$
-periodicity and looks delocalized. This is **not** a long-range / range-separation problem (the
-defect is neutral and $|M(q)|$ is broad, not the $1/q$ divergence of a charged defect) and **not**
-a gauge bug (the gauge test passes). It is a **supercell-size** effect.
-
-**Fix.** A larger defect supercell (so $\Delta V$ decays inside it $\Rightarrow$ smooth isolated-defect
-$M(q)\Rightarrow$ localized $\tilde V^W$) is needed for the Koster–Slater speed-up; a denser $k$-grid
-alone does not help (the $6\times6$ periodicity persists). The coarse-grid direct inversion (P5-a)
-needs no locality and is unaffected.
+So the neutral S-vacancy potential **is** short-ranged, as expected — the earlier "flat
+$\tilde V^W$" was entirely the gauge mismatch, *not* a supercell-size or range-separation problem.
+On this coarse $12\times12$ grid the converged subspace ($R_{\rm cut}\!=\!4$) is $\sim56\%$ of the
+full one; on a finer $k$-grid the fixed $\sim$3–4-cell defect extent becomes a small fraction —
+which is where the Koster–Slater speed-up pays off. **P3 (the $\tilde V$ block) and P5-a ($T_{PP}$
+in the Bloch basis) use no Wannier rotation and were unaffected throughout.**
 
 ## 4. On the magnitude of $\tilde V$
 
@@ -128,11 +129,11 @@ $\max|\Delta V|\approx12$ Ry and giving a multiple-scattering parameter $\lVert\
 
 ## 5. Status and next steps
 
-P0–P3 and P5-a are complete and validated; P5-b is implemented and has produced a clear,
-actionable finding. Open items:
+P0–P3 and P5-a/b are complete and validated (the P5-b gauge consistency is now resolved with a
+`filukk` re-Wannierized on the 150-band NSCF). Open items:
 
 - [ ] **P6 — transport:** feed $|T_{PP}(\omega)|^2$ on-shell into the golden-rule rate (replacing
-  EDI's $|M|^2$) for a beyond-Born vs first-Born mobility on the coarse grid (uses P5-a directly).
-- [ ] **larger defect supercell** to localize $\tilde V^W$ and unlock the Koster–Slater / fine-grid
-  route (P5-b).
+  EDI's $|M|^2$) for a beyond-Born vs first-Born mobility (uses P5-a directly).
+- [ ] **fine-grid Koster–Slater** transport using the gauge-consistent `filukk` (P5-b machinery),
+  where the localized $\tilde V^W$ delivers the inversion-size speed-up.
 - [ ] **T9 / T5:** rest-BZ-grid convergence of $\tilde V$ and Wannier-gauge invariance.

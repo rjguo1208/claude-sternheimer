@@ -414,12 +414,12 @@ CATALOG = [
      "Successive-ratio $\\lVert\\tilde V^{(m+1)}-\\tilde V^{(m)}\\rVert/\\lVert\\tilde V^{(m)}-"
      "\\tilde V^{(m-1)}\\rVert$ vs. rest $k$-grid and band cutoff (geometric rate "
      "$\\rho\\sim\\lVert V_{QQ}\\rVert/\\Delta$).", "&mdash;"),
-    ("Wannier representation &amp; Koster&ndash;Slater locality (P5-b)", "Result", "2026-06-01", "warn", "Caveat",
-     "Wannierizing $\\tilde V$ is validated (gauge test: my $H^W(R)$ reproduces <code>hr.dat</code> to "
-     "$2\\times10^{-3}$ eV). But $\\tilde V^W(R',R)$ is <em>not</em> localized for this $6\\times6$ defect "
-     "supercell &mdash; $M(k_f,k_i)\\!\\approx\\!f(q)$ with vacancy-array Bragg structure &mdash; so "
-     "Koster&ndash;Slater truncation gives no speed-up. Not range separation, not a gauge bug; needs a "
-     "larger supercell. (Coarse direct inversion, P5-a, is unaffected.)",
+    ("Wannier representation &amp; Koster&ndash;Slater (P5-b)", "Result", "2026-06-01", "ok", "Resolved",
+     "Wannierizing $\\tilde V$ needs $U(k)$ in the same Bloch gauge as the evc that build $M$. The original "
+     "<code>filukk</code> (a separate 17-band run) mismatched the 150-band NSCF evc, so $M^W(R_e;q{\\neq}0)$ "
+     "came out flat. Fixed by re-Wannierizing on the 150-band NSCF (same Wannier space): $M^W$ now decays "
+     "$\\sim\\!10^3\\times$, $\\tilde V^W$ is localized, and Koster&ndash;Slater converges by $R_{\\rm cut}{=}4$. "
+     "The neutral defect is short-ranged &mdash; no supercell / range-separation issue.",
      '<a href="pages/results.html#sec-3">Open results &rarr;</a>'),
     ("Active-space dynamic resummation / transport", "Test", "&mdash;", "plan", "Planned",
      "Next (P6): frequency-dependent $T_{PP}(\\omega)$ on-shell, feeding $|T_{PP}|^2$ into the "

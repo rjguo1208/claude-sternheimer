@@ -1,0 +1,33 @@
+&edinput_nml
+  edi_prefix = 'mos2'
+  edi_outdir = '/anvil/projects/x-che190065/rjguo/qe-7.5/T-matrix/data/primitive_highbands_12x12/dout/'
+  filukk     = 'filukk_150'
+
+  wannierize = .true.
+  nbndsub = 11
+
+  coarse_nk1 = 12
+  coarse_nk2 = 12
+  coarse_nk3 = 1
+
+  dis_win_min = -20.0
+  dis_win_max = -0.8
+  dis_froz_max = -3.4
+  dis_froz_min = -20.0
+  num_iter = 5000
+  iprint_w90 = 2
+
+  auto_projections = .false.
+  proj(1) = 'Mo:d'
+  proj(2) = 'S:p'
+
+  bands_skipped = 'exclude_bands = 1-6, 18-150'
+
+  wdata(1) = 'bands_plot = .false.'
+  wdata(8) = 'dis_num_iter = 2000'
+  wdata(9) = 'num_print_cycles = 10'
+  wdata(10) = 'dis_mix_ratio = 1.0'
+  wdata(11) = 'conv_tol = 1E-6'
+  wdata(12) = 'conv_window = 4'
+  wdata(13) = 'guiding_centres = .true.'
+/
