@@ -161,6 +161,22 @@ full one; on a finer $k$-grid the fixed $\sim$3–4-cell defect extent becomes a
 which is where the Koster–Slater speed-up pays off. **P3 (the $\tilde V$ block) and P5-a ($T_{PP}$
 in the Bloch basis) use no Wannier rotation and were unaffected throughout.**
 
+**The fine-grid T-matrix, realized.** The localized $\tilde V^W$ lets the active resummation use a
+*fine* host grid while still inverting only the small defect subspace. The host Green's function
+$G^A_{w'w}(\Delta R;\omega)=\frac1{N_f^2}\sum_{k}e^{2\pi i k\cdot\Delta R}\,[(\omega+i\eta)-H_W(k)]^{-1}$
+is Wannier-interpolated on an $N_f\times N_f$ grid (from `hr.dat`), and
+$T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ is solved in the **891-dimensional** defect subspace ($R_{\rm
+cut}=4$) — never the full $n_b N_f^2$ ($\approx10^5$ at $N_f=96$). It reproduces the coarse direct
+inversion at $N_f=12$ and converges by $N_f\approx24$:
+
+![Wannier-basis active T-matrix converges with the host G^A k-grid: 2.06 at Nf=12 to 1.97 by Nf=24, flat to Nf=96.](../assets/vtilde_wannier_converge.png)
+
+*Figure 6. Convergence of the Wannier-basis active T-matrix $\lVert T_{PP}(\omega_0)\rVert$ with the
+host $G^A$ $k$-grid $N_f$. $N_f=12$ matches the coarse direct inversion (P5-a, $2.064$ Ry); the host
+converges by $N_f\approx24$ to $1.974$ Ry — the coarse $12\times12$ over-estimated by $\sim4.6\%$
+(under-resolved band-edge DOS). The inversion stays $891$-dimensional at every $N_f$ — the payoff of
+the localized $\tilde V^W$.*
+
 ## 4. On the magnitude of $\tilde V$
 
 The Frobenius norm $\lVert\tilde V\rVert_F=100$ Ry can look alarming, but the *individual* matrix
