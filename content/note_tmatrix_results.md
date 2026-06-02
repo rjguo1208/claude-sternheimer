@@ -45,6 +45,19 @@ The rest dressing **screens** the bare defect potential: the downfolded $\tilde 
 weaker in norm than $M$. First-Born (EDI) therefore overestimates the coupling here — exactly the
 regime that motivates the $T$-matrix.
 
+The screening is **anisotropic** in $k$-space, as a fixed-source scattering map shows. Taking the
+high-symmetry $K$ point as the initial state and the top valence band (intraband), $|M(k_f,K)|$ and
+$|\tilde V(k_f,K)|$ over all 144 final $k_f$ are:
+
+![Intraband scattering maps from K over the BZ: |M(k_f,K)| (Born, left) peaks at K; |Vtilde(k_f,K)| (downfolded, right) is weaker and its maximum shifts off K.](../assets/vtilde_kmap.png)
+
+*Figure 1. Intraband scattering on the top valence band from $K$ to all final $k_f$ (Cartesian,
+folded to the 1st BZ; ★ = $K$ source, + = Γ, M; colour = magnitude in Ry). **Left** $|M(k_f,K)|$
+(first Born) peaks at the forward channel $K$ ($0.392$ Ry, the map maximum). **Right**
+$|\tilde V(k_f,K)|$ (downfolded) is $\sim6.6\times$ weaker at forward ($0.059$ Ry) and its maximum
+($0.103$ Ry) is shifted off $K$ — the rest dressing changes the scattering **anisotropy**, not just
+its overall magnitude, which directly reshapes the transport relaxation time.*
+
 ## 2. Active-space $T$-matrix $T_{PP}$ (P5-a)
 
 With $\tilde V$ in hand, the active multiple scattering is resummed by one small inversion on the
@@ -93,7 +106,7 @@ reproduces the NSCF bands to $2\times10^{-5}$ eV).
 
 ![Electron-index decay of M before (left, q!=0 flat) and after (right, all q decay) the gauge fix.](../assets/vtilde_gauge_fix.png)
 
-*Figure 1. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
+*Figure 2. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
 $q\!\neq\!0$ is flat — the gauge mismatch. **Right (new `filukk`, re-Wannierized on the 150-band
 NSCF):** every $q$ now decays together by $\sim10^{3}\times$ over $\sim5$ cells.*
 
@@ -104,7 +117,7 @@ momentum transfer $q$.
 
 ![Wannierized downfolded potential V~^W: both-index locality (left, old flat vs new peaked+decaying) and electron-index decay (right, all q decay).](../assets/vtilde_W_locality.png)
 
-*Figure 2. Wannierization of $\tilde V$ and its locality. **Left:** both-index
+*Figure 3. Wannierization of $\tilde V$ and its locality. **Left:** both-index
 $\lVert\tilde V^W(R',R)\rVert_F$ by shell $\max(|R'|,|R|)$ — flat with the mismatched gauge (red),
 but with `filukk_150` (blue) it peaks on the defect cell ($\sim3$ cells from the Wannier origin)
 and decays $\sim250\times$. **Right:** electron-index $\lVert\tilde V^W(R_e;q)\rVert$ decays
@@ -117,7 +130,7 @@ with the minimum-image distance of $R$ from the defect:
 
 ![On-site |V~^W_ij(R,R)| for a fixed Wannier pair vs distance from the defect; drops 0.52 Ry to ~1e-3 in one cell, envelope decay length ~2 Angstrom.](../assets/vtilde_onsite_decay.png)
 
-*Figure 3. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
+*Figure 4. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
 $i\!=\!j\!=\!6$; $(1,1)$ and $(1,2)$ shown for context) vs the minimum-image distance of cell $R$
 from the defect. It drops from $0.52$ Ry on the defect cell to $\sim\!10^{-3}$ Ry one cell
 ($\sim3.2$ Å) away, with envelope decay length $\lambda\approx2$ Å ($<1$ cell) — the downfolded
@@ -135,7 +148,7 @@ $T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converge quickly:
 
 ![Koster-Slater truncation: ||T(Rcut)|| vs cutoff, converges by Rcut=4 with the consistent gauge.](../assets/vtilde_ks_converge.png)
 
-*Figure 4. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
+*Figure 5. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
 dimension under each tick). With the gauge-consistent `filukk_150` (blue) the inversion converges
 by $R_{\rm cut}=4$ (dim 891, $\sim56\%$ of the full 1584); with the mismatched gauge (red) it only
 reaches the full value at the full subspace. The localized $\tilde V^W$ is what makes the truncation
