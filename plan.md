@@ -702,7 +702,7 @@ all-band result that explicit-150 misses by ~9–22% (the high-band tail) — th
 - [x] **no $N_{\rm sc}$ factor:** for converged $\Delta V$, $M$ (hence $\tilde V$, $\Sigma$) is **supercell-independent** — EDI's primitive-cell measure $\frac1{N_{\rm nnr}}$ on the *localized* folded $\Delta V$ only sees the defect region (concentration handled by $n_d$, not $M$). Two independent convergence axes: supercell size ($\Delta V$) and rest BZ grid $N_k$ ($\frac1{N_k}\sum\!\to\!\int$).
 - [ ] **(→ P3) confirm:** per-channel closure $\sum_{n'}|M|^2\!=\!\lVert s\rVert^2$; full $\frac1{N_k}\sum_{k'}\sum_{n'}|M|^2\!=\!\langle\Delta V^2\rangle$ (both supercell-independent); $M$ invariant across supercell sizes; Born-limit mobility == EDI (gold-standard anchor).
 
-### P3 — Stage E: assemble the coupling-second-order $\tilde V^{(2)}$  🔄 **diagonal + normalization done**
+### P3 — Stage E: assemble the coupling-second-order $\tilde V^{(2)}$  ✅ **done (diagonal + full block)**
 *`vtilde_diag_full` assembles the **diagonal** $\tilde V_{nn}=M_{nn}+\Sigma_{nn}$ over the full BZ with the
 $1/N_k$ measure, and runs the closure check. MoS₂ (isrc=17 VBM, ki=1, $N_k$=144):*
 | $M_{nn}$ (Born) | $\Sigma_{nn}$ explicit-150 | $\Sigma_{nn}$ **Sternheimer** | **$\tilde V_{nn}$** | $\langle\Delta V^2\rangle$ (norm / 150-band) |
@@ -714,10 +714,16 @@ beyond-Born regime (Born fails, T-matrix essential).*
 - [x] rest-term contracted over the full-BZ channels with $1/N_k$ (BZ measure); $\Sigma_{nn}=\frac1{N_k}\sum_{k'}(-\langle s|\chi\rangle)$ `[edt_sternheimer.f90::vtilde_diag_full]`
 - [x] Born $M_{nn}$ term (q=0 channel of the source ket); $\tilde V_{nn}=M_{nn}+\Sigma_{nn}$
 - [x] **closure check** confirms $1/N_k$: $\frac1{N_k}\sum_{k'}\sum_{n'}|M|^2=\langle\Delta V^2\rangle\approx1.76$ Ry² ($\mathcal O(1)$), band completeness 0.871
-- [ ] **full off-diagonal block** $\tilde V_{(mk_f),(nk_i)}$ (all ~1584 active sources) + Hermitize — **needs a compute node** (codex: 72 ranks, ~2.5 h)
+- [x] **full off-diagonal block** $\tilde V_{(mk_f),(nk_i)}$ (all 1584 active states) + Hermitize `[edt_sternheimer.f90::vtilde_block_mpi]` — **pool-parallel** over the $k'$-sum (`-nk N`: 1 rank/pool ⇒ full G-grid, native `h_psi` at pool-local $k'$; gather $\varepsilon$/active wfc to all ranks; Born ZGEMM + Q-proj + Sternheimer + $\Sigma$ ZGEMV; `mp_sum` over `inter_pool_comm`; write `vtilde_block.dat`). MoS₂ **1584×1584** on 1 node / 36 ranks, 2 h 11 m.
+
+  | per-rank $H_0$ gate | Hermiticity $\lVert\tilde V-\tilde V^\dagger\rVert$ | in-situ band-17/k=1 ($M$,$\Sigma$,$\tilde V$) |
+  |---|---|---|
+  | 6.0e-10 eV (all ranks) | **8.96e-12** (pre-symmetrization) | +0.70148, −0.81860, **−0.11712 Ry** — matches the diagonal run to 6 digits |
+
+  *Confirms the cross-pool assembly is correct. Strong beyond-Born across the manifold (k=1: band 10 $\tilde V$=−0.234 Ry; band 7 −0.008 Ry from $M$=+0.49/$\Sigma$=−0.50 near-cancellation); degeneracies and BZ symmetry preserved. Memory-bound at ~3.4 GB/rank (supercell KB projectors $n_{kb}$=1926/1944), so ~40 ranks/257 GB node.*
+- [x] **(T6)** MPI/pool correctness: full block is Hermitian to 9e-12 and its band-17/k=1 diagonal reproduces the single-rank value across 36 pools
 - [ ] **(T5)** gauge: $\|U^\dagger U-I\|$; $\tilde V$ invariant under $U^\dagger(\cdot)U$
 - [ ] **(T9)** rest BZ-grid convergence: $\|\tilde V\|$ vs `rest_nk*` densifying (full BZ)
-- [ ] **(T6)** MPI invariance of the full-block assembly
 
 ### P4 — Stage D: $k$-decoupled $V_{QQ}$ dressing ladder (optional)
 - [ ] Neumann ladder $\chi^{(m)}=G^R V_{QQ}\chi^{(m-1)}$; $V_{QQ}$ via the ΔV-action $\oplus\,Q$ (§7) `[edt_dress.f90]`

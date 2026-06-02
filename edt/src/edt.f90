@@ -22,18 +22,21 @@ PROGRAM edt
                                coarse_nk1, coarse_nk2, coarse_nk3, nbndsub, filukk, &
                                hr_seedname, active_win_min, active_win_max, omega0, eta, &
                                potfile_d, potfile_p, pot_align, defect_center, core_align_radius, &
-                               range_sep, rhofile_d, rhofile_p, coulomb_2d, alpha_gauss, sternheimer_thr
+                               range_sep, rhofile_d, rhofile_p, coulomb_2d, alpha_gauss, sternheimer_thr, &
+                               do_full_block, block_nk, block_single_band, block_single_ki, vtilde_outfile, &
+                               dump_wann
   USE edt_partition,    ONLY : build_active_set, print_partition_audit
   USE ed_coarse,        ONLY : load_pot_from_file, &
                                build_vcolin_aligned, build_vcolin_corealign, write_vcolin_cube
   USE edt_wannier,      ONLY : edt_read_filukk
   USE edt_source,       ONLY : test_source, explicit_rest_channel
-  USE edt_sternheimer,  ONLY : edt_set_vrs, test_hpsi_eigen, rest_channel_compare, vtilde_diag_full
+  USE edt_sternheimer,  ONLY : edt_set_vrs, test_hpsi_eigen, rest_channel_compare, vtilde_diag_full, &
+                               vtilde_block_mpi
   USE edi_read_hr,      ONLY : read_hr_file
   USE edi_pw2wan,       ONLY : edi_interp_bands
   USE range_sep,        ONLY : compute_range_separation
   USE edic_mod,         ONLY : V_d, V_p, V_colin
-  USE wann_common,      ONLY : n_wannier
+  USE wann_common,      ONLY : n_wannier, u_mat
   USE global_var,       ONLY : nbndep, nbndskip, ibndkept
 
   IMPLICIT NONE
@@ -97,6 +100,19 @@ PROGRAM edt
      WRITE(stdout,'(5X,A,I6)') 'nbndep (kept bands)  = ', nbndep
      WRITE(stdout,'(5X,A,I6)') 'n_wannier            = ', n_wannier
   ENDIF
+
+  ! ---- P5-b: dump Wannier rotation U(k) + k-crystal coords (run in audit mode) ----
+  ! xk_cryst is global (poolcollect'd); u_mat is the active-band -> Wannier rotation.
+  ! Requires single-pool run (nks=nkstot) so u_mat(:,:,1:nkstot) covers all k.
+  IF (dump_wann .AND. ionode) THEN
+     OPEN(81, FILE='wann_data.dat', FORM='unformatted', STATUS='replace')
+     WRITE(81) nkstot, nbndep, n_wannier
+     WRITE(81) ibndkept(1:nbndep)
+     WRITE(81) xk_cryst                  ! (3,nkstot) crystal coords, QE k-order
+     WRITE(81) u_mat(:,:,1:nkstot)       ! (nbndep,n_wannier,nkstot) band->Wannier
+     CLOSE(81)
+     WRITE(stdout,'(5X,A)') 'dumped wann_data.dat (xk_cryst + U(k)) for P5-b.'
+  ENDIF
   IF (ionode) WRITE(stdout,'(5X,A)') 'Reading H_W(R) from <seed>_hr.dat ...'
   CALL read_hr_file(TRIM(hr_seedname), nbndsub_loc, nrr, ndegen, irvec, chw)
   IF (ionode) WRITE(stdout,'(5X,A,I6,A,I8)') 'nbndsub(hr) = ', nbndsub_loc, '   nrr = ', nrr
@@ -104,7 +120,7 @@ PROGRAM edt
   ! ---- sanity: Wannier-interpolated bands vs NSCF (reuse EDI) ----
   ALLOCATE(eig_interp(nbndsub_loc, nkstot))
   CALL edi_interp_bands(nbndsub_loc, nrr, irvec, ndegen, chw, nkstot, xk_cryst, eig_interp)
-  IF (ionode) THEN
+  IF (ionode .AND. .NOT. do_full_block) THEN
      max_err = 0.0_dp
      DO ik = 1, nkstot
         DO ib = 1, MIN(nbndsub_loc, nbndep)
@@ -141,19 +157,31 @@ PROGRAM edt
           'active window defaulted to Wannier-manifold span = [', win_min, win_max, ' ] eV'
   ENDIF
 
-  ! ---- active/rest partition ----
-  ALLOCATE(is_active(nbnd, nkstot), n_act(nkstot), n_rest_k(nkstot))
+  ! ---- active/rest partition + audit ----
+  ! These diagnostics use the local-pool-indexed et/chw and a single rank; they are
+  ! valid only for the serial/single-pool path.  The full-block MPI run builds its own
+  ! pool-collected partition inside vtilde_block_mpi, so we only need a consistent
+  ! (omega0, window) here — broadcast from ionode to all ranks.
   om0 = omega0
-  CALL build_active_set(nbnd, nkstot, et_ev, kept, win_min, win_max, &
-                         is_active, n_act, n_rest_k, n_active_tot, n_rest_tot, &
-                         vbm, cbm, om0, gap)
-
-  IF (ionode) CALL print_partition_audit(nbnd, nkstot, nbnd-nbndskip, n_wannier, nexcl, &
-                         win_min, win_max, om0, eta, n_act, n_rest_k, &
-                         n_active_tot, n_rest_tot, vbm, cbm, gap)
-
-  ! ---- P2b gate: h_psi reproduces NSCF eigenvalues? (validates H0 setup) ----
-  CALL test_hpsi_eigen(2, ibndkept(1:MIN(5,nbndep)), MIN(5,nbndep))
+  IF (.NOT. do_full_block) THEN
+     ALLOCATE(is_active(nbnd, nkstot), n_act(nkstot), n_rest_k(nkstot))
+     CALL build_active_set(nbnd, nkstot, et_ev, kept, win_min, win_max, &
+                            is_active, n_act, n_rest_k, n_active_tot, n_rest_tot, &
+                            vbm, cbm, om0, gap)
+     IF (ionode) CALL print_partition_audit(nbnd, nkstot, nbnd-nbndskip, n_wannier, nexcl, &
+                            win_min, win_max, om0, eta, n_act, n_rest_k, &
+                            n_active_tot, n_rest_tot, vbm, cbm, gap)
+     ! ---- P2b gate: h_psi reproduces NSCF eigenvalues? (validates H0 setup) ----
+     CALL test_hpsi_eigen(2, ibndkept(1:MIN(5,nbndep)), MIN(5,nbndep))
+  ELSE
+     IF (om0 > 9000.0_dp) CALL errore('edt', &
+          'do_full_block requires omega0 set explicitly in &edt_nml (in eV)', 1)
+     CALL mp_bcast(win_min, ionode_id, world_comm)   ! eig_interp default valid on ionode only
+     CALL mp_bcast(win_max, ionode_id, world_comm)
+     CALL mp_bcast(om0,     ionode_id, world_comm)
+     IF (ionode) WRITE(stdout,'(/,5X,A,F10.4,A,2F9.3,A)') &
+          'full-block run: omega0 = ', om0, ' eV   window = [', win_min, win_max, '] eV (explicit)'
+  ENDIF
 
   ! ---- Stage A: supercell difference potential (cube files) ----
   IF (LEN_TRIM(potfile_d) > 0 .AND. LEN_TRIM(potfile_p) > 0) THEN
@@ -201,23 +229,30 @@ PROGRAM edt
           'potfile_d/potfile_p not set: skipping supercell-potential load (audit only).'
   ENDIF
 
-  ! ---- P1 Stage B: Born-limit (T1) local check of the ΔV source ket ----
-  ! Needs V_colin (the difference potential) and >=2 k-points.
+  ! ---- P1/P2/P3: Sternheimer downfolding.  Needs V_colin and >=2 k-points. ----
   IF (ALLOCATED(V_colin) .AND. nkstot >= 2) THEN
-     CALL test_source(1, 2, xk_cryst(:,2) - xk_cryst(:,1), &
-                            ibndkept(1:MIN(5,nbndep)), MIN(5,nbndep))
-     ! ---- P2 demo: one-channel explicit-vs-Sternheimer (q=0) ----
-     BLOCK
-       INTEGER, PARAMETER :: ncut = 6
-       INTEGER :: cutoffs(ncut), isrc
-       cutoffs = (/ 30, 60, 90, 120, 140, nbnd /)
-       isrc = ibndkept(nbndep)            ! highest active (valence) band
-       CALL rest_channel_compare(1, isrc, 1, xk_cryst(:,1)-xk_cryst(:,1), &
-            om0/rytoev, win_min/rytoev, win_max/rytoev, nbndskip, sternheimer_thr, cutoffs, ncut)
-       ! ---- P3: full-BZ assembly of the diagonal Ṽ_nn (1/N_k) + closure check ----
-       CALL vtilde_diag_full(1, isrc, xk_cryst, om0/rytoev, win_min/rytoev, win_max/rytoev, &
-            nbndskip, sternheimer_thr, .TRUE.)
-     END BLOCK
+     IF (do_full_block) THEN
+        ! ---- P3 full off-diagonal block Ṽ_{(m k_f),(n k_i)} (MPI, pool-parallel k'-sum) ----
+        CALL vtilde_block_mpi(xk_all, xk_cryst, om0/rytoev, win_min/rytoev, win_max/rytoev, &
+             nbndskip, sternheimer_thr, block_nk, block_single_band, block_single_ki, &
+             TRIM(vtilde_outfile))
+     ELSE
+        ! ---- P1 Stage B: Born-limit (T1) local check of the ΔV source ket ----
+        CALL test_source(1, 2, xk_cryst(:,2) - xk_cryst(:,1), &
+                               ibndkept(1:MIN(5,nbndep)), MIN(5,nbndep))
+        ! ---- P2 demo: one-channel explicit-vs-Sternheimer (q=0) ----
+        BLOCK
+          INTEGER, PARAMETER :: ncut = 6
+          INTEGER :: cutoffs(ncut), isrc
+          cutoffs = (/ 30, 60, 90, 120, 140, nbnd /)
+          isrc = ibndkept(nbndep)            ! highest active (valence) band
+          CALL rest_channel_compare(1, isrc, 1, xk_cryst(:,1)-xk_cryst(:,1), &
+               om0/rytoev, win_min/rytoev, win_max/rytoev, nbndskip, sternheimer_thr, cutoffs, ncut)
+          ! ---- P3: full-BZ assembly of the diagonal Ṽ_nn (1/N_k) + closure check ----
+          CALL vtilde_diag_full(1, isrc, xk_cryst, om0/rytoev, win_min/rytoev, win_max/rytoev, &
+               nbndskip, sternheimer_thr, .TRUE.)
+        END BLOCK
+     ENDIF
   ENDIF
 
   IF (ionode) THEN

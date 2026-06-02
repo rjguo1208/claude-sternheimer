@@ -1,0 +1,25 @@
+&edt_nml
+  edi_prefix  = 'mos2'
+  edi_outdir  = '/anvil/projects/x-che190065/rjguo/qe-7.5/T-matrix/data/primitive_highbands_12x12/dout/'
+  coarse_nk1  = 12
+  coarse_nk2  = 12
+  coarse_nk3  = 1
+
+  nbndsub     = 11
+  filukk      = '/anvil/projects/x-che190065/rjguo/qe-7.5/T-matrix/data/filukk'
+  hr_seedname = '/anvil/projects/x-che190065/rjguo/qe-7.5/T-matrix/data/mos2'
+
+  potfile_d   = '/anvil/projects/x-che190065/rjguo/qe-7.5/T-matrix/V_d.cube'
+  potfile_p   = '/anvil/projects/x-che190065/rjguo/qe-7.5/T-matrix/V_p.cube'
+  pot_align   = 'vacuum'
+
+  do_tmatrix  = .true.
+  eta         = 0.05
+  omega0      = -1.0941          ! explicit VBM (matches diag run default)
+
+  ! --- P3 block validation: single-ket diagonal, full k'-sum -> must give Ṽ_nn=-0.117 Ry ---
+  do_full_block     = .true.
+  block_single_band = 17
+  block_single_ki   = 1
+  vtilde_outfile    = 'vtilde_diag_check.dat'
+/

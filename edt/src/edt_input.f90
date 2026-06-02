@@ -49,6 +49,14 @@ MODULE edt_input
   CHARACTER(LEN=16) :: resum_grid = 'coarse'        ! 'coarse' (B1) | 'fine' (B2 Dyson)
   CHARACTER(LEN=16) :: rest_split = 'complex'       ! 'complex' (ccgsolve) | 'pm' (split R^+/-)
 
+  ! ---- P3 full off-diagonal block assembly (MPI, pool-parallel; plan.md §P3) ----
+  LOGICAL  :: do_full_block    = .FALSE.            ! assemble the full Vtilde block on the active manifold
+  INTEGER  :: block_nk         = 0                  ! restrict manifold+channels to k=1..block_nk (0 = full BZ)
+  INTEGER  :: block_single_band= 0                  ! validation: single-ket diag check at (band, k); 0 = full block
+  INTEGER  :: block_single_ki  = 1
+  CHARACTER(LEN=256) :: vtilde_outfile = 'vtilde_block.dat'
+  LOGICAL  :: dump_wann        = .FALSE.            ! P5-b: dump xk_cryst + U(k) to wann_data.dat (run in audit mode)
+
   NAMELIST / edt_nml / &
        edi_prefix, edi_outdir, coarse_nk1, coarse_nk2, coarse_nk3, &
        potfile_d, potfile_p, pot_align, defect_center, core_align_radius, &
@@ -56,7 +64,8 @@ MODULE edt_input
        range_sep, rhofile_d, rhofile_p, coulomb_2d, alpha_gauss, &
        do_tmatrix, active_win_min, active_win_max, omega0, eta, &
        rest_nk1, rest_nk2, rest_nk3, sternheimer_thr, dress_order, dress_tol, &
-       active_resum, resum_grid, rest_split
+       active_resum, resum_grid, rest_split, &
+       do_full_block, block_nk, block_single_band, block_single_ki, vtilde_outfile, dump_wann
 
 CONTAINS
 
@@ -111,6 +120,12 @@ CONTAINS
     CALL mp_bcast(active_resum,     ionode_id, world_comm)
     CALL mp_bcast(resum_grid,       ionode_id, world_comm)
     CALL mp_bcast(rest_split,       ionode_id, world_comm)
+    CALL mp_bcast(do_full_block,    ionode_id, world_comm)
+    CALL mp_bcast(block_nk,         ionode_id, world_comm)
+    CALL mp_bcast(block_single_band,ionode_id, world_comm)
+    CALL mp_bcast(block_single_ki,  ionode_id, world_comm)
+    CALL mp_bcast(vtilde_outfile,   ionode_id, world_comm)
+    CALL mp_bcast(dump_wann,        ionode_id, world_comm)
 
     IF (ionode) THEN
        WRITE(stdout,'(/,5X,A)') REPEAT('=',64)
@@ -135,6 +150,9 @@ CONTAINS
        WRITE(stdout,'(5X,A,A,A,A)')  'resum_grid       = ', TRIM(resum_grid), '   rest_split = ', TRIM(rest_split)
        WRITE(stdout,'(5X,A,L2,A,A)') 'range_sep        = ', range_sep, '   potfiles: ', &
             TRIM(potfile_d)//' , '//TRIM(potfile_p)
+       WRITE(stdout,'(5X,A,L2,A,I5)')'do_full_block    = ', do_full_block, '   block_nk = ', block_nk
+       IF (block_single_band > 0) &
+          WRITE(stdout,'(5X,A,I5,A,I5)') 'block single-ket band = ', block_single_band, '  ki = ', block_single_ki
        WRITE(stdout,'(5X,A)')   REPEAT('=',64)
        FLUSH(stdout)
     ENDIF

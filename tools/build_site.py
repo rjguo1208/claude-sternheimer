@@ -26,6 +26,7 @@ ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESEARCH  = os.path.join(ROOT, "research.md")
 PLAN      = os.path.join(ROOT, "plan.md")
 NOTE_KNORM = os.path.join(ROOT, "content", "note_kprime_norm.md")
+NOTE_RESULTS = os.path.join(ROOT, "content", "note_tmatrix_results.md")
 DOCS      = os.path.join(ROOT, "docs")
 PAGES_DIR = os.path.join(DOCS, "pages")
 
@@ -78,8 +79,12 @@ def _restore(text, store):
     return text
 
 def _inline(text):
-    """Escape HTML, then apply links / bold / italic. Placeholders are untouched."""
+    """Escape HTML, then apply images / links / bold / italic. Placeholders untouched."""
     text = html.escape(text, quote=False)
+    # images ![alt](src)  (before links, since the syntax contains [..](..))
+    text = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)",
+                  r'<img src="\2" alt="\1" style="max-width:100%;height:auto;display:block;'
+                  r'margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px">', text)
     text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<em>\1</em>", text)
@@ -255,9 +260,10 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            '%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
                                       a("pages/plan.html", "Implementation Plan", "plan"),
+                                      a("pages/results.html", "Results", "results"),
                                       a("pages/note-kprime-normalization.html", "Note: k&prime;-norm", "note")))
 
 def page_shell(title, head_html, nav_html, body_html, css_href):
@@ -345,6 +351,30 @@ def build_note():
         f.write(out)
     return r
 
+def build_results():
+    with open(NOTE_RESULTS, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=False)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">Numerical results on the MoS&#8322; S-vacancy: the full downfolded '
+              'potential block $\\tilde V=M+\\Sigma$ (P3), the active-space $T$-matrix '
+              '$T_{{PP}}=[1-\\tilde V G^A]^{{-1}}\\tilde V$ (P5-a), and the Wannier/Koster&ndash;Slater '
+              'locality study (P5-b).</p>'
+              '<div class="meta"><span class="pill">Numerical results</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">MathJax v3</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " — Numerical results (P3–P5)",
+                     header, _topnav("results", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "results.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
@@ -363,19 +393,37 @@ CATALOG = [
      "$\\sum_{k'}\\!\\approx\\!-70$ Ry into the physical $\\Sigma_{nn}\\!\\approx\\!-0.5$ Ry. Closure "
      "sum rule + Born-limit mobility anchor to confirm (and expose any residual $N_{sc}$).",
      '<a href="pages/note-kprime-normalization.html">Open implementation note &rarr;</a>'),
-    ("Rest-space partial $T$-matrix (numerical)", "Test", "&mdash;", "plan", "Planned",
-     "Numerical $\\tilde V=PT^RP$ from the per-$k$ Sternheimer solve; validate against a "
-     "finite-rest-band explicit sum and the Born limit $T\\!\\to\\!V$.", "&mdash;"),
-    ("QE-Hamiltonian Sternheimer validation", "Test", "&mdash;", "plan", "Planned",
-     "Per-$k$ solve of $Q(\\omega_0-H_0)Q$ on the primitive cell; residual / conditioning "
-     "diagnostics and $U^\\dagger U-I$ Wannier-gauge sanity.", "&mdash;"),
+    ("Downfolded potential $\\tilde V=M+\\Sigma$ (diagonal + full block)", "Result", "2026-06-01", "prod", "Complete",
+     "Beyond-Born $\\tilde V$ on the MoS&#8322; active manifold from the per-$k'$ Sternheimer solve summed over the full BZ "
+     "with $1/N_k$: diagonal (closure-validated) and the full $1584\\times1584$ block via a pool-parallel $k'$-sum "
+     "(Hermitian to $9\\times10^{-12}$). Strong beyond-Born &mdash; e.g. valence/$\\Gamma$: $\\tilde V_{nn}=-0.117$ Ry "
+     "($M=+0.701$, $\\Sigma=-0.819$).",
+     '<a href="pages/results.html">Open numerical results &rarr;</a>'),
+    ("Active-space $T$-matrix $T_{PP}$ (P5-a)", "Result", "2026-06-01", "prod", "Complete",
+     "Coarse-grid resummation $T_{PP}=[1-\\tilde V G^A]^{-1}\\tilde V$ ($G^A$ carries $1/N_k$). "
+     "Born-limit validated ($T\\!\\to\\!\\tilde V$ to $10^{-4}$). Beyond-Born <em>cuts</em> the resummed "
+     "scattering $\\sim2\\times$ below first Born ($\\lVert T_{PP}\\rVert\\!=\\!297$ vs $\\lVert T_M\\rVert\\!=\\!584$ Ry); "
+     "active multiple-scattering is resonant at the VBM (where carriers live).",
+     '<a href="pages/results.html#sec-2">Open results &rarr;</a>'),
+    ("QE-Hamiltonian Sternheimer validation", "Test", "2026-05-31", "ok", "Complete",
+     "Per-$k$ solve of $Q(\\omega_0-H_0)Q$ via projected PCG (QE <code>h_psi</code> matvec): "
+     "$\\langle\\psi|H_0|\\psi\\rangle\\!=\\!\\varepsilon$ gate to $6\\times10^{-10}$ eV across all ranks; "
+     "explicit rest-band sum converges to the all-band Sternheimer value (Born limit $T\\!\\to\\!V$ at $10^{-13}$ Ry).",
+     '<a href="pages/plan.html">see P0&ndash;P3 in the plan &rarr;</a>'),
     ("Rest dressing ladder convergence", "Test", "&mdash;", "plan", "Planned",
      "Successive-ratio $\\lVert\\tilde V^{(m+1)}-\\tilde V^{(m)}\\rVert/\\lVert\\tilde V^{(m)}-"
      "\\tilde V^{(m-1)}\\rVert$ vs. rest $k$-grid and band cutoff (geometric rate "
      "$\\rho\\sim\\lVert V_{QQ}\\rVert/\\Delta$).", "&mdash;"),
-    ("Active-space dynamic resummation", "Test", "&mdash;", "plan", "Planned",
-     "Frequency-dependent $T_{PP}(\\omega)$ via the small $N_A\\times N_A$ inversion; "
-     "feed $|T_{PP}|^2$ into the golden-rule rate in place of $|M|^2$.", "&mdash;"),
+    ("Wannier representation &amp; Koster&ndash;Slater locality (P5-b)", "Result", "2026-06-01", "warn", "Caveat",
+     "Wannierizing $\\tilde V$ is validated (gauge test: my $H^W(R)$ reproduces <code>hr.dat</code> to "
+     "$2\\times10^{-3}$ eV). But $\\tilde V^W(R',R)$ is <em>not</em> localized for this $6\\times6$ defect "
+     "supercell &mdash; $M(k_f,k_i)\\!\\approx\\!f(q)$ with vacancy-array Bragg structure &mdash; so "
+     "Koster&ndash;Slater truncation gives no speed-up. Not range separation, not a gauge bug; needs a "
+     "larger supercell. (Coarse direct inversion, P5-a, is unaffected.)",
+     '<a href="pages/results.html#sec-3">Open results &rarr;</a>'),
+    ("Active-space dynamic resummation / transport", "Test", "&mdash;", "plan", "Planned",
+     "Next (P6): frequency-dependent $T_{PP}(\\omega)$ on-shell, feeding $|T_{PP}|^2$ into the "
+     "golden-rule rate in place of $|M|^2$ &mdash; beyond-Born vs Born mobility.", "&mdash;"),
 ]
 
 def build_index():
@@ -388,8 +436,10 @@ def build_index():
     catalog = (
         '<section id="catalog"><h2>Test Catalog</h2>'
         '<p>One row per piece of work: what it is, when, status, the key result, and a link. '
-        'The theory/method note and the EDT implementation plan are complete; no numerical tests '
-        'have been run yet &mdash; the planned validation tests below follow directly from them.</p>'
+        'Theory and plan are complete; the EDT package is implemented and the first '
+        'numerical results are in &mdash; the downfolded potential $\\tilde V$ (P3) and the active-space '
+        '$T$-matrix (P5) on the MoS&#8322; S-vacancy. See the '
+        '<a href="pages/results.html">Numerical results</a> page.</p>'
         '<div class="table-wrap"><table><thead><tr>'
         '<th>Item</th><th>Type</th><th>Date</th><th>Status</th><th>Key result / summary</th><th>Link</th>'
         '</tr></thead><tbody>%s</tbody></table></div>'
@@ -411,8 +461,9 @@ def build_index():
         '<div class="card"><strong>Layer 2 &mdash; active</strong><span>Full dynamical multiple '
         'scattering resummed by one small inversion '
         '$T_{PP}(\\omega)=[1-\\tilde V\\,G^A(\\omega)]^{-1}\\tilde V$.</span></div>'
-        '<div class="card"><strong>Status</strong><span>Theory complete (this note). '
-        'Numerical tests forthcoming; no raw data published.</span></div>'
+        '<div class="card"><strong>Status</strong><span>Theory + plan complete; EDT implemented. '
+        'First results: $\\tilde V$ block (P3) + active $T_{PP}$ (P5) on MoS&#8322;. '
+        'Transport (P6) next. No raw data published.</span></div>'
         '</div>'
         '<p>The construction splits the host Green&rsquo;s function into an <strong>active</strong> '
         'block $A$ (bands near $E_F$, kept dynamical) and a <strong>rest</strong> block $R$ '
@@ -472,11 +523,13 @@ def main():
     build_theory()
     build_plan()
     build_note()
+    build_results()
     build_index()
 
     th = open(os.path.join(PAGES_DIR, "theory.html"), encoding="utf-8").read()
     pl = open(os.path.join(PAGES_DIR, "plan.html"),   encoding="utf-8").read()
     nt = open(os.path.join(PAGES_DIR, "note-kprime-normalization.html"), encoding="utf-8").read()
+    rs = open(os.path.join(PAGES_DIR, "results.html"), encoding="utf-8").read()
     ix = open(os.path.join(DOCS, "index.html"),       encoding="utf-8").read()
 
     def check(txt):
@@ -495,8 +548,11 @@ def main():
     stats("theory.html", th)
     stats("plan.html",   pl)
     stats("note-knorm",  nt)
+    stats("results.html", rs)
+    print("results.html: %d <img>, %d tables" % (rs.count("<img "), rs.count("<table>")))
     print("index.html  : %d bytes, %d catalog rows" % (len(ix), ix.count("<tr")))
-    for nm, txt in (("theory.html", th), ("plan.html", pl), ("note-knorm", nt), ("index.html", ix)):
+    for nm, txt in (("theory.html", th), ("plan.html", pl), ("note-knorm", nt),
+                    ("results.html", rs), ("index.html", ix)):
         p = check(txt)
         print("  [%s] %s" % (nm, "OK" if not p else " ; ".join(p)))
 
