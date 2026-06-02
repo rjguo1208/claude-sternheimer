@@ -108,6 +108,14 @@ $T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converges quickly:
 | 4 | 891 | 0.59 | **2.06 (99.6%)** |
 | 6 | 1584 | 2.06 | 2.06 |
 
+![Koster-Slater truncation: ||T(Rcut)|| vs cutoff, converges by Rcut=4 with the consistent gauge.](../assets/vtilde_ks_converge.png)
+
+*Figure 2. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
+dimension under each tick). With the gauge-consistent `filukk_150` (blue) the inversion converges
+by $R_{\rm cut}=4$ (dim 891, $\sim56\%$ of the full 1584); with the mismatched gauge (red) it only
+reaches the full value at the full subspace. The localized $\tilde V^W$ is what makes the truncation
+effective — the payoff of the gauge fix.*
+
 So the neutral S-vacancy potential **is** short-ranged, as expected — the earlier "flat
 $\tilde V^W$" was entirely the gauge mismatch, *not* a supercell-size or range-separation problem.
 On this coarse $12\times12$ grid the converged subspace ($R_{\rm cut}\!=\!4$) is $\sim56\%$ of the
