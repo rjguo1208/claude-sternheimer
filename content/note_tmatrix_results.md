@@ -45,18 +45,25 @@ The rest dressing **screens** the bare defect potential: the downfolded $\tilde 
 weaker in norm than $M$. First-Born (EDI) therefore overestimates the coupling here — exactly the
 regime that motivates the $T$-matrix.
 
-The screening is **anisotropic** in $k$-space, as a fixed-source scattering map shows. Taking the
-high-symmetry $K$ point as the initial state and the top valence band (intraband), $|M(k_f,K)|$ and
-$|\tilde V(k_f,K)|$ over all 144 final $k_f$ are:
+The screening is **anisotropic** in $k$-space. Because the bare $M$, the partial $T$-matrix
+$\tilde V$, and the full $T_{PP}$ are all localized in the Wannier basis, each can be
+Wannier-interpolated to a fine grid (the band-projection uses $H_W=U^\dagger E U$ from the *same*
+gauge as the matrix elements, so the round-trip is exact on the coarse grid). Fixing the source at
+the high-symmetry $K$ point on the top valence band (intraband, on-shell), the three amplitudes over
+a $48\times48$ final-$k_f$ grid are:
 
-![Intraband scattering maps from K over the BZ: |M(k_f,K)| (Born, left) peaks at K; |Vtilde(k_f,K)| (downfolded, right) is weaker and its maximum shifts off K.](../assets/vtilde_kmap.png)
+![Wannier-interpolated 48x48 intraband scattering maps from source K: bare |M|, partial T |Vtilde|, and full T |T_PP| over the BZ.](../assets/vtilde_kmap_interp.png)
 
-*Figure 1. Intraband scattering on the top valence band from $K$ to all final $k_f$ (Cartesian,
-folded to the 1st BZ; ★ = $K$ source, + = Γ, M; colour = magnitude in Ry). **Left** $|M(k_f,K)|$
-(first Born) peaks at the forward channel $K$ ($0.392$ Ry, the map maximum). **Right**
-$|\tilde V(k_f,K)|$ (downfolded) is $\sim6.6\times$ weaker at forward ($0.059$ Ry) and its maximum
-($0.103$ Ry) is shifted off $K$ — the rest dressing changes the scattering **anisotropy**, not just
-its overall magnitude, which directly reshapes the transport relaxation time.*
+*Figure 1. Wannier-interpolated ($48\times48$) intraband scattering from the source $K$ (★) on the
+top valence band, on-shell at $\omega=\varepsilon_{\rm top}(K)=-1.09$ eV (Cartesian $k$, folded to
+the 1st BZ; + = Γ; colour = magnitude in Ry). **Left** bare Born $|M(k_f,K)|$ peaks at the forward
+channel $K$ ($0.392$ Ry). **Middle** partial $T$-matrix $|\tilde V|=|M+\Sigma|$: the rest dressing
+cuts the coupling $\sim3.8\times$ (max $0.103$) and guts the forward channel $6.6\times$, to $0.059$
+Ry. **Right** full $T$-matrix $|T_{PP}|=\bigl|[1-\tilde V G^A]^{-1}\tilde V\bigr|$: the active
+resummation restores $\sim1.7\times$ of multiple scattering (forward $0.102$ Ry) but stays
+$\sim3$–$4\times$ below bare Born. Beyond-Born thus both **weakens** and **reshapes** the scattering
+— directly reshaping the transport relaxation time. The interpolation is validated by the exact
+round-trip at $k_f=K$, which reproduces the raw block ($|M|=0.392$, $|\tilde V|=0.059$ Ry).*
 
 ## 2. Active-space $T$-matrix $T_{PP}$ (P5-a)
 
