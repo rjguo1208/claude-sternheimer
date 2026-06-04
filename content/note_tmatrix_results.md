@@ -113,10 +113,13 @@ which reproduces a direct $1584\times1584$ solve to $1.3\times10^{-14}$.
 active-summation energy $\omega$. **Left:** Re, Im, and $|\cdot|$ across the active window. Far from
 resonances $|T_{PP}|\to$ the bare $|\tilde V_{KK}|=0.059$ Ry (the $G^A\to0$ limit); inside the window
 the dense active spectrum, broadened by $\eta$, makes it resonant and $\mathrm{Im}\,T_{PP}<0$ (the
-scattering rate) turns on. **Right (band-edge zoom):** a sharp resonance at $\omega\approx-0.97$ eV —
-a defect state that the downfolded $\tilde V$ pushes $\sim0.12$ eV **above** the VBM (the
-$\frac{1}{N_k}\tilde V$ term lifts $\lambda_{\max}$; ▼ mark the poles $\lambda_n$). The on-shell
-point $\omega_0=$ VBM (green) sits on its rising edge: $T_{PP}(K,K)=-0.025-0.116\,i$ Ry,
+scattering rate) turns on. **Right (band-edge zoom):** real (blue), imaginary (red), and modulus
+(black) for **both** inputs — solid $T_{PP}$ (with rest-space), dashed $T_M$ (no rest-space). A sharp
+resonance at $\omega\approx-0.97$ eV — a defect state that the downfolded $\tilde V$ pushes $\sim0.12$
+eV **above** the VBM (the $\frac{1}{N_k}\tilde V$ term lifts $\lambda_{\max}$): $\mathrm{Re}$ disperses
+through zero while $\mathrm{Im}$ dips negative (the absorptive scattering rate), and adding rest-space
+(solid vs dashed) mainly shifts/broadens the resonance. The on-shell point $\omega_0=$ VBM (green)
+sits on its rising edge: $T_{PP}(K,K)=-0.025-0.116\,i$ Ry,
 $|T_{PP}|=0.119$, imaginary-part-dominated — i.e. the band-edge scattering rate. The two inputs
 $|T_M|$ (no rest-space) and $|T_{PP}|$ (with rest-space) nearly coincide at *this diagonal element*,
 but that is misleading: the strong active resummation pulls *both* bare diagonals ($0.39$ and $0.059$)
