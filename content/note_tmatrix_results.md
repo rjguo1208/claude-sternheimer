@@ -91,6 +91,12 @@ the VBM** — the active multiple scattering is *resonant at the band edge, wher
 
 ## 3. Energy dependence of the full $T$-matrix
 
+> *Correction in progress (2026-06-04): Figures 2–4 below were projected onto NSCF **band 17**, which
+> is a **conduction** band $\sim4.9$ eV above the valence-band maximum — the actual VBM is **band 13**.
+> They are being regenerated on band 13. **Figure 5 is the first corrected result** (no-rest-space —
+> exact without recomputation, since $M$ is independent of $\omega_0$); the rest-space-dressed figures
+> follow once the block is recomputed at $\omega_0=\varepsilon_{\rm VBM}$.*
+
 $T_{PP}$ carries a second energy — the $\omega$ in the *active* resolvent
 $G^A_a(\omega)=(1/N_k)/(\omega-\varepsilon_a+i\eta)$ — and it behaves quite differently from the
 $\omega_0$ that dresses $\tilde V$. For $\tilde V=M+\Sigma(\omega_0)$ the rest manifold is gapped
@@ -161,19 +167,21 @@ map along it reproduces Figure 3. The scattering is **concentrated at the band e
 there (up to $0.45$ Ry off-shell). This map $\times\,n_d$ is the self-energy
 $\Sigma(nk,\omega)$ that sets the transport lifetime (P6).*
 
-For comparison, the **same map without rest-space** — the bare $M$ as Koster–Slater input ($T_M$
-instead of $T_{PP}$):
+The first corrected figure — the **no-rest-space** self-energy map on the **VBM (band 13)**, exact
+from the existing block since $M$ is $\omega_0$-independent:
 
-![Diagonal T_M(nk,omega) map without rest-space along Gamma-M-K: real part and minus imaginary part, with sharper resonances in the band interior than the with-rest-space map.](../assets/vtilde_tmap_M.png)
+![Diagonal T_M(nk,omega) no-rest-space self-energy map on the VBM band 13 along Gamma-M-K: real part and minus imaginary part, smooth with no band-crossing discontinuities.](../assets/vtilde_tmap_M_band13.png)
 
-*Figure 5. Same as Figure 4 but **without rest-space** (bare $M$ as the input, $T_M$). The overall
-ranges match Figure 4 (Re $\in[-0.12,0.37]$, $-\mathrm{Im}\le0.44$ Ry), but the **distribution
-differs**: without rest-space the bare $M$ produces **sharper, more numerous resonances in the band
-interior** — extra $-\mathrm{Im}\,T_M$ weight around $M$ and below the on-shell band — which the rest
-dressing **screens** in Figure 4, leaving a smoother map concentrated at the band edge. At the edge
-near $K$ the two are similar (cf. Figure 3). So the rest-space contribution **reshapes the energy/$k$
-structure** of the self-energy $\Sigma(nk,\omega)$ — damping the off-edge resonances — rather than
-uniformly rescaling it.*
+*Figure 5. No-rest-space diagonal $T_M(nk,\omega)$ on the **VBM (band 13)** along Γ–M–K vs energy
+(window auto-centred on the VBM, $[-8.4,-4.4]$ eV). **Left** $\mathrm{Re}\,T_M$ (level shift,
+diverging); **right** $-\mathrm{Im}\,T_M$ (spectral weight $\propto$ rate, sequential); dashed $=$
+on-shell $\varepsilon_{\rm VBM}(k)$. **This is the corrected band:** band 13 is fenced by clean gaps
+($0.28$ eV below, the $1.68$ eV MoS₂ gap above), so it has **no crossings → the map is smooth** —
+unlike the earlier band-17 figures, where the energy-`argmax` band jumped at conduction-band
+crossings. Because $M$ does not depend on $\omega_0$, this needs no recomputation. On-shell at the VBM
+($K$): $T_M=+0.045-0.007i$ Ry — the rate is small *at* the band edge ($\mathrm{DOS}\to0$) and grows
+just below it; off-shell resonances reach $-\mathrm{Im}\sim1$ Ry. The rest-space ($T_{PP}$) version
+follows once the block is recomputed at $\omega_0=\varepsilon_{\rm VBM}$.*
 
 ## 4. Wannier representation and locality (P5-b)
 

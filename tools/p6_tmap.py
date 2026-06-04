@@ -57,8 +57,9 @@ Gpt=np.array([0.,0.]); Mpt=np.array([0.5,0.]); Kpt=np.array([1/3,1/3])
 seg=lambda a,b,n:[a+(b-a)*t for t in np.linspace(0,1,n,endpoint=False)]
 path=np.array(seg(Gpt,Mpt,NSEG)+seg(Mpt,Kpt,NSEG)+[Kpt]); Nk=len(path)
 lvec=np.empty((Nk,dim),complex); rvec=np.empty((Nk,dim),complex); eps=np.empty(Nk)
+VBM=6   # eigh ascending: sorted index 6 = highest valence = NSCF band 13 = VBM (below the 1.68 eV gap, no crossings)
 for i,k in enumerate(path):
-    e,Vk=np.linalg.eigh(Hk1(k)); top=int(np.argmax(e)); eps[i]=e[top]; vt=Vk[:,top]
+    e,Vk=np.linalg.eigh(Hk1(k)); eps[i]=e[VBM]; vt=Vk[:,VBM]
     phb=np.exp(-2j*np.pi*(Rsel@k)); phk=np.exp(2j*np.pi*(Rsel@k))
     lvec[i]=(phb[:,None]*vt.conj()[None,:]).reshape(dim); rvec[i]=(phk[:,None]*vt[None,:]).reshape(dim)
 a1=np.array([240*0.150478,0.0])/6; a2=np.array([240*-0.075239,240*0.130318])/6
@@ -66,13 +67,13 @@ area=a1[0]*a2[1]-a1[1]*a2[0]; b1=2*np.pi/area*np.array([a2[1],-a2[0]]); b2=2*np.
 kc=np.array([k[0]*b1+k[1]*b2 for k in path]); dist=np.concatenate([[0],np.cumsum(np.linalg.norm(np.diff(kc,axis=0),axis=1))])
 xM,xK=dist[NSEG],dist[-1]
 
+WLO=eps.min()*RY-1.5; WHI=eps.max()*RY+1.5       # window around the VBM band (band 13)
 omega=np.linspace(WLO,WHI,NW)/RY; Tmap=np.empty((Nk,NW),complex)
 for j,om in enumerate(omega):
     Tmap[:,j]=((lvec@Tsub_of(om))*rvec).sum(1)
     if j%30==0: print(f"  {j}/{NW}",flush=True)
-iK=Nk-1; jVBM=int(np.argmin(np.abs(omega-omega0)))
-ref="-0.033-0.081i (T_M)" if INPUT=="M" else "-0.033-0.097i (T_PP)"
-print(f"[{INPUT}] check T(K, omega~VBM)={Tmap[iK,jVBM]:+.4f}  (Figure-3 on-shell {ref})")
+iK=Nk-1; jVBM=int(np.argmin(np.abs(omega-eps[iK])))
+print(f"[{INPUT}, VBM=band13] window [{WLO:.2f},{WHI:.2f}] eV; eps_VBM(K)={eps[iK]*RY:.3f} eV; on-shell T(K)={Tmap[iK,jVBM]:+.4f}")
 print(f"Re range [{Tmap.real.min():.3f},{Tmap.real.max():.3f}]  Im range [{Tmap.imag.min():.3f},{Tmap.imag.max():.3f}]")
 
 fig,ax=plt.subplots(1,2,figsize=(14,5.4))
@@ -88,6 +89,6 @@ for p in (0,1):
     ax[p].axvline(xM,c="0.5" if p==0 else "w",lw=0.7,alpha=0.6)
     ax[p].set_xticks([0,xM,xK]); ax[p].set_xticklabels(["Γ","M","K"]); ax[p].set_xlim(0,xK)
     ax[p].set_ylim(WLO,WHI); ax[p].set_xlabel("k-path"); ax[p].set_ylabel(r"$\omega$  (eV)")
-plt.suptitle(r"Diagonal $T(nk,\omega)$ (top valence band, "+tag+r") along Γ–M–K — dashed = on-shell $\varepsilon_{\rm top}(k)$",y=1.02)
-out="p6_tmap_M.png" if INPUT=="M" else "p6_tmap.png"
+plt.suptitle(r"Diagonal $T(nk,\omega)$ (VBM = band 13, "+tag+r") along Γ–M–K — dashed = on-shell $\varepsilon_{\rm VBM}(k)$",y=1.02)
+out=f"p6_tmap_{INPUT}_band13.png"
 plt.tight_layout(); plt.savefig(out,dpi=130,bbox_inches="tight"); print("wrote",out)
