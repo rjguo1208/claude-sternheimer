@@ -131,16 +131,20 @@ Figure 2 fixes $k=K$ and sweeps $\omega$; the complementary cut fixes each carri
 ($\omega=\varepsilon_{\rm top}(k)$) and sweeps $k$ along Γ–M–K — the $k$-resolved scattering that the
 transport integral actually samples:
 
-![On-shell diagonal T-matrix along Gamma-M-K: real and imaginary parts, the imaginary part is the scattering rate and is largest at K.](../assets/vtilde_tpath.png)
+![On-shell diagonal T-matrix along Gamma-M-K, with and without rest-space: real and imaginary parts; rest-space screens the interior resonances and slightly raises the band-edge rate at K.](../assets/vtilde_tpath_v2.png)
 
-*Figure 3. On-shell diagonal $T_{PP}(k,k;\varepsilon_{\rm top}(k))$ along Γ–M–K (top valence band),
-Wannier-interpolated. $\mathrm{Re}$ (blue) is the level shift; $\mathrm{Im}$ (red) $<0$ is the
-scattering rate. $|\mathrm{Im}|$ is **largest at $K$** ($-0.097$ Ry) — the VBM, where the holes live
-and the defect resonance sits — smallest near $M$, and modulated along the path by where
-$\varepsilon_{\rm top}(k)$ (gray dashed, right axis; rising from $-2.94$ eV at Γ to the VBM $-1.09$ eV
-at $K$) meets the active resonances. At $K$, $|T_{PP}|=0.102$ Ry — matching the forward value of the
-$48\times48$ map (Figure 1), an independent cross-check of the interpolation. This $k$-dependence of
-the on-shell rate is the input the beyond-Born transport (P6) integrates.*
+*Figure 3. On-shell diagonal $T(k,k;\varepsilon_{\rm top}(k))$ along Γ–M–K (top valence band),
+Wannier-interpolated. $\mathrm{Re}$ (blue), $\mathrm{Im}$ (red); **solid $=T_{PP}$ (with rest-space),
+dashed $=T_M$ (no rest-space)**. $\mathrm{Im}<0$ is the scattering rate, $\mathrm{Re}$ the level
+shift; the gray dotted curve is $\varepsilon_{\rm top}(k)$ (right axis, rising from $-2.94$ eV at Γ to
+the VBM $-1.09$ eV at $K$). The with-rest-space rate $|\mathrm{Im}\,T_{PP}|$ is **largest at $K$**
+($0.097$ Ry, the VBM where the holes live), and there $|T_{PP}|=0.102$ Ry matches the $48\times48$ map
+(Figure 1) — a cross-check. **The rest-space effect is strongly $k$-dependent:** without it (dashed)
+the bare $M$ produces sharp resonances in the band interior — $\mathrm{Re}\,T_M$ peaks $\sim+0.12$ Ry
+between $M$ and $K$ and spikes just past Γ — which the rest dressing **screens away** (solid stays
+smooth); at the band edge $K$ it instead *raises* the rate by $\sim20\%$ ($0.097$ vs $0.081$). So
+rest-space **redistributes** the on-shell scattering — damping deep-band resonances while enhancing
+the band-edge rate — exactly what reshapes the transport relaxation time (P6).*
 
 ## 4. Wannier representation and locality (P5-b)
 
