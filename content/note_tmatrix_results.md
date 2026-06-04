@@ -61,7 +61,7 @@ channel $K$ ($0.392$ Ry). **Middle** partial $T$-matrix $|\tilde V|=|M+\Sigma|$:
 cuts the coupling $\sim3.8\times$ (max $0.103$) and guts the forward channel $6.6\times$, to $0.059$
 Ry. **Right** full $T$-matrix $|T_{PP}|=\bigl|[1-\tilde V G^A]^{-1}\tilde V\bigr|$: the active
 resummation restores $\sim1.7\times$ of multiple scattering (forward $0.102$ Ry) but stays
-$\sim3$–$4\times$ below bare Born. Beyond-Born thus both **weakens** and **reshapes** the scattering
+$\sim3$–$4\times$ below the bare coupling $M$. The rest-space dressing thus both **weakens** and **reshapes** the scattering
 — directly reshaping the transport relaxation time. The interpolation is validated by the exact
 round-trip at $k_f=K$, which reproduces the raw block ($|M|=0.392$, $|\tilde V|=0.059$ Ry).*
 
@@ -77,15 +77,15 @@ where the BZ measure $1/N_k$ lives in $G^A$ (the same $1/N_k$ that appears in $\
 **Validation (code correct):** as the coupling is scaled to zero ($\lambda\to0$) or
 $\eta\to\infty$ (so $G^A\to0$), the solver returns $T\to\tilde V$ to $\sim10^{-4}$.
 
-**Result — beyond-Born cuts the resummed scattering.** Evaluated at the VBM:
+**Result — rest-space scattering cuts the resummed amplitude.** Both $T_M$ and $T_{PP}$ are *full* active $T$-matrices (the resummation is the same); they differ only by whether **rest-space** (high-energy, out-of-window) scattering is folded into the input ($M$ vs $\tilde V=M+\Sigma$). Evaluated at the VBM:
 
 | input | resummed $\lVert T\rVert_F$ | amplification |
 |---|---|---|
-| bare Born $M$ | $\lVert T_M\rVert=584$ Ry | $\times1.6$ vs $M$ |
-| downfolded $\tilde V$ | $\lVert T_{PP}\rVert=297$ Ry | $\times3.0$ vs $\tilde V$ |
+| $M$ — no rest-space | $\lVert T_M\rVert=584$ Ry | $\times1.6$ vs $M$ |
+| $\tilde V=M+\Sigma$ — with rest-space | $\lVert T_{PP}\rVert=297$ Ry | $\times3.0$ vs $\tilde V$ |
 
-$T_{PP}=297$ Ry sits a factor $\sim2$ **below** the Born-input $T_M=584$ Ry, and the two differ by
-$53\%$ — the rest dressing materially changes the scattering operator. A scan over $\omega$ shows
+$T_{PP}=297$ Ry sits a factor $\sim2$ **below** the rest-space-free $T_M=584$ Ry, and the two differ
+by $53\%$ — including rest-space scattering materially changes the operator. A scan over $\omega$ shows
 $\lVert T_{PP}\rVert/\lVert\tilde V\rVert\approx1$ across most of the window but **jumps to $4.4$ at
 the VBM** — the active multiple scattering is *resonant at the band edge, where the carriers live*.
 
@@ -117,10 +117,12 @@ scattering rate) turns on. **Right (band-edge zoom):** a sharp resonance at $\om
 a defect state that the downfolded $\tilde V$ pushes $\sim0.12$ eV **above** the VBM (the
 $\frac{1}{N_k}\tilde V$ term lifts $\lambda_{\max}$; ▼ mark the poles $\lambda_n$). The on-shell
 point $\omega_0=$ VBM (green) sits on its rising edge: $T_{PP}(K,K)=-0.025-0.116\,i$ Ry,
-$|T_{PP}|=0.119$, imaginary-part-dominated — i.e. the band-edge scattering rate. Beyond-Born
-$|T_{PP}|$ and Born $|T_M|$ nearly coincide here, because the resonance positions are fixed by the
-active manifold (the $\frac{1}{N_k}\tilde V$ shift is tiny); the rest dressing's $3.8\times$ coupling
-suppression shows in the operator **norm** (§2), not in this band-edge diagonal.*
+$|T_{PP}|=0.119$, imaginary-part-dominated — i.e. the band-edge scattering rate. The two inputs
+$|T_M|$ (no rest-space) and $|T_{PP}|$ (with rest-space) nearly coincide at *this diagonal element*,
+but that is misleading: the strong active resummation pulls *both* bare diagonals ($0.39$ and $0.059$)
+to $\sim0.1$, forgetting the bare value. The rest-space effect is robust instead in the operator
+**norm** — $\lVert T_M\rVert/\lVert T_{PP}\rVert\approx2$ right across the window (§2) — not in this
+single diagonal.*
 
 ## 4. Wannier representation and locality (P5-b)
 
