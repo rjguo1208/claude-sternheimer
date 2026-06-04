@@ -107,7 +107,7 @@ $a_K=(K,\text{band }17)$,
 $$T_{PP}(K,K;\omega)=(z-\varepsilon_K)\sum_n\frac{c_n}{z-\lambda_n},\qquad c_n=S_{Kn}\,(S^\dagger\tilde V)_{nK},$$
 which reproduces a direct $1584\times1584$ solve to $1.3\times10^{-14}$.
 
-![Diagonal of the full T-matrix at the VBM state vs the active-summation energy: real, imaginary and modulus, with a resonance just above the VBM.](../assets/vtilde_tdiag_omega.png)
+![Diagonal of the full T-matrix at the VBM state vs the active-summation energy: real, imaginary and modulus, with a resonance just above the VBM.](../assets/vtilde_tdiag_omega_v2.png)
 
 *Figure 2. Diagonal $T_{PP}(K,K;\omega)$ at the VBM state ($k_i=k_f=K$, top valence band) vs the
 active-summation energy $\omega$. **Left:** Re, Im, and $|\cdot|$ across the active window. Far from
