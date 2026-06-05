@@ -40,7 +40,7 @@ HWR=np.einsum("Rk,kpw->Rpw",np.exp(-2j*np.pi*(Rg@xk[:2])),HWk,optimize=True)/nk
 def Hk_grid(kf2): return np.einsum("kR,Rpw->kpw",np.exp(2j*np.pi*(kf2@Rg.T)),HWR,optimize=True)
 
 Kc=np.array([1/3,1/3]); eK,vK=np.linalg.eigh(Hk_grid(Kc[None])[0])
-top=int(np.argmax(eK)); omegaT=eK[top]; vKtop=vK[:,top]
+top=6; omegaT=eK[top]; vKtop=vK[:,top]            # slot 6 = VBM = NSCF band 13
 print(f"K=(1/3,1/3); eps_top(K)=omega={omegaT*RY:.4f} eV (on-shell); eta={ETA*RY:.3g} eV")
 
 # --- T^W(R',R) via Koster-Slater at omega=omegaT (fine G^A), same H_W ---
@@ -59,7 +59,7 @@ for a,Ra in enumerate(sel):
 Tsub=np.linalg.solve(np.eye(dim)-Vsub@Gsub,Vsub).reshape(ns,nb,ns,nb)
 
 # --- interpolate O^W to fine k_f (fixed k_i=K), band-project top valence ---
-Hf=Hk_grid(kfg); ef,vf=np.linalg.eigh(Hf); topf=np.argmax(ef,axis=1)
+Hf=Hk_grid(kfg); ef,vf=np.linalg.eigh(Hf); topf=np.full(ef.shape[0],6)   # band 13 (VBM) at every k_f
 vftop=np.take_along_axis(vf,topf[:,None,None],axis=2)[:,:,0]
 # inverse FT consistent with toR (forward +k.R' on the bra R', -k.R on the ket R):
 #   O^W(k_f,K) = sum_{R',R} e^{-2pi i k_f.R'} e^{+2pi i K.R} O^W(R',R)
@@ -73,7 +73,7 @@ def bandmap(full=None,Tm=False):
 mapM=bandmap(MWR); mapV=bandmap(VWR); mapT=bandmap(Tm=True)
 iK=int(np.argmin(np.sum((kfg-Kc)**2,1)))
 print(f"round-trip at k_f=K : |M|={mapM[iK]:.4f}  |V~|={mapV[iK]:.4f}  |T|={mapT[iK]:.4f} Ry")
-print(f"  raw block band-17 : |M|=0.3917             |V~|=0.0588   (round-trip must match M,V~)")
+print(f"  raw block band-13 : |M|=0.2464             |V~|=0.1121   (round-trip must match M,V~)")
 print(f"max over BZ         : |M|={mapM.max():.4f}  |V~|={mapV.max():.4f}  |T|={mapT.max():.4f} Ry")
 
 # --- Cartesian BZ ---
@@ -95,5 +95,5 @@ for p,(val,ttl) in enumerate(panels):
     ax[p].plot(*Kpt,"r*",ms=15,mew=1); ax[p].plot(0,0,"w+",ms=10,mew=2)
     ax[p].annotate("K",Kpt,xytext=(7,5),textcoords="offset points",color="r",fontweight="bold")
     ax[p].set_title(ttl+f"   (max {val.max():.3f} Ry)"); ax[p].set_xlabel("$k_x$ (1/Bohr)"); ax[p].set_ylabel("$k_y$"); ax[p].set_aspect("equal")
-plt.suptitle(f"Wannier-interpolated 48×48 intraband maps, top valence band, source K (★), on-shell ω=ε_top(K)={omegaT*RY:.2f} eV",y=1.01)
+plt.suptitle(f"Wannier-interpolated 48×48 intraband maps, VBM (band 13), source K (★), on-shell ω=ε_VBM(K)={omegaT*RY:.2f} eV",y=1.01)
 plt.tight_layout(); plt.savefig("p6_kmap_interp.png",dpi=130,bbox_inches="tight"); print("wrote p6_kmap_interp.png")

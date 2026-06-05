@@ -3,7 +3,7 @@
 
   T_PP(omega) = [1 - V~ G^A(omega)]^{-1} V~ ,  G^A_a = (1/N_k)/(omega - eps_a + i*eta)
 
-Diagonal element T_PP(K,K;omega), VBM state a_K=(k=K, band 17) -- i.e. initial k = final k.
+Diagonal element T_PP(K,K;omega), VBM state a_K=(k=K, band 13) -- i.e. initial k = final k.
 
 Closed form (exact): with z=omega+i*eta and the omega-INDEPENDENT Hermitian effective Hamiltonian
 H_eff = diag(eps_a) + (1/N_k) V~  [eigenpairs (lambda_n, S)],
@@ -25,9 +25,9 @@ nb=N_A//nk
 fw=FortranFile("wann_data.dat","r"); fw.read_ints(np.int32); fw.read_ints(np.int32)
 xk=fw.read_reals(np.float64).reshape((3,nk),order="F"); fw.close()
 Ki=int(np.argmin([min(((xk[0,k]-1/3+p)**2+(xk[1,k]-1/3+q)**2) for p in(-1,0,1) for q in(-1,0,1)) for k in range(nk)]))
-slot=int(np.where(a2band.reshape(nk,nb)[Ki]==17)[0][0]); aK=Ki*nb+slot
+slot=int(np.where(a2band.reshape(nk,nb)[Ki]==13)[0][0]); aK=Ki*nb+slot   # band 13 = VBM (was 17 = conduction)
 eta=ETA_EV/RY
-print(f"VBM state: K at k-index {Ki}, band 17, a={aK}; eps_aK={eact[aK]*RY:.4f} eV  omega0={omega0*RY:.4f} eV")
+print(f"VBM state: K at k-index {Ki}, band 13, a={aK}; eps_aK={eact[aK]*RY:.4f} eV  omega0={omega0*RY:.4f} eV")
 print(f"bare diagonals: |V~_KK|={abs(V[aK,aK]):.4f}  |M_KK|={abs(M[aK,aK]):.4f} Ry")
 
 def diag_curve(Mat, oms):

@@ -28,42 +28,41 @@ at its pool-local channel $k'$.
 | Born limit (T1) | source ket $=$ EDI $M$ to $2.3\times10^{-13}$ Ry | $\Delta V$-as-ket (local + KB nonlocal) exact |
 | per-rank $H_0$ gate | $\langle\psi|H_0|\psi\rangle=\varepsilon$ to $6.0\times10^{-10}$ eV (all ranks) | Sternheimer operator setup correct |
 | Hermiticity | $\lVert\tilde V-\tilde V^\dagger\rVert=9\times10^{-12}$ (pre-symmetrization) | $M,\Sigma$ independently Hermitian $\Rightarrow$ assembly correct |
-| in-situ cross-check | band-17/$\Gamma$: $\tilde V_{nn}=-0.11712$ Ry $=$ single-rank diagonal to 6 digits | cross-pool MPI assembly correct |
+| in-situ cross-check | MPI block $=$ single-rank diagonal to 6 digits | cross-pool MPI assembly correct |
 
-**Physics — strongly beyond-Born.** At the VBM ($\Gamma$, top valence band):
-$M_{nn}=+0.701$, $\Sigma_{nn}=-0.819$, $\tilde V_{nn}=-0.117$ Ry — the rest dressing is larger
-than, and opposite in sign to, the bare Born coupling. Over the whole manifold:
+**Physics — beyond-Born, moderate rest dressing.** At the VBM ($K$, band 13):
+$M_{nn}=+0.246$, $\Sigma_{nn}=-0.134$, $\tilde V_{nn}=+0.112$ Ry — the rest dressing is about half of,
+and opposite in sign to, the bare Born coupling. Over the whole manifold:
 
 | quantity | value | reading |
 |---|---|---|
-| $\lVert M\rVert_F,\ \lVert\Sigma\rVert_F,\ \lVert\tilde V\rVert_F$ | $367,\ 422,\ 100$ Ry | $\lVert\Sigma\rVert>\lVert M\rVert$; $\tilde V$ is $\sim\tfrac14$ of $M$ |
-| $\lVert\Sigma\rVert/\lVert M\rVert$ | $1.15$ | rest dressing exceeds first Born |
-| states with $|\Sigma_{nn}|>|M_{nn}|$ | $976/1584$ $(62\%)$ | majority strongly dressed (sign flips) |
-| $\lVert\tilde V_{\rm offdiag}\rVert/\lVert\tilde V_{\rm diag}\rVert$ | $24.6$ | scattering is overwhelmingly $k$-changing |
+| $\lVert M\rVert_F,\ \lVert\Sigma\rVert_F,\ \lVert\tilde V\rVert_F$ | $367,\ 242,\ 143$ Ry | $\lVert\Sigma\rVert<\lVert M\rVert$; $\tilde V\sim0.4\,M$ |
+| $\lVert\Sigma\rVert/\lVert M\rVert$ | $0.66$ | rest dressing is a sizeable fraction of first Born |
+| states with $|\Sigma_{nn}|>|M_{nn}|$ | $14/1584$ $(1\%)$ | only a few states strongly dressed |
+| $\lVert\tilde V_{\rm offdiag}\rVert/\lVert\tilde V_{\rm diag}\rVert$ | $16.8$ | scattering is overwhelmingly $k$-changing |
 
-The rest dressing **screens** the bare defect potential: the downfolded $\tilde V$ is $\sim3.7\times$
-weaker in norm than $M$. First-Born (EDI) therefore overestimates the coupling here — exactly the
-regime that motivates the $T$-matrix.
+The rest dressing **screens** the bare defect potential: the downfolded $\tilde V$ is $\sim2.6\times$
+weaker in norm than $M$. First-Born (EDI) therefore overestimates the coupling here — the regime that
+motivates the $T$-matrix.
 
 The screening is **anisotropic** in $k$-space. Because the bare $M$, the partial $T$-matrix
 $\tilde V$, and the full $T_{PP}$ are all localized in the Wannier basis, each can be
 Wannier-interpolated to a fine grid (the band-projection uses $H_W=U^\dagger E U$ from the *same*
 gauge as the matrix elements, so the round-trip is exact on the coarse grid). Fixing the source at
-the high-symmetry $K$ point on the top valence band (intraband, on-shell), the three amplitudes over
+the high-symmetry $K$ point on the **VBM (band 13)** (intraband, on-shell), the three amplitudes over
 a $48\times48$ final-$k_f$ grid are:
 
-![Wannier-interpolated 48x48 intraband scattering maps from source K: bare |M|, partial T |Vtilde|, and full T |T_PP| over the BZ.](../assets/vtilde_kmap_interp.png)
+![Wannier-interpolated 48x48 intraband scattering maps from source K on the VBM band 13: bare |M|, partial T |Vtilde|, and full T |T_PP| over the BZ.](../assets/vtilde_kmap_b13.png)
 
 *Figure 1. Wannier-interpolated ($48\times48$) intraband scattering from the source $K$ (★) on the
-top valence band, on-shell at $\omega=\varepsilon_{\rm top}(K)=-1.09$ eV (Cartesian $k$, folded to
-the 1st BZ; + = Γ; colour = magnitude in Ry). **Left** bare Born $|M(k_f,K)|$ peaks at the forward
-channel $K$ ($0.392$ Ry). **Middle** partial $T$-matrix $|\tilde V|=|M+\Sigma|$: the rest dressing
-cuts the coupling $\sim3.8\times$ (max $0.103$) and guts the forward channel $6.6\times$, to $0.059$
-Ry. **Right** full $T$-matrix $|T_{PP}|=\bigl|[1-\tilde V G^A]^{-1}\tilde V\bigr|$: the active
-resummation restores $\sim1.7\times$ of multiple scattering (forward $0.102$ Ry) but stays
-$\sim3$–$4\times$ below the bare coupling $M$. The rest-space dressing thus both **weakens** and **reshapes** the scattering
-— directly reshaping the transport relaxation time. The interpolation is validated by the exact
-round-trip at $k_f=K$, which reproduces the raw block ($|M|=0.392$, $|\tilde V|=0.059$ Ry).*
+**VBM (band 13)**, on-shell at $\omega=\varepsilon_{\rm VBM}(K)=-5.96$ eV (Cartesian $k$, folded to
+the 1st BZ; + = Γ; colour = magnitude in Ry). **Left** bare $|M(k_f,K)|$ peaks at the forward channel
+$K$ ($0.246$ Ry). **Middle** partial $T$-matrix $|\tilde V|=|M+\Sigma|$: the rest dressing cuts the
+forward coupling $\sim2.2\times$, to $0.112$ Ry (max $0.112$). **Right** full $T$-matrix
+$|T_{PP}|=\bigl|[1-\tilde V G^A]^{-1}\tilde V\bigr|$: the active resummation reduces the forward channel
+further to $0.026$ Ry (max $0.074$) — net $\sim9\times$ below the bare coupling $M$. The interpolation
+is validated by the exact round-trip at $k_f=K$, which reproduces the raw block ($|M|=0.246$,
+$|\tilde V|=0.112$ Ry).*
 
 ## 2. Active-space $T$-matrix $T_{PP}$ (P5-a)
 
@@ -77,25 +76,21 @@ where the BZ measure $1/N_k$ lives in $G^A$ (the same $1/N_k$ that appears in $\
 **Validation (code correct):** as the coupling is scaled to zero ($\lambda\to0$) or
 $\eta\to\infty$ (so $G^A\to0$), the solver returns $T\to\tilde V$ to $\sim10^{-4}$.
 
-**Result — rest-space scattering cuts the resummed amplitude.** Both $T_M$ and $T_{PP}$ are *full* active $T$-matrices (the resummation is the same); they differ only by whether **rest-space** (high-energy, out-of-window) scattering is folded into the input ($M$ vs $\tilde V=M+\Sigma$). Evaluated at the VBM:
+**Result — rest-space reshapes the resummed amplitude.** Both $T_M$ and $T_{PP}$ are *full* active $T$-matrices (the resummation is the same); they differ only by whether **rest-space** (high-energy, out-of-window) scattering is folded into the input ($M$ vs $\tilde V=M+\Sigma$). Evaluated at the VBM (band 13), where $G^A$ is resonant with the band:
 
-| input | resummed $\lVert T\rVert_F$ | amplification |
+| input | resummed $\lVert T\rVert_F$ | vs input |
 |---|---|---|
-| $M$ — no rest-space | $\lVert T_M\rVert=584$ Ry | $\times1.6$ vs $M$ |
-| $\tilde V=M+\Sigma$ — with rest-space | $\lVert T_{PP}\rVert=297$ Ry | $\times3.0$ vs $\tilde V$ |
+| $M$ — no rest-space | $\lVert T_M\rVert=70$ Ry | $\times0.19$ |
+| $\tilde V=M+\Sigma$ — with rest-space | $\lVert T_{PP}\rVert=177$ Ry | $\times1.23$ |
 
-$T_{PP}=297$ Ry sits a factor $\sim2$ **below** the rest-space-free $T_M=584$ Ry, and the two differ
-by $53\%$ — including rest-space scattering materially changes the operator. A scan over $\omega$ shows
-$\lVert T_{PP}\rVert/\lVert\tilde V\rVert\approx1$ across most of the window but **jumps to $4.4$ at
-the VBM** — the active multiple scattering is *resonant at the band edge, where the carriers live*.
+At the band-edge resonance the resummation is input-sensitive: it **damps** the bare $M$ ($\times0.19$)
+but mildly **enhances** the rest-dressed $\tilde V$ ($\times1.23$), so the with-rest-space operator is
+$\sim2.5\times$ *larger* in norm ($177$ vs $70$ Ry). Yet the on-shell **forward** channel is *screened*
+by rest-space (§3) — so the rest dressing **redistributes** scattering from forward into $k$-changing
+channels rather than uniformly scaling it. A scan over $\omega$ gives
+$\lVert T_{PP}\rVert/\lVert\tilde V\rVert\approx1$ across most of the window, rising to $1.23$ at the VBM.
 
 ## 3. Energy dependence of the full $T$-matrix
-
-> *Correction in progress (2026-06-04): Figures 2–4 below were projected onto NSCF **band 17**, which
-> is a **conduction** band $\sim4.9$ eV above the valence-band maximum — the actual VBM is **band 13**.
-> They are being regenerated on band 13. **Figure 5 is the first corrected result** (no-rest-space —
-> exact without recomputation, since $M$ is independent of $\omega_0$); the rest-space-dressed figures
-> follow once the block is recomputed at $\omega_0=\varepsilon_{\rm VBM}$.*
 
 $T_{PP}$ carries a second energy — the $\omega$ in the *active* resolvent
 $G^A_a(\omega)=(1/N_k)/(\omega-\varepsilon_a+i\eta)$ — and it behaves quite differently from the
@@ -109,79 +104,64 @@ $\omega$-independent Hermitian effective Hamiltonian $H_{\rm eff}=E+\frac{1}{N_k
 $$T_{PP}(\omega)=(z-E)\,(z-H_{\rm eff})^{-1}\,\tilde V,\qquad H_{\rm eff}=S\,\mathrm{diag}(\lambda_n)\,S^\dagger,$$
 so one diagonalization gives every $\omega$ at once and the poles $\lambda_n$ **are** the $T$-matrix
 resonances (the active manifold dressed by the defect). For the diagonal of the VBM state
-$a_K=(K,\text{band }17)$,
+$a_K=(K,\text{band }13)$,
 $$T_{PP}(K,K;\omega)=(z-\varepsilon_K)\sum_n\frac{c_n}{z-\lambda_n},\qquad c_n=S_{Kn}\,(S^\dagger\tilde V)_{nK},$$
-which reproduces a direct $1584\times1584$ solve to $1.3\times10^{-14}$.
+which reproduces a direct $1584\times1584$ solve to $2.4\times10^{-15}$.
 
-![Diagonal of the full T-matrix at the VBM state vs the active-summation energy: real, imaginary and modulus, with a resonance just above the VBM.](../assets/vtilde_tdiag_omega_v2.png)
+![Diagonal of the full T-matrix at the VBM band 13 vs the active-summation energy: real, imaginary and modulus, with an in-gap defect resonance ~0.35 eV above the VBM.](../assets/vtilde_tdiag_b13.png)
 
-*Figure 2. Diagonal $T_{PP}(K,K;\omega)$ at the VBM state ($k_i=k_f=K$, top valence band) vs the
-active-summation energy $\omega$. **Left:** Re, Im, and $|\cdot|$ across the active window. Far from
-resonances $|T_{PP}|\to$ the bare $|\tilde V_{KK}|=0.059$ Ry (the $G^A\to0$ limit); inside the window
-the dense active spectrum, broadened by $\eta$, makes it resonant and $\mathrm{Im}\,T_{PP}<0$ (the
-scattering rate) turns on. **Right (band-edge zoom):** real (blue), imaginary (red), and modulus
-(black) for **both** inputs — solid $T_{PP}$ (with rest-space), dashed $T_M$ (no rest-space). A sharp
-resonance at $\omega\approx-0.97$ eV — a defect state that the downfolded $\tilde V$ pushes $\sim0.12$
-eV **above** the VBM (the $\frac{1}{N_k}\tilde V$ term lifts $\lambda_{\max}$): $\mathrm{Re}$ disperses
-through zero while $\mathrm{Im}$ dips negative (the absorptive scattering rate), and adding rest-space
-(solid vs dashed) mainly shifts/broadens the resonance. The on-shell point $\omega_0=$ VBM (green)
-sits on its rising edge: $T_{PP}(K,K)=-0.025-0.116\,i$ Ry,
-$|T_{PP}|=0.119$, imaginary-part-dominated — i.e. the band-edge scattering rate. The two inputs
-$|T_M|$ (no rest-space) and $|T_{PP}|$ (with rest-space) nearly coincide at *this diagonal element*,
-but that is misleading: the strong active resummation pulls *both* bare diagonals ($0.39$ and $0.059$)
-to $\sim0.1$, forgetting the bare value. The rest-space effect is robust instead in the operator
-**norm** — $\lVert T_M\rVert/\lVert T_{PP}\rVert\approx2$ right across the window (§2) — not in this
-single diagonal.*
+*Figure 2. Diagonal $T_{PP}(K,K;\omega)$ at the **VBM (band 13**; $k_i=k_f=K$) vs the active-summation
+energy $\omega$. **Left:** Re, Im, $|\cdot|$ across the active window; far from resonances
+$|T_{PP}|\to$ the bare $|\tilde V_{KK}|=0.112$ Ry ($G^A\to0$). **Right (band-edge zoom):** Re (blue),
+Im (red), $|\cdot|$ (black) for both inputs — solid $T_{PP}$ (with rest-space), dashed $T_M$ (no
+rest-space). A sharp **defect resonance at $\omega\approx-5.6$ eV — $\sim0.35$ eV *above* the VBM**,
+i.e. an in-gap S-vacancy hole level pushed into the gap by $\frac{1}{N_k}\tilde V$; Re disperses
+through zero, Im dips negative (the absorptive rate). The on-shell point $\omega_0=$ VBM (green) sits
+on its rising edge: $T_{PP}(K,K)=-0.020-0.017\,i$ Ry, $|T_{PP}|=0.026$ — small *at* the band edge
+($\mathrm{DOS}\to0$). Here rest-space clearly **reduces** the diagonal ($|T_{PP}|=0.026$ vs
+$|T_M|=0.043$). The closed form is validated against a direct $1584^2$ solve to $2.4\times10^{-15}$.*
 
 Figure 2 fixes $k=K$ and sweeps $\omega$; the complementary cut fixes each carrier **on-shell**
-($\omega=\varepsilon_{\rm top}(k)$) and sweeps $k$ along Γ–M–K — the $k$-resolved scattering that the
+($\omega=\varepsilon_{\rm VBM}(k)$) and sweeps $k$ along Γ–M–K — the $k$-resolved scattering that the
 transport integral actually samples:
 
-![On-shell diagonal T-matrix along Gamma-M-K, with and without rest-space: real and imaginary parts; rest-space screens the interior resonances and slightly raises the band-edge rate at K.](../assets/vtilde_tpath_v2.png)
+![On-shell diagonal T-matrix along Gamma-M-K on the VBM band 13, with and without rest-space: real and imaginary parts; rest-space strongly screens the on-shell scattering, smooth with no crossings.](../assets/vtilde_tpath_b13.png)
 
-*Figure 3. On-shell diagonal $T(k,k;\varepsilon_{\rm top}(k))$ along Γ–M–K (top valence band),
-Wannier-interpolated. $\mathrm{Re}$ (blue), $\mathrm{Im}$ (red); **solid $=T_{PP}$ (with rest-space),
-dashed $=T_M$ (no rest-space)**. $\mathrm{Im}<0$ is the scattering rate, $\mathrm{Re}$ the level
-shift; the gray dotted curve is $\varepsilon_{\rm top}(k)$ (right axis, rising from $-2.94$ eV at Γ to
-the VBM $-1.09$ eV at $K$). The with-rest-space rate $|\mathrm{Im}\,T_{PP}|$ is **largest at $K$**
-($0.097$ Ry, the VBM where the holes live), and there $|T_{PP}|=0.102$ Ry matches the $48\times48$ map
-(Figure 1) — a cross-check. **The rest-space effect is strongly $k$-dependent:** without it (dashed)
-the bare $M$ produces sharp resonances in the band interior — $\mathrm{Re}\,T_M$ peaks $\sim+0.12$ Ry
-between $M$ and $K$ and spikes just past Γ — which the rest dressing **screens away** (solid stays
-smooth); at the band edge $K$ it instead *raises* the rate by $\sim20\%$ ($0.097$ vs $0.081$). So
-rest-space **redistributes** the on-shell scattering — damping deep-band resonances while enhancing
-the band-edge rate — exactly what reshapes the transport relaxation time (P6).*
+*Figure 3. On-shell diagonal $T(k,k;\varepsilon_{\rm VBM}(k))$ along Γ–M–K on the **VBM (band 13)**,
+Wannier-interpolated. Re (blue), Im (red); **solid $=T_{PP}$ (with rest-space), dashed $=T_M$ (no
+rest-space)**; gray dotted $=\varepsilon_{\rm VBM}(k)$ (right axis). The curve is **smooth — band 13
+has no crossings** (fenced by the $1.68$ eV gap above and $0.28$ eV below), unlike the earlier
+band-17 attempt that jumped at conduction-band crossings. **Rest-space strongly screens the on-shell
+scattering:** solid $T_{PP}$ sits well below dashed $T_M$ everywhere — by $\sim15\times$ at Γ
+($|T_M|=0.079$ vs $|T_{PP}|=0.005$) and $\sim2\times$ at $K$ ($0.045$ vs $0.025$). The on-shell rate
+$|\mathrm{Im}\,T_{PP}|$ is small ($\lesssim0.02$ Ry) — the VBM is a band edge ($\mathrm{DOS}\to0$). So
+for the *actual* VBM hole the high-energy (rest) states are a **large** effect on the scattering.*
 
 Both cuts combine into a single 2D map — the diagonal $T(nk,\omega)$ over the whole $(k,\omega)$ plane
 — which **is** the electron-defect self-energy up to the defect concentration,
 $\Sigma_{\rm e\text{-}def}(nk,\omega)=n_d\,T_{nk,nk}(\omega)$:
 
-![Diagonal T(nk,omega) color map along Gamma-M-K vs energy: real part and minus imaginary part (spectral weight), concentrated at the band edge near K.](../assets/vtilde_tmap.png)
+![Diagonal T(nk,omega) with-rest-space self-energy map on the VBM band 13 along Gamma-M-K vs energy: real part and minus imaginary part, with a flat in-gap defect resonance about 0.35 eV above the VBM.](../assets/vtilde_tmap_b13.png)
 
-*Figure 4. Diagonal $T(nk,\omega)$ (top valence band $n$) along Γ–M–K vs energy
-$\omega\in[-3.5,-0.5]$ eV, full $T$ (with rest-space), Wannier-interpolated. **Left** $\mathrm{Re}\,T$
-(level shift, diverging scale). **Right** $-\mathrm{Im}\,T\ge0$ (spectral weight $\propto$ scattering
-rate, sequential scale). The dashed line is the on-shell band $\varepsilon_{\rm top}(k)$ — reading the
-map along it reproduces Figure 3. The scattering is **concentrated at the band edge near $K$**
-($\omega\approx-1$ eV) — the in-gap S-vacancy resonance, where the holes live; $-\mathrm{Im}\,T$ peaks
-there (up to $0.45$ Ry off-shell). This map $\times\,n_d$ is the self-energy
-$\Sigma(nk,\omega)$ that sets the transport lifetime (P6).*
+*Figure 4. Diagonal $T(nk,\omega)$ on the **VBM (band 13)** along Γ–M–K vs energy
+$\omega\in[-8.4,-4.4]$ eV, full $T$ (with rest-space). **Left** $\mathrm{Re}\,T$ (level shift,
+diverging); **right** $-\mathrm{Im}\,T\ge0$ (spectral weight $\propto$ rate, sequential); dashed $=$
+on-shell $\varepsilon_{\rm VBM}(k)$. The weight concentrates in a **flat, nearly $k$-independent band
+at $\omega\approx-5.6$ eV — the in-gap S-vacancy defect resonance $\sim0.35$ eV above the VBM** (a
+localized level $\Rightarrow$ flat in $k$); the VBM band sits just below it, so the on-shell rate is
+small. Since $\Sigma_{\rm e\text{-}def}(nk,\omega)=n_d\,T(nk,\omega)$, this map $\times\,n_d$ is the
+electron-defect self-energy. (Re $\in[-0.29,0.39]$, $-\mathrm{Im}\le0.64$ Ry.)*
 
-The first corrected figure — the **no-rest-space** self-energy map on the **VBM (band 13)**, exact
-from the existing block since $M$ is $\omega_0$-independent:
+For comparison, the **same map without rest-space** (bare $M$, $T_M$) on the VBM (band 13):
 
-![Diagonal T_M(nk,omega) no-rest-space self-energy map on the VBM band 13 along Gamma-M-K: real part and minus imaginary part, smooth with no band-crossing discontinuities.](../assets/vtilde_tmap_M_band13.png)
+![Diagonal T_M(nk,omega) no-rest-space self-energy map on the VBM band 13 along Gamma-M-K: real part and minus imaginary part, smooth, with weight more spread over the band and interior than the with-rest-space map.](../assets/vtilde_tmap_M_band13.png)
 
-*Figure 5. No-rest-space diagonal $T_M(nk,\omega)$ on the **VBM (band 13)** along Γ–M–K vs energy
-(window auto-centred on the VBM, $[-8.4,-4.4]$ eV). **Left** $\mathrm{Re}\,T_M$ (level shift,
-diverging); **right** $-\mathrm{Im}\,T_M$ (spectral weight $\propto$ rate, sequential); dashed $=$
-on-shell $\varepsilon_{\rm VBM}(k)$. **This is the corrected band:** band 13 is fenced by clean gaps
-($0.28$ eV below, the $1.68$ eV MoS₂ gap above), so it has **no crossings → the map is smooth** —
-unlike the earlier band-17 figures, where the energy-`argmax` band jumped at conduction-band
-crossings. Because $M$ does not depend on $\omega_0$, this needs no recomputation. On-shell at the VBM
-($K$): $T_M=+0.045-0.007i$ Ry — the rate is small *at* the band edge ($\mathrm{DOS}\to0$) and grows
-just below it; off-shell resonances reach $-\mathrm{Im}\sim1$ Ry. The rest-space ($T_{PP}$) version
-follows once the block is recomputed at $\omega_0=\varepsilon_{\rm VBM}$.*
+*Figure 5. Same as Figure 4 but **without rest-space** (bare $M$, $T_M$). The bare $M$ spreads much
+more $-\mathrm{Im}$ weight onto the band itself and the interior; the rest dressing (Figure 4)
+**screens** most of it and concentrates the weight at the in-gap defect resonance — the strong,
+$k$-dependent screening already seen on-shell in Figure 3. On-shell at the VBM ($K$):
+$T_M=+0.045-0.007i$ Ry. (Since $M$ is $\omega_0$-independent this map needed no recomputation; Figure 4
+used the block recomputed at $\omega_0=\varepsilon_{\rm VBM}$.)*
 
 ## 4. Wannier representation and locality (P5-b)
 

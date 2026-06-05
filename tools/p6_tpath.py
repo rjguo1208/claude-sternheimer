@@ -51,7 +51,7 @@ def gA_table(omega):
     return np.einsum("dk,kpq->dpq",phdR,G)/NF**2
 
 def Tdiag(kc2):
-    e,Vk=np.linalg.eigh(Hk1(kc2)); top=int(np.argmax(e)); om=e[top]; vtop=Vk[:,top]
+    e,Vk=np.linalg.eigh(Hk1(kc2)); top=6; om=e[top]; vtop=Vk[:,top]   # slot 6 = VBM = band 13
     Gsub=gA_table(om)[dRmat].transpose(0,2,1,3).reshape(dim,dim); I=np.eye(dim)
     phb=np.exp(-2j*np.pi*(Rsel@kc2)); phk=np.exp(2j*np.pi*(Rsel@kc2))
     def proj(Xsub):

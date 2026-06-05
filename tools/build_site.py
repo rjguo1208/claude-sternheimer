@@ -396,14 +396,14 @@ CATALOG = [
     ("Downfolded potential $\\tilde V=M+\\Sigma$ (diagonal + full block)", "Result", "2026-06-01", "prod", "Complete",
      "Beyond-Born $\\tilde V$ on the MoS&#8322; active manifold from the per-$k'$ Sternheimer solve summed over the full BZ "
      "with $1/N_k$: diagonal (closure-validated) and the full $1584\\times1584$ block via a pool-parallel $k'$-sum "
-     "(Hermitian to $9\\times10^{-12}$). Strong beyond-Born &mdash; e.g. valence/$\\Gamma$: $\\tilde V_{nn}=-0.117$ Ry "
-     "($M=+0.701$, $\\Sigma=-0.819$).",
+     "(Hermitian to $9\\times10^{-12}$). Moderate rest dressing &mdash; VBM (band 13, $K$): $\\tilde V_{nn}=+0.112$ Ry "
+     "($M=+0.246$, $\\Sigma=-0.134$); $\\lVert\\Sigma\\rVert/\\lVert M\\rVert=0.66$.",
      '<a href="pages/results.html">Open numerical results &rarr;</a>'),
     ("Active-space $T$-matrix $T_{PP}$ (P5-a)", "Result", "2026-06-01", "prod", "Complete",
      "Coarse-grid resummation $T_{PP}=[1-\\tilde V G^A]^{-1}\\tilde V$ ($G^A$ carries $1/N_k$). "
-     "Born-limit validated ($T\\!\\to\\!\\tilde V$ to $10^{-4}$). Beyond-Born <em>cuts</em> the resummed "
-     "scattering $\\sim2\\times$ below first Born ($\\lVert T_{PP}\\rVert\\!=\\!297$ vs $\\lVert T_M\\rVert\\!=\\!584$ Ry); "
-     "active multiple-scattering is resonant at the VBM (where carriers live).",
+     "Born-limit validated ($T\\!\\to\\!\\tilde V$ to $10^{-4}$). On the VBM (band 13), rest-space <em>redistributes</em> "
+     "the resummed scattering &mdash; screens the forward channel but enhances the norm "
+     "($\\lVert T_{PP}\\rVert\\!=\\!177$ vs $\\lVert T_M\\rVert\\!=\\!70$ Ry); resonant at the band edge.",
      '<a href="pages/results.html#sec-2">Open results &rarr;</a>'),
     ("QE-Hamiltonian Sternheimer validation", "Test", "2026-05-31", "ok", "Complete",
      "Per-$k$ solve of $Q(\\omega_0-H_0)Q$ via projected PCG (QE <code>h_psi</code> matvec): "
