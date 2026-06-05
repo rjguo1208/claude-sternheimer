@@ -169,11 +169,12 @@ self-energy**, and one Dyson step gives the **spectral function**:
 $$\Sigma_{\rm e\text{-}def}(nk,\omega)=n_d\,T_{nk,nk}(\omega),\qquad
 A(nk,\omega)=-\frac1\pi\,\mathrm{Im}\,\frac{1}{\,\omega-\varepsilon_{nk}-\Sigma(nk,\omega)\,}.$$
 
-![Electron-defect self-energy and Dyson spectral function A on the VBM band 13, n_d = 1 percent: sharp quasiparticle band.](../assets/vtilde_spectral_1pct.png)
+![Electron-defect self-energy and Dyson spectral function A on the VBM band 13, n_d = 1 percent, log colour scale: sharp quasiparticle band with visible tails and faint in-gap weight.](../assets/vtilde_spectral_1pct_log.png)
 
 *Figure 6. Self-energy $\Sigma=n_d\,T$ and Dyson spectral function $A(nk,\omega)$ on the VBM (band 13)
 along Γ–M–K, **dilute limit $n_d=1\%$** ($\approx1.2\times10^{13}$ cm$^{-2}$); dashed $=$ bare
-$\varepsilon_{nk}$. **Left** $\mathrm{Re}\,\Sigma$ (level shift). **Middle** $-\mathrm{Im}\,\Sigma$
+$\varepsilon_{nk}$; **log colour scale** (symlog for the signed $\mathrm{Re}\,\Sigma$), which exposes
+the band tails and faint in-gap weight. **Left** $\mathrm{Re}\,\Sigma$ (level shift). **Middle** $-\mathrm{Im}\,\Sigma$
 (rate $=\Gamma/2$): peaks at **$92$ meV** at the in-gap defect resonance ($\omega\approx-5.6$ eV) but
 is small *on* the band. **Right** $A(nk,\omega)$: a **sharp quasiparticle band** (peak $\sim620$/eV)
 barely shifted from $\varepsilon_{nk}$ — the VBM hole stays well-defined, since the defect resonance
@@ -183,7 +184,7 @@ $-\mathrm{Im}\,\Sigma\sim$ a few meV).*
 Raising the concentration $5\times$ to a heavily-defected $n_d=5\%$ broadens the band — $A$ and
 $\Gamma$ scale $\propto n_d$:
 
-![Electron-defect self-energy and Dyson spectral function A on the VBM band 13, n_d = 5 percent: the quasiparticle band is visibly broadened.](../assets/vtilde_spectral_5pct.png)
+![Electron-defect self-energy and Dyson spectral function A on the VBM band 13, n_d = 5 percent, log colour scale: the quasiparticle band is visibly broadened.](../assets/vtilde_spectral_5pct_log.png)
 
 *Figure 7. Same as Figure 6 but at **$n_d=5\%$** ($\approx5.8\times10^{13}$ cm$^{-2}$). The self-energy
 is $5\times$ larger — $-\mathrm{Im}\,\Sigma$ peaks $459$ meV at the resonance and $\mathrm{Re}\,\Sigma$

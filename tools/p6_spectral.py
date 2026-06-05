@@ -6,6 +6,7 @@
 n_d = defects per primitive cell (argv[1], default 0.01 ~ 1.2e13 cm^-2 for MoS2).
 Koster-Slater T_sub(omega) is k-independent -> one solve per omega; band 13 = eigh sorted slot 6."""
 import sys, numpy as np, matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm, SymLogNorm
 from scipy.io import FortranFile
 RY=13.605693122994; ETA=0.05/RY; RCUT=4; NF=48; NSEG=70; NW=260; VBM=6
 ND=float(sys.argv[1]) if len(sys.argv)>1 else 0.01          # defects per primitive cell
@@ -77,20 +78,23 @@ A=(1/np.pi)*(-Sig.imag)/denom                # spectral function (1/eV), >=0
 print(f"n_d={ND} ({ND/ACELL:.1e} cm^-2);  max -Im Sigma={-Sig.imag.min()*1e3:.1f} meV;  max A={A.max():.1f} /eV")
 
 fig,ax=plt.subplots(1,3,figsize=(16.5,5.2))
-# Re Sigma (meV)
-vR=np.percentile(np.abs(Sig.real),99)*1e3
-p0=ax[0].pcolormesh(dist,om_eV,(Sig.real.T*1e3),shading="gouraud",cmap="RdBu_r",vmin=-vR,vmax=vR)
-plt.colorbar(p0,ax=ax[0],label="meV"); ax[0].set_title(r"Re $\Sigma(nk,\omega)$  (level shift)")
-# -Im Sigma (meV)  = half-linewidth
-mIm=-Sig.imag.T*1e3; p1=ax[1].pcolormesh(dist,om_eV,mIm,shading="gouraud",cmap="magma",vmin=0,vmax=np.percentile(mIm,99.5))
-plt.colorbar(p1,ax=ax[1],label="meV"); ax[1].set_title(r"$-$Im $\Sigma(nk,\omega)$  (rate, $\Gamma/2$)")
-# A(nk,omega)
-p2=ax[2].pcolormesh(dist,om_eV,A.T,shading="gouraud",cmap="magma",vmin=0,vmax=np.percentile(A,99.7))
-plt.colorbar(p2,ax=ax[2],label="1/eV"); ax[2].set_title(r"$A(nk,\omega)$  spectral function")
+# Re Sigma (meV) -- signed -> symlog
+ReS=Sig.real.T*1e3; vR=np.percentile(np.abs(ReS),99.5)
+p0=ax[0].pcolormesh(dist,om_eV,ReS,shading="gouraud",cmap="RdBu_r",
+                    norm=SymLogNorm(linthresh=max(vR/40,1e-2),vmin=-vR,vmax=vR,base=10))
+plt.colorbar(p0,ax=ax[0],label="meV"); ax[0].set_title(r"Re $\Sigma(nk,\omega)$  (level shift, symlog)")
+# -Im Sigma (meV) >=0 -> log
+mIm=-Sig.imag.T*1e3; vI=np.percentile(mIm,99.7); mIm=np.clip(mIm,vI/1e2,None)
+p1=ax[1].pcolormesh(dist,om_eV,mIm,shading="gouraud",cmap="magma",norm=LogNorm(vmin=vI/1e2,vmax=vI))
+plt.colorbar(p1,ax=ax[1],label="meV"); ax[1].set_title(r"$-$Im $\Sigma(nk,\omega)$  (rate $\Gamma/2$, log)")
+# A(nk,omega) >=0 -> log (spans the QP peak down to the faint in-gap/tail weight)
+AA=A.T; vA=np.percentile(AA,99.8); AA=np.clip(AA,vA/1e3,None)
+p2=ax[2].pcolormesh(dist,om_eV,AA,shading="gouraud",cmap="magma",norm=LogNorm(vmin=vA/1e3,vmax=vA))
+plt.colorbar(p2,ax=ax[2],label="1/eV"); ax[2].set_title(r"$A(nk,\omega)$  spectral function (log)")
 for p in (0,1,2):
     ax[p].plot(dist,eps_eV,c=("k" if p==0 else "w"),lw=1.0,ls="--")   # bare band eps_nk
     ax[p].axvline(xM,c=("0.5" if p==0 else "w"),lw=0.6,alpha=0.6)
     ax[p].set_xticks([0,xM,xK]); ax[p].set_xticklabels(["Γ","M","K"]); ax[p].set_xlim(0,xK)
     ax[p].set_ylim(WLO,WHI); ax[p].set_xlabel("k-path"); ax[p].set_ylabel(r"$\omega$  (eV)")
-plt.suptitle(f"e-defect self-energy $\\Sigma=n_d\\,T$ and Dyson spectral function $A$ on the VBM (band 13), $n_d={ND}$ ({ND/ACELL:.0e} cm$^{{-2}}$); dashed = bare $\\varepsilon_{{nk}}$",y=1.02)
+plt.suptitle(f"e-defect $\\Sigma=n_d T$ and Dyson spectral function $A$ on the VBM (band 13), $n_d={ND}$ ({ND/ACELL:.0e} cm$^{{-2}}$);  LOG colour scale;  dashed = bare $\\varepsilon_{{nk}}$",y=1.02)
 plt.tight_layout(); plt.savefig("p6_spectral.png",dpi=130,bbox_inches="tight"); print("wrote p6_spectral.png")
