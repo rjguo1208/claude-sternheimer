@@ -169,17 +169,18 @@ self-energy**, and one Dyson step gives the **spectral function**:
 $$\Sigma_{\rm e\text{-}def}(nk,\omega)=n_d\,T_{nk,nk}(\omega),\qquad
 A(nk,\omega)=-\frac1\pi\,\mathrm{Im}\,\frac{1}{\,\omega-\varepsilon_{nk}-\Sigma(nk,\omega)\,}.$$
 
-![Electron-defect self-energy Re Sigma and -Im Sigma, and Dyson spectral function A on the VBM band 13 along Gamma-M-K, n_d = 1 percent.](../assets/vtilde_spectral.png)
+![Electron-defect self-energy Re Sigma and -Im Sigma, and Dyson spectral function A on the VBM band 13 along Gamma-M-K, n_d = 5 percent: the quasiparticle band is visibly broadened.](../assets/vtilde_spectral_5pct.png)
 
 *Figure 6. Self-energy $\Sigma=n_d\,T$ and Dyson spectral function $A(nk,\omega)$ on the VBM (band 13)
-along Γ–M–K, for $n_d=1\%$ ($\approx1.2\times10^{13}$ cm$^{-2}$); dashed $=$ bare $\varepsilon_{nk}$.
-**Left** $\mathrm{Re}\,\Sigma$ (level shift). **Middle** $-\mathrm{Im}\,\Sigma$ (scattering rate
-$=\Gamma/2$): peaks at **$92$ meV** at the in-gap defect resonance ($\omega\approx-5.6$ eV) but is
-small *on* the band. **Right** $A(nk,\omega)$: a **sharp quasiparticle band** (peak $\sim620$/eV)
-barely shifted from $\varepsilon_{nk}$. So at this dilute concentration the **VBM hole stays a
-well-defined quasiparticle** — the defect resonance sits $\sim0.35$ eV *above* the VBM (in the gap),
-scattering the band-edge holes only weakly (on-shell $-\mathrm{Im}\,\Sigma\sim$ a few meV); the $92$
-meV rate lives at the resonance energy, off the valence band. $A$ and $\Gamma$ scale $\propto n_d$.*
+along Γ–M–K, for **$n_d=5\%$** ($\approx5.8\times10^{13}$ cm$^{-2}$); dashed $=$ bare
+$\varepsilon_{nk}$. **Left** $\mathrm{Re}\,\Sigma$ (level shift, now up to $\pm200$ meV). **Middle**
+$-\mathrm{Im}\,\Sigma$ (rate $=\Gamma/2$): peaks at **$459$ meV** at the in-gap defect resonance
+($\omega\approx-5.6$ eV). **Right** $A(nk,\omega)$: the quasiparticle band is now **visibly broadened**
+(peak $\sim103$/eV, vs $620$ at $1\%$) — the band-edge hole acquires a finite linewidth (on-shell
+$-\mathrm{Im}\,\Sigma\sim10$–$30$ meV) but remains a recognizable, renormalized quasiparticle; the
+$459$ meV rate still lives at the resonance energy, off the band. Both the linewidth and $\Gamma$ scale
+$\propto n_d$, so the dilute $1\%$ limit ($\approx1.2\times10^{13}$ cm$^{-2}$) is $\sim5\times$
+sharper.*
 
 ## 4. Wannier representation and locality (P5-b)
 
