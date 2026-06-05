@@ -211,6 +211,25 @@ rest-space). **Comparing Figs 8–9 (no rest-space) with Figs 6–7 (with):** th
 sharpens the quasiparticle — so the high-energy states reshape the *energy structure* of $\Sigma(nk,
 \omega)$, not just its overall size.*
 
+**The complete (multiband) spectral function.** Figs 6–9 show only band 13; the *complete*
+$A(k,\omega)$ in this window sums every active band through the full band-space Dyson
+$$A(k,\omega)=-\tfrac1\pi\,\mathrm{Im}\,\mathrm{Tr}\,\big[\,\omega-H_0(k)-\Sigma(k,\omega)\,\big]^{-1},
+\qquad \Sigma_{nn'}(k,\omega)=n_d\,T_{(nk),(n'k)}(\omega),$$
+with $H_0=\mathrm{diag}(\varepsilon_{nk})$ and the **matrix** self-energy (band-mixing off-diagonals included):
+
+![Complete multiband spectral function A(k,omega) along Gamma-M-K: 2x2 grid, rows n_d 1% and 5%, columns with and without rest-space, all active bands, log scale, bare bands overlaid.](../assets/vtilde_spectral_multiband.png)
+
+*Figure 10. Complete multiband spectral function $A(k,\omega)$ along Γ–M–K, same window as Figs 6–9.
+Rows $n_d=1\%$ (top), $5\%$ (bottom); columns with rest-space ($\tilde V$, left) and without ($M$,
+right); cyan dashed $=$ bare $\varepsilon_{nk}$; log scale. The trace now includes **every band through
+the window** — band 13 plus the edges of bands 12 and 14 that the single-band figures omitted. The
+band-13 quasiparticle still dominates this narrow window, so the diagonal (single-band) approximation
+of Figs 6–9 was already close — the off-diagonal band-mixing self-energy is a small correction here.
+The rest-space contrast carries over to the full Green's function: with rest-space (left) the bands are
+sharper and the in-gap defect weight sits in the gap just above the VBM band; without it (right) the
+bands are broader and that in-gap weight is gone — so the defect resonance is, even in the complete
+multiband $A$, a creation of the rest dressing.*
+
 ## 4. Wannier representation and locality (P5-b)
 
 The textbook way to avoid the large $(N_b N_k)$ inversion on fine grids is the Koster–Slater /
@@ -235,7 +254,7 @@ reproduces the NSCF bands to $2\times10^{-5}$ eV).
 
 ![Electron-index decay of M before (left, q!=0 flat) and after (right, all q decay) the gauge fix.](../assets/vtilde_gauge_fix.png)
 
-*Figure 10. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
+*Figure 11. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
 $q\!\neq\!0$ is flat — the gauge mismatch. **Right (new `filukk`, re-Wannierized on the 150-band
 NSCF):** every $q$ now decays together by $\sim10^{3}\times$ over $\sim5$ cells.*
 
@@ -246,7 +265,7 @@ momentum transfer $q$.
 
 ![Wannierized downfolded potential V~^W: both-index locality (left, old flat vs new peaked+decaying) and electron-index decay (right, all q decay).](../assets/vtilde_W_locality.png)
 
-*Figure 11. Wannierization of $\tilde V$ and its locality. **Left:** both-index
+*Figure 12. Wannierization of $\tilde V$ and its locality. **Left:** both-index
 $\lVert\tilde V^W(R',R)\rVert_F$ by shell $\max(|R'|,|R|)$ — flat with the mismatched gauge (red),
 but with `filukk_150` (blue) it peaks on the defect cell ($\sim3$ cells from the Wannier origin)
 and decays $\sim250\times$. **Right:** electron-index $\lVert\tilde V^W(R_e;q)\rVert$ decays
@@ -259,7 +278,7 @@ with the minimum-image distance of $R$ from the defect:
 
 ![On-site |V~^W_ij(R,R)| for a fixed Wannier pair vs distance from the defect; drops 0.52 Ry to ~1e-3 in one cell, envelope decay length ~2 Angstrom.](../assets/vtilde_onsite_decay.png)
 
-*Figure 12. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
+*Figure 13. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
 $i\!=\!j\!=\!6$; $(1,1)$ and $(1,2)$ shown for context) vs the minimum-image distance of cell $R$
 from the defect. It drops from $0.52$ Ry on the defect cell to $\sim\!10^{-3}$ Ry one cell
 ($\sim3.2$ Å) away, with envelope decay length $\lambda\approx2$ Å ($<1$ cell) — the downfolded
@@ -277,7 +296,7 @@ $T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converge quickly:
 
 ![Koster-Slater truncation: ||T(Rcut)|| vs cutoff, converges by Rcut=4 with the consistent gauge.](../assets/vtilde_ks_converge.png)
 
-*Figure 13. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
+*Figure 14. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
 dimension under each tick). With the gauge-consistent `filukk_150` (blue) the inversion converges
 by $R_{\rm cut}=4$ (dim 891, $\sim56\%$ of the full 1584); with the mismatched gauge (red) it only
 reaches the full value at the full subspace. The localized $\tilde V^W$ is what makes the truncation
@@ -300,7 +319,7 @@ inversion at $N_f=12$ and converges by $N_f\approx24$:
 
 ![Wannier-basis active T-matrix converges with the host G^A k-grid: 2.06 at Nf=12 to 1.97 by Nf=24, flat to Nf=96.](../assets/vtilde_wannier_converge.png)
 
-*Figure 14. Convergence of the Wannier-basis active T-matrix $\lVert T_{PP}(\omega_0)\rVert$ with the
+*Figure 15. Convergence of the Wannier-basis active T-matrix $\lVert T_{PP}(\omega_0)\rVert$ with the
 host $G^A$ $k$-grid $N_f$. $N_f=12$ matches the coarse direct inversion (P5-a, $2.064$ Ry); the host
 converges by $N_f\approx24$ to $1.974$ Ry — the coarse $12\times12$ over-estimated by $\sim4.6\%$
 (under-resolved band-edge DOS). The inversion stays $891$-dimensional at every $N_f$ — the payoff of
