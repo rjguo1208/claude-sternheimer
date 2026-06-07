@@ -9,7 +9,7 @@ per omega per input); we keep the full Wannier T^W(k,k) and rotate to all bands 
 import numpy as np, matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from scipy.io import FortranFile
-RY=13.605693122994; ETA=0.05/RY; RCUT=4; NF=48; NSEG=50; NW=180; VBM=6; ACELL=8.64e-16
+RY=13.605693122994; ETA=0.05/RY; RCUT=4; NF=48; NSEG=50; NW=240; VBM=6; CBM=7; ACELL=8.64e-16
 NDS=[0.01,0.05]
 
 fb=FortranFile("vtilde_block.dat","r")
@@ -65,7 +65,7 @@ a1=np.array([240*0.150478,0.0])/6; a2=np.array([240*-0.075239,240*0.130318])/6
 area=a1[0]*a2[1]-a1[1]*a2[0]; b1=2*np.pi/area*np.array([a2[1],-a2[0]]); b2=2*np.pi/area*np.array([-a1[1],a1[0]])
 kc=np.array([k[0]*b1+k[1]*b2 for k in path]); dist=np.concatenate([[0],np.cumsum(np.linalg.norm(np.diff(kc,axis=0),axis=1))])
 xM,xK=dist[NSEG],dist[-1]
-WLO=EPS[:,VBM].min()*RY-0.8; WHI=EPS[:,VBM].max()*RY+0.9       # SAME window as the single-band figures
+WLO=EPS[:,VBM].min()*RY-0.8; WHI=EPS[:,CBM].min()*RY+0.5       # lower edge unchanged; upper = 0.5 eV above CBM (band 14)
 omega=np.linspace(WLO,WHI,NW)/RY; om_eV=omega*RY
 
 def Tband(Xsub,tag):                                          # [Nk,NW,nb,nb]  band-space T_{nn'}(k;omega)
@@ -87,8 +87,9 @@ maps={(nd,inp):Aspec(Tb,nd) for nd in NDS for inp,Tb in (("V",TbV),("M",TbM))}
 np.savez("p6_multiband_maps.npz",dist=dist,om_eV=om_eV,EPS=EPS,xM=xM,xK=xK,WLO=WLO,WHI=WHI,
          **{f"{int(nd*100)}_{inp}":maps[(nd,inp)] for nd in NDS for inp in ("V","M")})
 allA=np.concatenate([m.ravel() for m in maps.values()]); vmax=np.percentile(allA,99.8); vmin=vmax/1e3
-print(f"window [{WLO:.2f},{WHI:.2f}] eV; bands in window at K: "
-      f"{[7+s for s in range(nb) if WLO<=EPS[-1,s]*RY<=WHI]};  A range [{allA.min():.2g},{allA.max():.1f}] /eV")
+gap=(EPS[:,CBM].min()-EPS[:,VBM].max())*RY
+print(f"window [{WLO:.2f},{WHI:.2f}] eV; VBM={EPS[:,VBM].max()*RY:.3f}, CBM={EPS[:,CBM].min()*RY:.3f}, gap={gap:.3f} eV")
+print(f"bands in window at K: {[7+s for s in range(nb) if WLO<=EPS[-1,s]*RY<=WHI]};  A range [{allA.min():.2g},{allA.max():.1f}] /eV")
 
 fig,ax=plt.subplots(2,2,figsize=(13,9))
 for r,nd in enumerate(NDS):

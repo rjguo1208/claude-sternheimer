@@ -212,23 +212,26 @@ sharpens the quasiparticle — so the high-energy states reshape the *energy str
 \omega)$, not just its overall size.*
 
 **The complete (multiband) spectral function.** Figs 6–9 show only band 13; the *complete*
-$A(k,\omega)$ in this window sums every active band through the full band-space Dyson
+$A(k,\omega)$ sums every active band through the full band-space Dyson
 $$A(k,\omega)=-\tfrac1\pi\,\mathrm{Im}\,\mathrm{Tr}\,\big[\,\omega-H_0(k)-\Sigma(k,\omega)\,\big]^{-1},
 \qquad \Sigma_{nn'}(k,\omega)=n_d\,T_{(nk),(n'k)}(\omega),$$
 with $H_0=\mathrm{diag}(\varepsilon_{nk})$ and the **matrix** self-energy (band-mixing off-diagonals included):
 
-![Complete multiband spectral function A(k,omega) along Gamma-M-K: 2x2 grid, rows n_d 1% and 5%, columns with and without rest-space, all active bands, log scale, bare bands overlaid.](../assets/vtilde_spectral_multiband.png)
+![Complete multiband spectral function A(k,omega) along Gamma-M-K: 2x2 grid, rows n_d 1% and 5%, columns with and without rest-space, all active bands, log scale, bare bands overlaid.](../assets/vtilde_spectral_multiband_gap.png)
 
-*Figure 10. Complete multiband spectral function $A(k,\omega)$ along Γ–M–K, same window as Figs 6–9.
-Rows $n_d=1\%$ (top), $5\%$ (bottom); columns with rest-space ($\tilde V$, left) and without ($M$,
-right); cyan dashed $=$ bare $\varepsilon_{nk}$; log scale. The trace now includes **every band through
-the window** — band 13 plus the edges of bands 12 and 14 that the single-band figures omitted. The
-band-13 quasiparticle still dominates this narrow window, so the diagonal (single-band) approximation
-of Figs 6–9 was already close — the off-diagonal band-mixing self-energy is a small correction here.
-The rest-space contrast carries over to the full Green's function: with rest-space (left) the bands are
-sharper and the in-gap defect weight sits in the gap just above the VBM band; without it (right) the
-bands are broader and that in-gap weight is gone — so the defect resonance is, even in the complete
-multiband $A$, a creation of the rest dressing.*
+*Figure 10. Complete multiband spectral function $A(k,\omega)$ along Γ–M–K, **window extended upward to
+$0.5$ eV above the CBM** so the full fundamental gap is in view — valence band 13 below
+($\varepsilon_{\rm VBM}=-5.94$ eV), conduction band 14 above ($\varepsilon_{\rm CBM}=-4.28$ eV),
+separated by the $1.66$ eV gap. Rows $n_d=1\%$ (top), $5\%$ (bottom); columns with rest-space
+($\tilde V$, left) and without ($M$, right); cyan dashed $=$ bare $\varepsilon_{nk}$; log scale. **The
+S-vacancy defect level is now resolved in the gap.** With rest-space (left) a distinct, nearly
+dispersionless resonance sits at $\approx-5.6$ eV — $0.34$ eV above the VBM, well clear of both band
+edges (k-averaged $A\approx0.4$/eV at $n_d=5\%$, weaker but present at $1\%$). Without rest-space (right)
+the gap is **empty** between the band-edge tails — no mid-gap state at all. The defect level is therefore
+created **entirely by the rest dressing** ($\tilde V=M+\Sigma$; the high-energy, out-of-window scattering
+folded into the input): the bare active potential $M$ produces no in-gap state. This is the same
+resonance seen in the single-band Figs 6–9, now isolated in the widened window; away from the gap the
+quasiparticles track the bare bands in both columns.*
 
 ## 4. Wannier representation and locality (P5-b)
 
