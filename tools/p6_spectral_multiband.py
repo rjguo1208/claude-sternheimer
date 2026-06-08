@@ -105,5 +105,5 @@ for r,nd in enumerate(NDS):
         a.set_title(f"$n_d={int(nd*100)}\\%$, {lbl}",fontsize=10)
         if r==1: a.set_xlabel("k-path")
         plt.colorbar(pc,ax=a,label="A  (1/eV)")
-plt.suptitle(r"Complete multiband spectral function  $A(k,\omega)=-\frac{1}{\pi}\,\mathrm{Im}\,\mathrm{Tr}\,[\omega-H_0-n_d\,T]^{-1}$  (all active bands; cyan = bare $\varepsilon_{nk}$; log scale)",y=1.0)
+plt.suptitle(r"Complete multiband spectral function  $A(k,\omega)=-\frac{1}{\pi}\,\mathrm{Im}\,\mathrm{Tr}\,[\omega-H_0-n_d\,T]^{-1}$  "+rf"(rest reference $\omega_0$={omega0*RY:.3f} eV; all active bands; cyan = bare $\varepsilon_{nk}$; log scale)",y=1.0)
 plt.tight_layout(); plt.savefig(f"p6_spectral_multiband_{TAG}.png",dpi=130,bbox_inches="tight"); print(f"wrote p6_spectral_multiband_{TAG}.png  (window [{WLO:.2f},{WHI:.2f}] eV, ref omega0={omega0*RY:.3f} eV)")

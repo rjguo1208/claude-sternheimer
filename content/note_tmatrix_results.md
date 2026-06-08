@@ -217,7 +217,7 @@ $$A(k,\omega)=-\tfrac1\pi\,\mathrm{Im}\,\mathrm{Tr}\,\big[\,\omega-H_0(k)-\Sigma
 \qquad \Sigma_{nn'}(k,\omega)=n_d\,T_{(nk),(n'k)}(\omega),$$
 with $H_0=\mathrm{diag}(\varepsilon_{nk})$ and the **matrix** self-energy (band-mixing off-diagonals included):
 
-![Complete multiband spectral function A(k,omega) along Gamma-M-K: 2x2 grid, rows n_d 1% and 5%, columns with and without rest-space, all active bands, log scale, bare bands overlaid.](../assets/vtilde_spectral_multiband_wide.png)
+![Complete multiband spectral function A(k,omega) along Gamma-M-K: 2x2 grid, rows n_d 1% and 5%, columns with and without rest-space, all active bands, log scale, bare bands overlaid.](../assets/vtilde_spectral_multiband_vbm.png)
 
 *Figure 10. Complete multiband spectral function $A(k,\omega)$ along Γ–M–K, **window extended upward to
 $-3.0$ eV**, well into the conduction manifold — valence band 13 below ($\varepsilon_{\rm VBM}=-5.94$ eV),
@@ -232,6 +232,21 @@ folded into the input): the bare active potential $M$ produces no in-gap state. 
 resonance seen in the single-band Figs 6–9, now isolated in the widened window; away from the gap the
 quasiparticles track the bare bands in both columns.*
 
+**Does a second rest-space reference change anything?** Recomputing the block at $\omega_0'=-4.8$ eV
+(near where the $e$ level should sit) instead of the VBM gives a second spectral function to compare
+against Figure 10:
+
+![Multiband spectral function from the omega0=-4.8 egap block, same 2x2 grid as Figure 10, showing the spectrum is essentially unchanged with no new in-gap e state.](../assets/vtilde_spectral_multiband_egap.png)
+
+*Figure 11. The same complete multiband spectral function as Figure 10, but built from the
+**second-reference egap block** ($\omega_0'=-4.8$ eV — near where the $e$ defect level should sit) rather
+than the VBM block ($\omega_0=-5.955$ eV); identical window and Dyson construction. It is **essentially
+unchanged** from Figure 10: the in-gap $a_1$-like resonance near $-5.6$ eV merely weakens and shifts a
+little, and **no new in-gap state appears**. Quantitatively the upper-gap ($-5.0$ to $-4.4$ eV) integrated
+weight equals Figure 10's (16 vs 16; with rest-space, $n_d=5\%$). So moving the rest-space reference to
+the $e$ energy does **not** recover the $e$ doublet — confirming (benchmark below) that the level's
+absence is structural, not a matter of which reference energy is chosen.*
+
 ### Benchmark against the supercell: where do the defect levels sit?
 
 How faithful is that resonance? The direct check is the S-vacancy **supercell** itself — a $6\times6$
@@ -240,7 +255,7 @@ Aligning the two pictures on a common VBM/CBM:
 
 ![Gamma-point defect-level diagram: supercell DFT shows an a1 singlet just above the VBM and an e doublet mid-gap, while the active-space T-matrix shows one resonance near the a1 and no e level.](../assets/vtilde_defect_levels.png)
 
-*Figure 11. Γ-point defect levels of the S-vacancy — **supercell DFT** (left) vs the **active-space
+*Figure 12. Γ-point defect levels of the S-vacancy — **supercell DFT** (left) vs the **active-space
 $T$-matrix** (right), VBM/CBM aligned. DFT gives the textbook $C_{3v}$ pattern of the three Mo dangling
 bonds: an **$a_1$ singlet** (HOMO, occupied) at $-5.83$ eV, only $+0.13$ eV above the VBM, and an
 **$e$ doublet** (LUMO, empty) at $-4.77$ eV, $+1.19$ eV above the VBM (deep in the gap); the Fermi level
@@ -249,9 +264,12 @@ band edges (gap $1.66$ eV) and a single resonance at $-5.55$ eV — essentially 
 $\sim0.28$ eV too high — but **misses the $e$ doublet entirely**. The reason is concrete: the rest
 dressing uses a single static reference $\omega_0=\varepsilon_{\rm VBM}$, so it binds the level living
 *at* the reference (the $a_1$, $+0.13$ eV) but not the one far from it (the $e$, $+1.19$ eV), where
-$\Sigma(\omega_0)$ is the wrong dressing and the bare $M$ binds nothing. Recovering the $e$ level needs
-a second reference $\omega_0'\approx-4.8$ eV, or a frequency-dependent $\Sigma_{\rm rest}(\omega)$ — the
-dynamic downfolding.*
+$\Sigma(\omega_0)$ is the wrong dressing and the bare $M$ binds nothing. **We tested this** with a second
+static reference $\omega_0'=-4.8$ eV (Figure 11): it does **not** bind the $e$ either — the upper-gap
+spectral weight is unchanged. So a shifted static reference is insufficient; the $e$'s absence is
+**structural** (the downfolded $\tilde V$ / active space cannot pull a conduction-derived state into the
+gap), and recovering it likely needs the full frequency-dependent $\Sigma_{\rm rest}(\omega)$ or a larger
+active space, not merely a different reference energy.*
 
 ## 4. Wannier representation and locality (P5-b)
 
@@ -277,7 +295,7 @@ reproduces the NSCF bands to $2\times10^{-5}$ eV).
 
 ![Electron-index decay of M before (left, q!=0 flat) and after (right, all q decay) the gauge fix.](../assets/vtilde_gauge_fix.png)
 
-*Figure 12. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
+*Figure 13. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
 $q\!\neq\!0$ is flat — the gauge mismatch. **Right (new `filukk`, re-Wannierized on the 150-band
 NSCF):** every $q$ now decays together by $\sim10^{3}\times$ over $\sim5$ cells.*
 
@@ -288,7 +306,7 @@ momentum transfer $q$.
 
 ![Wannierized downfolded potential V~^W: both-index locality (left, old flat vs new peaked+decaying) and electron-index decay (right, all q decay).](../assets/vtilde_W_locality.png)
 
-*Figure 13. Wannierization of $\tilde V$ and its locality. **Left:** both-index
+*Figure 14. Wannierization of $\tilde V$ and its locality. **Left:** both-index
 $\lVert\tilde V^W(R',R)\rVert_F$ by shell $\max(|R'|,|R|)$ — flat with the mismatched gauge (red),
 but with `filukk_150` (blue) it peaks on the defect cell ($\sim3$ cells from the Wannier origin)
 and decays $\sim250\times$. **Right:** electron-index $\lVert\tilde V^W(R_e;q)\rVert$ decays
@@ -301,7 +319,7 @@ with the minimum-image distance of $R$ from the defect:
 
 ![On-site |V~^W_ij(R,R)| for a fixed Wannier pair vs distance from the defect; drops 0.52 Ry to ~1e-3 in one cell, envelope decay length ~2 Angstrom.](../assets/vtilde_onsite_decay.png)
 
-*Figure 14. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
+*Figure 15. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
 $i\!=\!j\!=\!6$; $(1,1)$ and $(1,2)$ shown for context) vs the minimum-image distance of cell $R$
 from the defect. It drops from $0.52$ Ry on the defect cell to $\sim\!10^{-3}$ Ry one cell
 ($\sim3.2$ Å) away, with envelope decay length $\lambda\approx2$ Å ($<1$ cell) — the downfolded
@@ -319,7 +337,7 @@ $T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converge quickly:
 
 ![Koster-Slater truncation: ||T(Rcut)|| vs cutoff, converges by Rcut=4 with the consistent gauge.](../assets/vtilde_ks_converge.png)
 
-*Figure 15. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
+*Figure 16. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
 dimension under each tick). With the gauge-consistent `filukk_150` (blue) the inversion converges
 by $R_{\rm cut}=4$ (dim 891, $\sim56\%$ of the full 1584); with the mismatched gauge (red) it only
 reaches the full value at the full subspace. The localized $\tilde V^W$ is what makes the truncation
@@ -342,7 +360,7 @@ inversion at $N_f=12$ and converges by $N_f\approx24$:
 
 ![Wannier-basis active T-matrix converges with the host G^A k-grid: 2.06 at Nf=12 to 1.97 by Nf=24, flat to Nf=96.](../assets/vtilde_wannier_converge.png)
 
-*Figure 16. Convergence of the Wannier-basis active T-matrix $\lVert T_{PP}(\omega_0)\rVert$ with the
+*Figure 17. Convergence of the Wannier-basis active T-matrix $\lVert T_{PP}(\omega_0)\rVert$ with the
 host $G^A$ $k$-grid $N_f$. $N_f=12$ matches the coarse direct inversion (P5-a, $2.064$ Ry); the host
 converges by $N_f\approx24$ to $1.974$ Ry — the coarse $12\times12$ over-estimated by $\sim4.6\%$
 (under-resolved band-edge DOS). The inversion stays $891$-dimensional at every $N_f$ — the payoff of
@@ -370,7 +388,7 @@ P0–P3 and P5-a/b are complete and validated (the P5-b gauge consistency is now
 - [ ] **fine-grid Koster–Slater** transport using the gauge-consistent `filukk` (P5-b machinery),
   where the localized $\tilde V^W$ delivers the inversion-size speed-up.
 - [ ] **T9 / T5:** rest-BZ-grid convergence of $\tilde V$ and Wannier-gauge invariance.
-- [ ] **dynamic rest dressing** $\Sigma_{\rm rest}(\omega)$ (or a second reference $\omega_0'\approx-4.8$ eV
-  near mid-gap): the static single-reference $\omega_0=\varepsilon_{\rm VBM}$ captures the $a_1$ defect
-  level but misses the $e$ doublet (the supercell benchmark, Fig. 11) — the dynamic downfolding should
-  bind both.
+- [ ] **recover the $e$ defect level.** The static single-reference $\omega_0=\varepsilon_{\rm VBM}$
+  captures the $a_1$ but misses the $e$ doublet (supercell benchmark, Fig. 12); a **second static
+  reference $\omega_0'=-4.8$ eV was tested (Fig. 11) and also fails**, so the fix is not a shifted
+  reference but the full frequency-dependent $\Sigma_{\rm rest}(\omega)$ and/or a larger active space.
