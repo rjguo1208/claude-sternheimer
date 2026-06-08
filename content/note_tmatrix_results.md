@@ -247,6 +247,20 @@ weight equals Figure 10's (16 vs 16; with rest-space, $n_d=5\%$). So moving the 
 the $e$ energy does **not** recover the $e$ doublet — confirming (benchmark below) that the level's
 absence is structural, not a matter of which reference energy is chosen.*
 
+**Does the potential alignment change anything?** The blocks above align $\Delta V=V_d-V_p$ to the
+vacuum level. Recomputing with **no alignment** (`pot_align='none'`, the raw $V_d-V_p$) gives:
+
+![Multiband spectral function from the pot_align='none' block, 2x2 grid same as Figure 10, essentially identical.](../assets/vtilde_spectral_multiband_noalign.png)
+
+*Figure 12. Multiband spectral function from the **un-aligned** block (`pot_align='none'`, same
+$\omega_0=-5.955$ eV and window as Figure 10). It is essentially identical to Figure 10. Dropping the
+alignment shifts the bare $M$ diagonal by a **uniform** $-0.42$ eV (the G$=0$ component of $\Delta V$,
+$\mathrm{std}=0$), but in the dilute-defect Dyson $H_{\rm eff}=E+\tilde V/N_k$ that constant is divided
+by $N_k=144\to\sim3$ meV, and the genuinely non-constant (off-diagonal) part differs by only $0.5\%$ of
+$\lVert M\rVert$. The result: the a$_1$-like resonance stays at $-5.57$ eV ($\pm0.02$) and the $e$
+doublet stays absent. So the alignment is **not** the cause of the missing $e$ — the G$=0$ offset
+washes out in the dilute limit, consistent with the structural diagnosis.*
+
 ### Benchmark against the supercell: where do the defect levels sit?
 
 How faithful is that resonance? The direct check is the S-vacancy **supercell** itself — a $6\times6$
@@ -255,7 +269,7 @@ Aligning the two pictures on a common VBM/CBM:
 
 ![Gamma-point defect-level diagram: supercell DFT shows an a1 singlet just above the VBM and an e doublet mid-gap, while the active-space T-matrix shows one resonance near the a1 and no e level.](../assets/vtilde_defect_levels.png)
 
-*Figure 12. Γ-point defect levels of the S-vacancy — **supercell DFT** (left) vs the **active-space
+*Figure 13. Γ-point defect levels of the S-vacancy — **supercell DFT** (left) vs the **active-space
 $T$-matrix** (right), VBM/CBM aligned. DFT gives the textbook $C_{3v}$ pattern of the three Mo dangling
 bonds: an **$a_1$ singlet** (HOMO, occupied) at $-5.83$ eV, only $+0.13$ eV above the VBM, and an
 **$e$ doublet** (LUMO, empty) at $-4.77$ eV, $+1.19$ eV above the VBM (deep in the gap); the Fermi level
@@ -295,7 +309,7 @@ reproduces the NSCF bands to $2\times10^{-5}$ eV).
 
 ![Electron-index decay of M before (left, q!=0 flat) and after (right, all q decay) the gauge fix.](../assets/vtilde_gauge_fix.png)
 
-*Figure 13. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
+*Figure 14. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
 $q\!\neq\!0$ is flat — the gauge mismatch. **Right (new `filukk`, re-Wannierized on the 150-band
 NSCF):** every $q$ now decays together by $\sim10^{3}\times$ over $\sim5$ cells.*
 
@@ -306,7 +320,7 @@ momentum transfer $q$.
 
 ![Wannierized downfolded potential V~^W: both-index locality (left, old flat vs new peaked+decaying) and electron-index decay (right, all q decay).](../assets/vtilde_W_locality.png)
 
-*Figure 14. Wannierization of $\tilde V$ and its locality. **Left:** both-index
+*Figure 15. Wannierization of $\tilde V$ and its locality. **Left:** both-index
 $\lVert\tilde V^W(R',R)\rVert_F$ by shell $\max(|R'|,|R|)$ — flat with the mismatched gauge (red),
 but with `filukk_150` (blue) it peaks on the defect cell ($\sim3$ cells from the Wannier origin)
 and decays $\sim250\times$. **Right:** electron-index $\lVert\tilde V^W(R_e;q)\rVert$ decays
@@ -319,7 +333,7 @@ with the minimum-image distance of $R$ from the defect:
 
 ![On-site |V~^W_ij(R,R)| for a fixed Wannier pair vs distance from the defect; drops 0.52 Ry to ~1e-3 in one cell, envelope decay length ~2 Angstrom.](../assets/vtilde_onsite_decay.png)
 
-*Figure 15. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
+*Figure 16. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
 $i\!=\!j\!=\!6$; $(1,1)$ and $(1,2)$ shown for context) vs the minimum-image distance of cell $R$
 from the defect. It drops from $0.52$ Ry on the defect cell to $\sim\!10^{-3}$ Ry one cell
 ($\sim3.2$ Å) away, with envelope decay length $\lambda\approx2$ Å ($<1$ cell) — the downfolded
@@ -337,7 +351,7 @@ $T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converge quickly:
 
 ![Koster-Slater truncation: ||T(Rcut)|| vs cutoff, converges by Rcut=4 with the consistent gauge.](../assets/vtilde_ks_converge.png)
 
-*Figure 16. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
+*Figure 17. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
 dimension under each tick). With the gauge-consistent `filukk_150` (blue) the inversion converges
 by $R_{\rm cut}=4$ (dim 891, $\sim56\%$ of the full 1584); with the mismatched gauge (red) it only
 reaches the full value at the full subspace. The localized $\tilde V^W$ is what makes the truncation
@@ -360,7 +374,7 @@ inversion at $N_f=12$ and converges by $N_f\approx24$:
 
 ![Wannier-basis active T-matrix converges with the host G^A k-grid: 2.06 at Nf=12 to 1.97 by Nf=24, flat to Nf=96.](../assets/vtilde_wannier_converge.png)
 
-*Figure 17. Convergence of the Wannier-basis active T-matrix $\lVert T_{PP}(\omega_0)\rVert$ with the
+*Figure 18. Convergence of the Wannier-basis active T-matrix $\lVert T_{PP}(\omega_0)\rVert$ with the
 host $G^A$ $k$-grid $N_f$. $N_f=12$ matches the coarse direct inversion (P5-a, $2.064$ Ry); the host
 converges by $N_f\approx24$ to $1.974$ Ry — the coarse $12\times12$ over-estimated by $\sim4.6\%$
 (under-resolved band-edge DOS). The inversion stays $891$-dimensional at every $N_f$ — the payoff of
