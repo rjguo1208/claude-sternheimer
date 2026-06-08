@@ -9,10 +9,13 @@ per omega per input); we keep the full Wannier T^W(k,k) and rotate to all bands 
 import numpy as np, matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from scipy.io import FortranFile
-RY=13.605693122994; ETA=0.05/RY; RCUT=4; NF=48; NSEG=50; NW=240; VBM=6; CBM=7; ACELL=8.64e-16
+RY=13.605693122994; ETA=0.05/RY; RCUT=4; NF=48; NSEG=50; NW=280; VBM=6; CBM=7; ACELL=8.64e-16
 NDS=[0.01,0.05]
+import sys
+BLOCK=sys.argv[1] if len(sys.argv)>1 else "vtilde_block.dat"   # which Vtilde block (reference)
+TAG  =sys.argv[2] if len(sys.argv)>2 else "wide"               # output-name suffix
 
-fb=FortranFile("vtilde_block.dat","r")
+fb=FortranFile(BLOCK,"r")
 N_A,nk,nk_use,nbndskip=fb.read_ints(np.int32); omega0,wmin,wmax=fb.read_reals(np.float64)
 idx=fb.read_ints(np.int32); a2band=idx[N_A:]; eact=fb.read_reals(np.float64)
 M=fb.read_record(np.complex128).reshape((N_A,N_A),order="F"); fb.read_record(np.complex128)
@@ -65,7 +68,7 @@ a1=np.array([240*0.150478,0.0])/6; a2=np.array([240*-0.075239,240*0.130318])/6
 area=a1[0]*a2[1]-a1[1]*a2[0]; b1=2*np.pi/area*np.array([a2[1],-a2[0]]); b2=2*np.pi/area*np.array([-a1[1],a1[0]])
 kc=np.array([k[0]*b1+k[1]*b2 for k in path]); dist=np.concatenate([[0],np.cumsum(np.linalg.norm(np.diff(kc,axis=0),axis=1))])
 xM,xK=dist[NSEG],dist[-1]
-WLO=EPS[:,VBM].min()*RY-0.8; WHI=EPS[:,CBM].min()*RY+0.5       # lower edge unchanged; upper = 0.5 eV above CBM (band 14)
+WLO=EPS[:,VBM].min()*RY-0.8; WHI=-3.0       # lower edge unchanged; upper extended to -3.0 eV (into the conduction manifold)
 omega=np.linspace(WLO,WHI,NW)/RY; om_eV=omega*RY
 
 def Tband(Xsub,tag):                                          # [Nk,NW,nb,nb]  band-space T_{nn'}(k;omega)
@@ -84,7 +87,7 @@ def Aspec(Tb,nd):
     Am=om_eV[None,:,None,None]*Inb[None,None]-H0d[:,None]-Sig
     return -(1/np.pi)*np.imag(np.einsum("kjnn->kj",np.linalg.inv(Am)))        # A(k,omega) 1/eV
 maps={(nd,inp):Aspec(Tb,nd) for nd in NDS for inp,Tb in (("V",TbV),("M",TbM))}
-np.savez("p6_multiband_maps.npz",dist=dist,om_eV=om_eV,EPS=EPS,xM=xM,xK=xK,WLO=WLO,WHI=WHI,
+np.savez(f"p6_multiband_maps_{TAG}.npz",dist=dist,om_eV=om_eV,EPS=EPS,xM=xM,xK=xK,WLO=WLO,WHI=WHI,
          **{f"{int(nd*100)}_{inp}":maps[(nd,inp)] for nd in NDS for inp in ("V","M")})
 allA=np.concatenate([m.ravel() for m in maps.values()]); vmax=np.percentile(allA,99.8); vmin=vmax/1e3
 gap=(EPS[:,CBM].min()-EPS[:,VBM].max())*RY
@@ -103,4 +106,4 @@ for r,nd in enumerate(NDS):
         if r==1: a.set_xlabel("k-path")
         plt.colorbar(pc,ax=a,label="A  (1/eV)")
 plt.suptitle(r"Complete multiband spectral function  $A(k,\omega)=-\frac{1}{\pi}\,\mathrm{Im}\,\mathrm{Tr}\,[\omega-H_0-n_d\,T]^{-1}$  (all active bands; cyan = bare $\varepsilon_{nk}$; log scale)",y=1.0)
-plt.tight_layout(); plt.savefig("p6_spectral_multiband.png",dpi=130,bbox_inches="tight"); print("wrote p6_spectral_multiband.png")
+plt.tight_layout(); plt.savefig(f"p6_spectral_multiband_{TAG}.png",dpi=130,bbox_inches="tight"); print(f"wrote p6_spectral_multiband_{TAG}.png  (window [{WLO:.2f},{WHI:.2f}] eV, ref omega0={omega0*RY:.3f} eV)")

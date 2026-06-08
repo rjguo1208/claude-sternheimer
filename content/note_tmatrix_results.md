@@ -217,12 +217,11 @@ $$A(k,\omega)=-\tfrac1\pi\,\mathrm{Im}\,\mathrm{Tr}\,\big[\,\omega-H_0(k)-\Sigma
 \qquad \Sigma_{nn'}(k,\omega)=n_d\,T_{(nk),(n'k)}(\omega),$$
 with $H_0=\mathrm{diag}(\varepsilon_{nk})$ and the **matrix** self-energy (band-mixing off-diagonals included):
 
-![Complete multiband spectral function A(k,omega) along Gamma-M-K: 2x2 grid, rows n_d 1% and 5%, columns with and without rest-space, all active bands, log scale, bare bands overlaid.](../assets/vtilde_spectral_multiband_gap.png)
+![Complete multiband spectral function A(k,omega) along Gamma-M-K: 2x2 grid, rows n_d 1% and 5%, columns with and without rest-space, all active bands, log scale, bare bands overlaid.](../assets/vtilde_spectral_multiband_wide.png)
 
 *Figure 10. Complete multiband spectral function $A(k,\omega)$ along Γ–M–K, **window extended upward to
-$0.5$ eV above the CBM** so the full fundamental gap is in view — valence band 13 below
-($\varepsilon_{\rm VBM}=-5.94$ eV), conduction band 14 above ($\varepsilon_{\rm CBM}=-4.28$ eV),
-separated by the $1.66$ eV gap. Rows $n_d=1\%$ (top), $5\%$ (bottom); columns with rest-space
+$-3.0$ eV**, well into the conduction manifold — valence band 13 below ($\varepsilon_{\rm VBM}=-5.94$ eV),
+conduction bands 14–17 above ($\varepsilon_{\rm CBM}=-4.28$ eV), separated by the $1.66$ eV gap. Rows $n_d=1\%$ (top), $5\%$ (bottom); columns with rest-space
 ($\tilde V$, left) and without ($M$, right); cyan dashed $=$ bare $\varepsilon_{nk}$; log scale. **The
 S-vacancy defect level is now resolved in the gap.** With rest-space (left) a distinct, nearly
 dispersionless resonance sits at $\approx-5.6$ eV — $0.34$ eV above the VBM, well clear of both band
