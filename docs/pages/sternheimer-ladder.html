@@ -114,10 +114,16 @@ $$\Delta V=\Delta V_{\rm loc}(\mathbf r)+\Delta V_{\rm nl},\qquad
 <section id="sec-5"><h2>5. 收敛判据、与 explicit 计算的对应、下一步</h2>
 <p><strong>怎么用阶梯判断二阶。</strong> 实跑顺序:先白送地算 $\Sigma^{(3)}$,看比值 $r_3=\lVert\Sigma^{(3)}\rVert/\lVert\Sigma^{(2)}\rVert$。</p>
 <div class="table-wrap"><table><thead><tr><th>$r_3$</th><th>含义</th><th>做法</th></tr></thead><tbody><tr><td>$\ll1$</td><td>二阶可信</td><td>$\tilde V\approx M+\Sigma^{(2)}$,收工</td></tr><tr><td>$\lesssim1$</td><td>收敛慢</td><td>逐阶往上($+1$ solve 到五阶,再看 $r_5$)</td></tr><tr><td>$\gtrsim1$</td><td>Born <strong>发散</strong></td><td>逐阶救不回 —— 改用全阶 Feshbach (3.4),或把这些带搬进 active 显式处理</td></tr></tbody></table></div>
-<p>S-vacancy 的二阶把 $e$ 过度束缚 $\sim1.1$ eV,提示 $\rho\sim\mathcal O(1)$,大概率落在后两栏。</p>
+<p><strong>实测 $r_3$(用 explicit $M$,精确,含全 $k$ 耦合)。</strong> 取 $P$ = bands 7–17(block 的 active 窗口)、$Q$ = bands 18–28(近 gap conduction rest),物理势 $W=M/N_k$,直接矩阵代数算 $\Sigma^{(2)}=W_{PQ}\,g\,W_{QP}$、$\Sigma^{(3)}=W_{PQ}\,g\,W_{QQ}\,g\,W_{QP}$:</p>
+<div class="table-wrap"><table><thead><tr><th>$\omega$</th><th>$\lVert\Sigma^{(2)}\rVert_F$</th><th>$\lVert\Sigma^{(3)}\rVert_F$</th><th>$r_3$</th><th>$\rho(W_{QQ}g)$</th></tr></thead><tbody><tr><td>$\omega_0=\varepsilon_{\rm VBM}$(block 静态参考)</td><td>$8.72$ eV</td><td>$3.22$ eV</td><td>$\mathbf{0.37}$</td><td>$0.60$</td></tr><tr><td>$\omega\approx\varepsilon_e$($e$ 自身能量)</td><td>$10.35$ eV</td><td>$4.64$ eV</td><td>$\mathbf{0.45}$</td><td>$0.70$</td></tr></tbody></table></div>
+<p>$\rho<1$ 但 $r_3\approx0.4$ —— Born 级数<strong>收敛却很慢</strong>(三阶还剩二阶的 $40\%$),正落在上表 <strong>"$\lesssim1$,续阶"</strong> 那一档:二阶不可信。</p>
+<p><strong>逐阶确实在收敛,且自洽可验。</strong> 同一套数据下 $e$ 能级(相对 VBM,静态 $\Sigma(\omega_0)$)随阶数:</p>
+<div class="table-wrap"><table><thead><tr><th>处理</th><th>$e$(相对 VBM)</th></tr></thead><tbody><tr><td>裸 $M$(P=7–17,无 rest)</td><td>$+1.49$</td></tr><tr><td>$+\,\Sigma^{(2)}(\omega_0)$</td><td>$+1.30$(二阶 overshoot)</td></tr><tr><td>$+\,\Sigma^{(2)}+\Sigma^{(3)}(\omega_0)$</td><td>$+1.40$(白送三阶扳回)</td></tr><tr><td>$+\,\Sigma_{\rm full}(\omega_0)$(全阶求和)</td><td>$+1.37$</td></tr><tr><td>自洽 Feshbach(全阶,自洽 $\omega$)</td><td>$\mathbf{+1.35}$</td></tr><tr><td>explicit all-band 7–28(目标)</td><td>$+1.35$ ✓</td></tr></tbody></table></div>
+<p>自洽 Feshbach <strong>精确</strong>复刻 explicit 的 $+1.35$,验证了下折叠框架自洽;白送的三阶项实测把二阶 overshoot 从 $+1.30$ 扳到 $+1.40$,正是该有的逐阶收敛。</p>
+<p><strong>$Q$ 截断的说明。</strong> 这里 $Q$ 只到 band 28(explicit 数据上限),是主导的近 gap rest,二阶对它只<strong>轻微</strong> overshoot($+1.30$ vs $+1.35$)。但 block 用的是<strong>全 rest 18–150</strong>:多出的高带把 $\rho$ 推向 $1$,才给出之前那个剧烈的 $+0.36$ 过度屏蔽($e$ 从裸的 $+1.49$ 砸下来 $\sim1.1$ eV)。所以<strong>实测的 $r_3\approx0.4$、$\rho\approx0.6$–$0.7$ 是全问题的下界</strong> —— 全 rest 只会更靠近发散、更需要 ladder 或全阶 Feshbach。(实测脚本 <code>edt/run/ladder_r3.py</code>。)</p>
 <p><strong>两条路通同一物理。</strong> 同一个 $e$ 能级有两种算法:<strong>(i)</strong> 把 conduction 带放进 $Q$、dressing 取全阶(本页的阶梯 / 全阶 Feshbach);<strong>(ii)</strong> 把它们放进 $P$ 显式对角化、不 dressing(结果页的 21-band explicit)。二者在带数足够时收敛到同一答案。explicit 已经给出干净的 $a_1\oplus e$($e$ 在 $+1.35$,Fig 14),所以<strong>阶梯收敛的目标值是已知的</strong>,可以用来验证实现。</p>
-<p><strong>实现状态。</strong> 本页是推导与方案;高阶阶梯尚未落到 EDT 代码里。最小可行实现(MVP):</p>
-<ol><li>复用现有二阶 solve 拿到 $\chi^0$(已有);</li><li>加一个 $\Delta V$ 作用例程(局域超胞 FFT + 非局域可分离),先<strong>白送</strong>地算 $\Sigma^{(3)}$、量出 $r_3$;</li><li>若 $r_3\lesssim1$,$+1$ solve 上到五阶;若 $r_3\gtrsim1$,转全阶 Feshbach (3.4)。</li></ol>
+<p><strong>实现状态。</strong> $r_3$ 已用 explicit $M$ 路精确测出(上小节,$0.37$–$0.45$);Fortran 里的逐阶 ladder 仍待落地。最小可行实现(MVP):</p>
+<ol><li>复用现有二阶 solve 拿到 $\chi^0$(已有);</li><li>加一个 $\Delta V$ 作用例程(局域超胞 FFT + 非局域可分离),在 code 内白送地算 $\Sigma^{(3)}$,交叉验证 explicit 路的 $r_3$;</li><li>若 $r_3\lesssim1$,$+1$ solve 上到五阶;若 $r_3\gtrsim1$,转全阶 Feshbach (3.4)。</li></ol>
 <p>无论哪条路,验收标准是把 dressed 的 $e$ 从二阶的 $+0.36$ eV 抬回到 explicit/DFT 的 $\sim+1.2\text{–}1.35$ eV。</p>
 </section>
 </main>
