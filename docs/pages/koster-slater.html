@@ -1,0 +1,67 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sternheimer Electron-Defect T-matrix — Koster–Slater defect Green&#x27;s function</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head><body>
+<nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/koster-slater.html" style="color:#fff;text-decoration:underline">Koster&ndash;Slater</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
+<header><div class="header-inner"><h1>Koster–Slater / 缺陷格林函数:求缺陷能级的高效路线</h1><p class="subtitle">Defect levels as roots of $\det_D[1-g(E)\Delta V_D]=0$ in the small defect-localized block &mdash; the exact, all-bands host-Green&rsquo;s-function route (Koster&ndash;Slater), sidestepping the $P$/$Q$ rest dressing entirely; $\sim$seconds vs explicit&rsquo;s 46 min / Feshbach&rsquo;s days.</p><div class="meta"><span class="pill">Method / derivation</span><span class="pill">6 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<main>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 从大对角化到小久期方程(Lippmann–Schwinger)</a><a href="#sec-2">2. 局域性 → 行列式只剩"缺陷块"</a><a href="#sec-3">3. host 格林函数 $g(E)$:能带全在里面,而且加带便宜</a><a href="#sec-4">4. C₃ᵥ 对称性 → 久期式分块,irrep label 严格</a><a href="#sec-5">5. ΔDOS:同一个行列式给(Krein–Friedel)</a><a href="#sec-6">6. 成本与定位</a></div></section>
+<p>前面两条路都给出正确的 $a_1\oplus e$,但都贵:<strong>explicit 21-band</strong>(把带搬进 $P$ 显式对角化,<a href="results.html#sec-3">结果页</a> Fig 14)要 $46$ min $+\,N_A^3$ 对角化;<strong>全阶 Feshbach</strong>(把带留 $Q$ 全阶 dress,<a href="sternheimer-ladder.html#sec-6">ladder 页</a> §6)要 ~天。本页推导第三条、也是最省的:<strong>Koster–Slater 缺陷格林函数法</strong>(经典的 defect-GF 方法)。它<strong>不分 $P$/$Q$、不做 rest dressing</strong>,把缺陷能级直接写成一个<strong>缺陷局域小块</strong>上的久期方程 $\det[1-G_0(E)\Delta V]=0$ —— host 格林函数 $G_0$ 把能带都装在里面(所以没有过度屏蔽、也没有 ladder 的发散),而 $\Delta V$ 短程(结果页 Fig 17–20 已实测),行列式只剩<strong>几十维</strong>。</p>
+<section id="sec-1"><h2>1. 从大对角化到小久期方程(Lippmann–Schwinger)</h2>
+<p>缺陷哈密顿量 $H=H_0+\Delta V$,host $H_0|n\mathbf k\rangle=\varepsilon_{n\mathbf k}|n\mathbf k\rangle$。束缚态 $H|\psi\rangle=E|\psi\rangle$ 即</p>
+<div class="math">
+$$(E-H_0)|\psi\rangle=\Delta V|\psi\rangle.$$
+</div>
+<p>对 gap 里的 $E$($E\notin\mathrm{spec}\,H_0$),$(E-H_0)$ 可逆,定义 host 推迟格林函数 $G_0(E)=(E-H_0)^{-1}$:</p>
+<div class="math">
+$$|\psi\rangle=G_0(E)\,\Delta V\,|\psi\rangle.$$
+</div>
+<p>齐次方程有非平凡解 $\iff$</p>
+<div class="math">
+$$\boxed{\,\det\!\big[\,1-G_0(E)\,\Delta V\,\big]=0\,}. \tag{1}$$
+</div>
+<p>等价地,缺陷散射 $T(E)=\Delta V[1-G_0(E)\Delta V]^{-1}$、全格林函数 $G=G_0+G_0TG_0$,<strong>束缚态就是 $T$(和 $G$)的极点</strong>,即 (1) 的根。这一步精确、无近似。</p>
+</section>
+<section id="sec-2"><h2>2. 局域性 → 行列式只剩"缺陷块"</h2>
+<p>(1) 形式上是整个空间的行列式,但 $\Delta V$ <strong>短程</strong>:在 Wannier 基 $|w_{\mathbf R\alpha}\rangle$ 下 $\Delta V_{\mathbf R\alpha,\mathbf R'\beta}\neq0$ 只在缺陷区 $D$($|\mathbf R|,|\mathbf R'|\le R_{\rm cut}$)内(结果页 Fig 17–20:S-vacancy 的 Koster–Slater 在 $R_{\rm cut}=4$ 已收敛)。记 $P_D$ 为 $D$ 上投影,则 $\Delta V=P_D\,\Delta V\,P_D$,秩 $\le\dim D$。$G_0\Delta V$ 的非零本征值等于 $D\times D$ 矩阵 $g(E)\Delta V_D$ 的本征值,故 (1) 收缩到</p>
+<div class="math">
+$$\boxed{\,\det{}_D\!\big[\,1-g(E)\,\Delta V_D\,\big]=0\,},\qquad g(E)\equiv P_D\,G_0(E)\,P_D. \tag{2}$$
+</div>
+<p>$\Delta V_D$、$g(E)$ 都是 $\dim D\sim$ <strong>几十维</strong>,不是 $N_A=3002$。<strong>关键:</strong> $\Delta V_D$ 用<strong>裸</strong> $M^W$(结果页 Fig 14–15 已 gauge-fix、实测短程),<strong>不是</strong> dressed $\tilde V^W$(那个带二阶 Σ、会过度屏蔽)。</p>
+</section>
+<section id="sec-3"><h2>3. host 格林函数 $g(E)$:能带全在里面,而且加带便宜</h2>
+<p>$g(E)$ 在 Wannier 基里就是插值 host 哈密顿量的预解:</p>
+<div class="math">
+$$g(E,\mathbf k)=\big[E\,\mathbb 1-H_0^W(\mathbf k)\big]^{-1},\qquad
+g(E)_{\mathbf R\alpha,\mathbf R'\beta}=\frac1{N_k}\sum_{\mathbf k}e^{i\mathbf k\cdot(\mathbf R-\mathbf R')}\,g(E,\mathbf k)_{\alpha\beta}, \tag{3}$$
+</div>
+<p>$H_0^W(\mathbf k)$ 是 Wannier 插值的 host(EDT 已有 $H_W(\mathbf R)$,Fig 18)。求逆 $g(E,\mathbf k)$ <strong>自动含 Wannier 空间的全部能带</strong> —— 派生出 $e$ 的 conduction 带就在其中(11 条已足以 bind 出 $e$,正如 11-band 裸 $M$ 给 $e=+1.49$)。要把能级收敛得更准($\to$ explicit 的 $+1.35$ / DFT 的 $+1.19$),只需把更多 host 带(经其在缺陷轨道上的投影)纳入 $g$ —— 代价只是多算些<strong>本征值</strong>的 $k$-和,远小于 explicit 为每条带付的 $N_A$ 矩阵;$k$-和还能用很细的网格、几乎免费。</p>
+<p>这就是它<strong>既精确又省</strong>的根源:<strong>重活(全 BZ、多带)只落在便宜的 host 本征值求和上,缺陷的强散射只在几十维的 $D$ 块里精确(全 $\det$,不展开 $\Delta V$)处理。</strong> 所以既没有二阶 dressing 的过度屏蔽,也没有 ladder 在 $\Delta V_{QQ}$ 上的发散问题 —— (2) 根本不按 $\Delta V$ 展开。gap 里 $E$ 取实、$g$ 有限;要分辨能带里的共振就用 $E+i\eta$。</p>
+</section>
+<section id="sec-4"><h2>4. C₃ᵥ 对称性 → 久期式分块,irrep label 严格</h2>
+<p>$D$ 的轨道(3 条 Mo 悬挂键 + 近邻)在 $C_{3v}$ 下约化含 $a_1\oplus e$。$\Delta V_D$ 与 $g(E)$ 都和点群对易,(2) 的行列式<strong>按 irrep 分块</strong>:</p>
+<div class="math">
+$$\det{}_D[\,1-g\Delta V_D\,]=\prod_{\Gamma}\Big(\det{}_\Gamma[\,1-g_\Gamma\Delta V_\Gamma\,]\Big)^{d_\Gamma}.$$
+</div>
+<p>$a_1$ 根来自 $a_1$ 块(1 维),$e$ 根来自 $e$ 块($d_e=2$ → 自动二重简并)。这<strong>严格</strong>给出 $a_1$/$a_2$/$e$ 的 label —— 回答了之前"只靠简并度、没算特征标"那个 caveat。</p>
+</section>
+<section id="sec-5"><h2>5. ΔDOS:同一个行列式给(Krein–Friedel)</h2>
+<p>缺陷引起的态密度变化由久期行列式的相位给出:</p>
+<div class="math">
+$$\Delta\rho(E)=-\frac1\pi\frac{d}{dE}\,\mathrm{Im}\,\ln\det{}_D\!\big[\,1-g(E+i0^+)\,\Delta V_D\,\big]
+=-\frac1\pi\frac{d}{dE}\arg\det{}_D[\cdots]. \tag{4}$$
+</div>
+<p>gap 里相位每跳 $\pi$ 对应一条束缚态(就是 (2) 的根),能带里给共振展宽。所以结果页那张 ΔDOS(Fig 15)能从这个几十维的小行列式直接得到,不必扫整块 $T$-matrix。</p>
+</section>
+<section id="sec-6"><h2>6. 成本与定位</h2>
+<div class="table-wrap"><table><thead><tr><th>路线</th><th>缺陷能级成本</th><th>过度屏蔽?</th></tr></thead><tbody><tr><td>二阶 block dressing</td><td>$2$ h</td><td><strong>是</strong>(发散)</td></tr><tr><td>全阶 Feshbach</td><td>~$1$–$3$ 天(自洽)</td><td>否,但贵</td></tr><tr><td>explicit 21-band</td><td>$46$ min $+\,N_A^3$ 对角化</td><td>否</td></tr><tr><td><strong>Koster–Slater (2)</strong></td><td><strong>秒级</strong>($\dim D^3$ det $+$ host $k$-和)</td><td><strong>否</strong></td></tr></tbody></table></div>
+<p>每个 $E$:host $k$-和 $\mathcal O(N_k\,n_{\rm band}\,\dim D^2)$ $+$ 行列式 $\mathcal O(\dim D^3)$,扫几十个 $E$ 或 root-find,总计<strong>秒到分钟</strong>,还能用更细的 $k$ 网格收敛。它<strong>绕开</strong>了 $P$/$Q$ 划分与 rest dressing(不展开 $\Delta V_{QQ}$,无 ladder 发散),又比 explicit 省掉整块 $M$ 与 $N_A^3$ 对角化。<strong>地基已就位</strong>:Wannier $M^W$ 的 gauge fix(Fig 14–15)、短程性 / $R_{\rm cut}=4$ 收敛(Fig 17–20)都在结果页验过。这是求 S-vacancy $a_1$+$e$ <strong>最省又精确</strong>的路线;实现只差"用裸 $M^W$ 搭 $\Delta V_D$、扫 $g(E)$、找 (2) 的根"这一步。</p>
+</section>
+</main>
+<footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
+Static HTML; equations rendered client-side with MathJax v3. No raw wavefunctions, cubes,
+binaries, or logs are published.</footer>
+</body></html>
