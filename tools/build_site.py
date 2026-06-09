@@ -407,10 +407,11 @@ CATALOG = [
      '<a href="pages/results.html#sec-2">Open results &rarr;</a>'),
     ("Defect levels recovered: explicit 21-band $T$-matrix", "Result", "2026-06-08", "prod", "Complete",
      "Benchmarked against the S-vacancy supercell (&Gamma;-point KS levels): the active-space + Born-$\\Sigma$ "
-     "pipeline reproduces the $a_1$ but misses the $e$. Keeping the conduction manifold <em>explicitly</em> "
-     "(raw Bloch $M=\\langle nk|\\Delta V|mk'\\rangle$, $\\approx21$ bands, $12\\times12$, no Wannier / no downfolding) "
-     "recovers the full $C_{3v}$ pattern &mdash; $a_1$ singlet ($+0.01$ eV above VBM) and $e$ doublet "
-     "($+1.35$ eV) &mdash; matching DFT to $\\lesssim0.18$ eV. The missing $e$ was the approximation, not the physics.",
+     "pipeline keeps the $a_1$ but <em>over-screens</em> the $e$ (drags it to the VBM). Keeping the conduction "
+     "manifold <em>explicitly</em> (raw Bloch $M=\\langle nk|\\Delta V|mk'\\rangle$, $\\approx21$ bands, $12\\times12$, "
+     "no Wannier / no downfolding) recovers the full $C_{3v}$ pattern &mdash; $a_1$ singlet ($+0.01$ eV above VBM) and "
+     "$e$ doublet ($+1.35$ eV) &mdash; matching DFT to $\\lesssim0.18$ eV. The 2nd-order rest dressing, not the active "
+     "space, was the culprit.",
      '<a href="pages/results.html#sec-3">Open results &rarr;</a>'),
     ("QE-Hamiltonian Sternheimer validation", "Test", "2026-05-31", "ok", "Complete",
      "Per-$k$ solve of $Q(\\omega_0-H_0)Q$ via projected PCG (QE <code>h_psi</code> matvec): "

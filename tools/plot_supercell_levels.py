@@ -28,8 +28,10 @@ print(f"a1: {a1-VBM:+.3f} eV above VBM     e: {e_lvl-VBM:+.3f} above VBM ({e_lvl
 for j in range(homo-5,lumo+6):
     print(f"   state {j+1}: {ev[j]:+.4f} eV  occ={occ[j]:.2f}")
 
-# ----- active-space T-matrix result (this project) -----
-VBM_t,CBM_t=-5.937,-4.279; res_t=-5.55     # with-rest defect resonance
+# ----- active-space T-matrix result (this project), 2nd-order rest dressing -----
+# in-gap eigenvalues of H_eff=diag(eps)+Vtilde/N_k (vtilde_block.dat): a1 survives at the VBM edge;
+# the e doublet is over-screened down toward the VBM (its true mid-gap position dragged to +0.36 eV)
+VBM_t,CBM_t=-5.937,-4.279; a1_t=-5.936; e_t=-5.580
 
 fig,ax=plt.subplots(figsize=(8.2,7.6)); lo,hi=-6.4,-3.7
 xA=(0.05,0.42); xB=(0.58,0.95)             # two columns
@@ -47,19 +49,20 @@ ax.hlines(a1,*xA,color="#c1121f",lw=3,zorder=6)
 ax.hlines(e_lvl,xA[0],xA[1],color="#e36414",lw=3,zorder=6)
 ax.text(xA[1]+0.01,a1,f"$a_1$ (occ.) {a1:.2f}",va="center",fontsize=9,color="#c1121f")
 ax.text(xA[1]+0.01,e_lvl,f"$e$ (empty ×{e_deg}) {e_lvl:.2f}",va="bottom",fontsize=9,color="#e36414")
-# T-matrix: the single resonance + a marker for the missing e
-ax.hlines(res_t,*xB,color="#6a4c93",lw=3,zorder=6)
-ax.text(xB[0]-0.01,res_t,f"{res_t:.2f}  ",va="center",ha="right",fontsize=9,color="#6a4c93")
-ax.text((xB[0]+xB[1])/2,res_t-0.13,"resonance (with rest)",ha="center",fontsize=8,color="#6a4c93")
-ax.text((xB[0]+xB[1])/2,e_lvl,"✗  $e$ absent",ha="center",va="center",fontsize=10,color="#e36414",
-        bbox=dict(facecolor="white",alpha=0.7,edgecolor="#e36414",boxstyle="round,pad=0.2"))
+# T-matrix (2nd-order rest): a1 survives at the VBM edge; e doublet over-screened down toward the VBM
+ax.hlines(a1_t,*xB,color="#c1121f",lw=3,zorder=6)
+ax.text(xB[1]+0.01,a1_t,f"$a_1$ (VBM edge) {a1_t:.2f}",va="center",fontsize=9,color="#c1121f")
+ax.hlines(e_t,*xB,color="#e36414",lw=3,zorder=6); ax.hlines(e_t+0.02,*xB,color="#e36414",lw=3,zorder=6)
+ax.text(xB[1]+0.01,e_t,f"$e$×2 over-screened {e_t:.2f}",va="center",fontsize=9,color="#e36414")
+ax.text((xB[0]+xB[1])/2,e_t+0.20,"$\\downarrow$ dragged from mid-gap",ha="center",va="bottom",fontsize=7.5,color="#e36414")
 # edges + Fermi
 for (x0,x1),vb,cb in [(xA,VBM,CBM),(xB,VBM_t,CBM_t)]:
     ax.hlines(vb,x0,x1,color="#26408b",lw=1,ls=":"); ax.hlines(cb,x0,x1,color="#9b2226",lw=1,ls=":")
 ax.hlines(EF,xA[0],xA[1],color="#2a9d8f",lw=1.4,ls="--")
 ax.text(xA[0]+0.005,EF-0.10,f"$E_F$ {EF:.2f}",fontsize=8,color="#2a9d8f")
-# guide line linking a1 <-> resonance
-ax.plot([xA[1],xB[0]],[a1,res_t],color="#888",lw=0.8,ls=(0,(1,2)))
+# guide lines linking DFT <-> T-matrix levels (the e slopes steeply down -> over-screened)
+ax.plot([xA[1],xB[0]],[a1,a1_t],color="#c1121f",lw=0.8,ls=(0,(1,2)),alpha=.5)
+ax.plot([xA[1],xB[0]],[e_lvl,e_t],color="#e36414",lw=0.9,ls=(0,(1,2)),alpha=.6)
 ax.text(0.5,lo+0.07,"VBM/CBM aligned (DFT −5.95/−4.24 ; T-mat −5.94/−4.28)",ha="center",fontsize=8,color="#555")
 ax.set_xlim(0,1.18); ax.set_ylim(lo,hi); ax.set_xticks([]); ax.set_ylabel("Energy (eV)")
 ax.set_title("Γ-point defect levels: S-vacancy MoS$_2$ — supercell DFT vs active-space T-matrix",fontsize=10)
