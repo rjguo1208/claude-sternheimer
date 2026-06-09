@@ -6,9 +6,9 @@
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head><body>
 <nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html" style="color:#fff;text-decoration:underline">Rest-space ladder</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
-<header><div class="header-inner"><h1>Rest-space Sternheimer 阶梯:为什么二阶不够,以及逐阶求解高阶 dressing</h1><p class="subtitle">Why the 2nd-order (Born) rest-space self-energy over-screens the MoS&#8322; S-vacancy $e$ level by $\sim$1 eV, and the order-by-order Sternheimer ladder ($Q(\omega-H_0)Q$ reused each order; one solve buys two orders, the odd order free) that systematically corrects it.</p><div class="meta"><span class="pill">Method / derivation</span><span class="pill">5 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<header><div class="header-inner"><h1>Rest-space Sternheimer 阶梯:为什么二阶不够,以及逐阶求解高阶 dressing</h1><p class="subtitle">Why the 2nd-order (Born) rest-space self-energy over-screens the MoS&#8322; S-vacancy $e$ level by $\sim$1 eV, and the order-by-order Sternheimer ladder ($Q(\omega-H_0)Q$ reused each order; one solve buys two orders, the odd order free) that systematically corrects it.</p><div class="meta"><span class="pill">Method / derivation</span><span class="pill">6 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
 <main>
-<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 记号与精确下折叠(Feshbach)</a><a href="#sec-2">2. 二阶(Born)近似为什么会过度屏蔽</a><a href="#sec-3">3. Sternheimer 阶梯:逐阶公式推导</a><a href="#sec-4">4. 非局域部分的接法与实现方案</a><a href="#sec-5">5. 收敛判据、与 explicit 计算的对应、下一步</a></div></section>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 记号与精确下折叠(Feshbach)</a><a href="#sec-2">2. 二阶(Born)近似为什么会过度屏蔽</a><a href="#sec-3">3. Sternheimer 阶梯:逐阶公式推导</a><a href="#sec-4">4. 非局域部分的接法与实现方案</a><a href="#sec-5">5. 收敛判据、与 explicit 计算的对应、下一步</a><a href="#sec-6">6. 全阶 Feshbach Sternheimer:逐阶发散后的生产路线</a></div></section>
 <p>EDT 的 active/rest 下折叠把 dressed 势写成 $\tilde V(\omega)=M+\Sigma(\omega)$:$M$ 是 active 子空间里的裸耦合,$\Sigma$ 把 rest 子空间(被折叠掉的高能带)的虚跃迁折回 active。目前代码里的 $\Sigma$ 只取到<strong>二阶(Born)</strong> —— 用裸 host 传播子 $G^0_{QQ}$、丢掉缺陷势在 rest 内部的多次散射 $\Delta V_{QQ}$。在 MoS$_2$ 的 S-vacancy 上,这个近似把 conduction 派生的 $e$ 能级<strong>过度屏蔽</strong>了约 $1.1$ eV(见<a href="results.html#sec-3">结果页</a> 的 Fig 13–15)。</p>
 <p>本页做三件事:(i) 推导精确的 Feshbach rest 自能;(ii) 说明<strong>为什么二阶不是一个好近似</strong>;(iii) 给出<strong>逐阶 Sternheimer 阶梯</strong>的完整公式与实现方案(含非局域部分的接法)。记号:投影 $P$(active)、$Q=1-P$(rest);host 哈密顿量 $H_0$,缺陷势 $\Delta V=V_{\rm defect}-V_{\rm host}$;块记号 $\Delta V_{PQ}\equiv P\,\Delta V\,Q$ 等。</p>
 <section id="sec-1"><h2>1. 记号与精确下折叠(Feshbach)</h2>
@@ -91,7 +91,7 @@ $$\boxed{\;\Sigma^{(2)}_{ab}=\langle a|\Delta V|\chi^0_b\rangle,\qquad
 <div class="math">
 $$Q(\omega-H_0-\Delta V)Q\,|X_b\rangle=Q\,\Delta V\,|b\rangle,\qquad \Sigma_{ab}=\langle a|\Delta V|X_b\rangle, \tag{3.4}$$
 </div>
-<p>即把 $\Delta V_{QQ}$ 放进 CG 的算符里、一次解到全阶。逐阶阶梯的价值在于:它把这个非微扰解<strong>展开成可监控的序列</strong>,既能在 $\rho<1$ 时按需截断,又能用 $\Sigma^{(3)},\Sigma^{(5)},\ldots$ 的大小直接读出 $\rho$、判断该不该信二阶。</p>
+<p>即把 $\Delta V_{QQ}$ 放进 CG 的算符里、一次解到全阶(完整推导、matvec 与复解法见 §6)。逐阶阶梯的价值在于:它把这个非微扰解<strong>展开成可监控的序列</strong>,既能在 $\rho<1$ 时按需截断,又能用 $\Sigma^{(3)},\Sigma^{(5)},\ldots$ 的大小直接读出 $\rho$、判断该不该信二阶。</p>
 </section>
 <section id="sec-4"><h2>4. 非局域部分的接法与实现方案</h2>
 <p>递推 (3.2) 的右端是 $Q\,\Delta V\,Q\,|\chi^{p-1}\rangle$ —— 要把缺陷势作用到一个 rest 波函数上。$\Delta V$ 分局域与非局域两块:</p>
@@ -126,6 +126,30 @@ $$\Delta V=\Delta V_{\rm loc}(\mathbf r)+\Delta V_{\rm nl},\qquad
 <p><strong>(1)</strong> $\Sigma^{(2)}_{aa}$ 自洽校验<strong>精确通过</strong>(用保存的 $\chi^0$ 重建 $=$ 代码存的 <code>Sgblk</code>),证明 cross-channel 机器正确。<strong>(2)</strong> full rest 的 $r_{3,aa}=1.54>1$ —— <strong>三阶比二阶还大,Born 级数发散</strong>,正落在上面判据表的 <strong>"$\gtrsim1$,发散"</strong> 那档。这把"全 rest 更靠近发散"从推断<strong>升级成实测</strong>:截断 rest($r_3=0.37$)是下界,全 rest 真的越过了 $1$(远端 conduction 带让有两个 rest 求和的 $\Sigma^{(3)}$ 涨得比 $\Sigma^{(2)}$ 快得多:实测 $|\Sigma^{(3)}|$ 大 13×、$|\Sigma^{(2)}|$ 只大 3×)。所以最终结论是硬的:<strong>全 rest 逐阶救不回,必须全阶 Feshbach(resolvent 求逆,非级数)或 explicit</strong>;发散的是<strong>逐阶</strong>,explicit 的自洽 Feshbach 仍精确给 $+1.35$。(caveat:中间 $\Delta V_{QQ}$ 只取局域部分、且是单态对角 $r_{3,aa}$;但 $1.54\gg1$ 稳健。开关 <code>do_sigma3</code>,作业 <code>edt/run/edt_sigma3.{in,slurm}</code>。)</p>
 <p><strong>两条路通同一物理。</strong> 同一个 $e$ 能级有两种算法:<strong>(i)</strong> 把 conduction 带放进 $Q$、dressing 取全阶(本页的阶梯 / 全阶 Feshbach);<strong>(ii)</strong> 把它们放进 $P$ 显式对角化、不 dressing(结果页的 21-band explicit)。二者在带数足够时收敛到同一答案。explicit 已经给出干净的 $a_1\oplus e$($e$ 在 $+1.35$,Fig 14),所以<strong>阶梯收敛的目标值是已知的</strong>,可以用来验证实现。</p>
 <p><strong>实现状态。</strong> $\Sigma^{(3)}$ 白送项已落地(<code>do_sigma3</code>)。MVP 的前两步 —— ① 复用二阶 solve 拿 $\chi^0$;② 在 code 内白送地算 $\Sigma^{(3)}$、量 $r_3$ —— <strong>已完成</strong>(explicit 路 $r_3=0.37$–$0.45$、in-code full-rest $r_{3,aa}=1.54$ 都测出)。第三步因 $r_3>1$(全 rest 发散)直接落到 <strong>"转全阶 Feshbach (3.4) / explicit"</strong>:逐阶 ladder 在这个体系不收敛,生产路线就是全阶 resolvent 求逆或把带搬进 active 显式处理。验收标准(把 dressed 的 $e$ 从二阶的 $+0.36$ eV 抬回 explicit/DFT 的 $\sim+1.2\text{–}1.35$ eV)已由 21-band explicit 达成(Fig 14)。</p>
+</section>
+<section id="sec-6"><h2>6. 全阶 Feshbach Sternheimer:逐阶发散后的生产路线</h2>
+<p>§5 实测逐阶 ladder 在全 rest 下发散($r_3=1.54$),二阶的过度屏蔽<strong>不能</strong>靠加几阶救回来。出路是<strong>不展开、直接求逆</strong>的全阶 Feshbach —— 它同样是一个 Sternheimer 线性解,只是算符里把 $\Delta V_{QQ}$ 也放进去。这是式 (3.4) 的完整推导。</p>
+<p><strong>线性方程。</strong> 把 $H_{QQ}=Q(H_0+\Delta V)Q=QHQ$ 代回式 (1.1):</p>
+<div class="math">
+$$\Sigma(\omega)=\Delta V_{PQ}\,(\omega-QHQ)^{-1}\,\Delta V_{QP}.$$
+</div>
+<p>对每个 active 源 $|b\rangle$ 定义全阶 rest 响应 $|X_b\rangle\equiv(\omega-QHQ)^{-1}\Delta V_{QP}|b\rangle\in Q$;左乘 $(\omega-QHQ)$,用 $Q|X_b\rangle=|X_b\rangle$(故 $QHQ|X_b\rangle=QH|X_b\rangle$):</p>
+<div class="math">
+$$\boxed{\,Q(\omega-H_0-\Delta V)Q\,|X_b\rangle=Q\,\Delta V\,|b\rangle\,},\qquad
+\Sigma_{ab}=\langle a|\Delta V|X_b\rangle=\langle S_a|X_b\rangle, \tag{6.1}$$
+</div>
+<p>$|S_a\rangle=Q\Delta V|a\rangle$ 是和二阶<strong>一样</strong>的源;对称式即 $\Sigma=S^\dagger A^{-1}S$,$A=Q(\omega-H_0-\Delta V)Q$。<strong>精确、全阶、无截断。</strong></p>
+<p><strong>和二阶 Sternheimer 的唯一区别:matvec 里多一个 $\Delta V$。</strong></p>
+<div class="table-wrap"><table><thead><tr><th></th><th>二阶(Born)</th><th>全阶 Feshbach</th></tr></thead><tbody><tr><td>算符 $A$</td><td>$Q(\omega-H_0)Q$</td><td>$Q(\omega-H_0-\Delta V)Q$</td></tr><tr><td>matvec</td><td><code>h_psi</code> $+\,Q$</td><td><code>h_psi</code> $-\,\Delta V+Q$</td></tr><tr><td>$\mathbf k$ 结构</td><td>块对角 → 逐 $\mathbf k$ 解耦</td><td>$\Delta V$ 耦合 → 全 $\mathbf k$ 一个大方程</td></tr></tbody></table></div>
+<pre><code class="language-text">A|v&gt; ,  v in Q   (每次 CG 迭代):
+  1. t = omega*v - h_psi(v)      # (omega - H0) v       [per-k, 已有]
+  2. t = t - dV(v)               # 减 dV v : 局域超胞 FFT(build_V_folded, cross-channel) + 非局域可分离
+  3. t = Q t  (apply_Qproj)      # 投回 rest</code></pre>
+<p>即 §4 的 $\Delta V$ 作用例程(就是 <code>do_sigma3</code> 那套 cross-channel 机器)从"算一次 $\Sigma^{(3)}$"变成"<strong>每步 matvec 调一次</strong>"。</p>
+<p><strong>为什么收敛、逐阶却发散 —— 求逆 $\neq$ 级数。</strong> 记 $A=A_0-B$,$A_0=Q(\omega-H_0)Q$、$B=Q\Delta V Q$。逐阶是 Neumann 级数 $A^{-1}=\sum_{p\ge0}A_0^{-1}(BA_0^{-1})^p$,收敛要 $\rho(A_0^{-1}B)=\rho(G^0\Delta V_{QQ})<1$ —— 实测 $\sim1.54$,发散。<strong>但 $A^{-1}$ 本身存在</strong>;Krylov/CG 直接解 $AX=S$ 的收敛只看 $A$ 的谱,不看那个 $\rho$。类比:$x=1.54$ 时 $1+x+x^2+\cdots$ 发散,而 $\tfrac{1}{1-x}=-1.85$ 良定 —— <strong>发散的是展开方式,不是那个数</strong>。加 $\eta>0$,$A=Q(\omega+i\eta-H)Q$ 永远可逆。</p>
+<p><strong>条件数与解法。</strong> rest 取在 $\omega_0$ 之上时 $A_0\succ0$;加 $-\Delta V_{QQ}$ 后,若没有 rest 态被拉到 $\omega$ 以下(缺陷 bound state 应已落在 $P$ 内),$A$ 仍正定 → 实 CG。若某个 rest 共振逼近 $\omega$($A$ 不定/病态)→ 上 $\omega+i\eta$ 配复解法(代码已有的 <code>rest_split=&#x27;complex&#x27;</code> / <code>ccgsolve_all</code>),$\eta$ 兼作正则化;active 用 $\alpha P$ deflation 钉在 $Q$。</p>
+<p><strong>$\omega$ 自洽 → 精确能级。</strong> $\Sigma(\omega)$ 依赖 $\omega$;缺陷能级是自洽根 $\det[\omega-H_0^{PP}-M-\Sigma(\omega)]=0$,迭代 $\omega$ 即得。全阶 Feshbach 在自洽 $\omega$ 下给出<strong>精确</strong>能级 —— 即 §5 自洽 Feshbach 复刻 explicit $+1.35$ 的那个量。</p>
+<p><strong>成本与定位。</strong> 每源一次<strong>全 $\mathbf k$</strong> 的 Sternheimer solve,$n_{\rm iter}$ 步、每步带一次 $\Delta V$ 作用($\Sigma^{(3)}$ 量级),全 block $N_A$ 个源;比二阶贵 $\sim n_{\rm iter}$ 倍的全-$\mathbf k$ 耦合,但它<strong>收敛</strong>。它与 21-band explicit 互为印证:一个把 conduction 放 $Q$ 全阶 dress、一个放 $P$ 显式不 dress —— 既然逐阶发散,这两条才是该走的路。</p>
 </section>
 </main>
 <footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
