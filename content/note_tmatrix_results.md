@@ -285,6 +285,39 @@ spectral weight is unchanged. So a shifted static reference is insufficient; the
 gap), and recovering it likely needs the full frequency-dependent $\Sigma_{\rm rest}(\omega)$ or a larger
 active space, not merely a different reference energy.*
 
+### Resolved: an explicit 21-band $T$-matrix recovers the $e$ doublet
+
+That diagnosis has a direct test: keep the conduction manifold **explicitly** instead of downfolding
+it. We did exactly that, in the most stripped-down form possible — **no Wannier, no downfolding, no
+rest dressing**. On the full $12\times12$ grid we built the bare Bloch matrix
+$M_{nk,mk'}=\langle nk|\Delta V|mk'\rangle$ over $\approx21$ bands per $k$ (NSCF bands $7$–$28$,
+spanning the window $[-11.8,+6]$ eV about the gap) — a single $3002\times3002$ matrix — and read the
+defect levels straight off it as the in-gap eigenvalues of
+$H_{\rm eff}=\mathrm{diag}(\varepsilon_{nk})+M/N_k$. There is no self-energy here ($\Sigma\equiv0$, so
+$\tilde V=M$); the DOS follows from the same matrix via $T=[1-VG^A]^{-1}V$ with $V=M/N_k$.
+
+![Left: explicit non-Wannier T-matrix DOS in the gap, with a distinct in-gap e peak rising above the empty bare-host DOS. Right: defect-level diagram, explicit 21-band T-matrix (a1 singlet + e doublet) vs DFT supercell, VBM/CBM aligned.](../assets/vtilde_explicit_dos.png)
+
+*Figure 14. **The explicit 21-band $T$-matrix recovers both defect levels.** **Left:** density of states
+in the gap (zoomed) — the bare host (grey dashed) is empty between the band edges, while the $T$-matrix
+DOS (blue) carries a distinct **in-gap peak** ($12.6$ states/eV) at $-4.59$ eV: the $e$ state. **Right:**
+in-gap eigenvalues of $H_{\rm eff}=\mathrm{diag}(\varepsilon)+M/N_k$ vs the DFT supercell, VBM/CBM
+aligned. The explicit calculation gives an **$a_1$ singlet** at $-5.93$ eV (at the VBM edge, $+0.01$) and
+a **doubly-degenerate $e$ at $-4.59$ eV** ($+1.35$ above the VBM) — the full $C_{3v}$ $a_1\oplus e$
+pattern of the three Mo dangling bonds, matching DFT ($a_1$ $-5.83/+0.13$; $e$ $-4.77/+1.19$) to
+$\lesssim0.18$ eV. The two-fold degeneracy of the $e$ ($-4.588$ twice) comes out automatically. So the
+missing $e$ in Figure 13 was the **downfolding + 2nd-order (Born) rest dressing**, not the physics: once
+enough conduction bands are kept explicitly, the conduction-derived $e$ is pulled into the gap. The
+$1/N_k$ normalization is essential — dropping it ($H=\mathrm{diag}(\varepsilon)+M$) yields $69$ spurious
+"in-gap" eigenvalues instead of three.*
+
+This is the cleanest confirmation that the framework is sound and the earlier shortfall was an
+*approximation*, not a wall: the active-space + Born-$\Sigma$ pipeline traded the $e$ for speed; the
+explicit Bloch inversion — $\sim\!46$ min on one node for $M$, then a $3002\times3002$ solve — pays the
+$\mathcal{O}(N_b^2)$ price and gets it back. The remaining $\lesssim0.18$ eV offsets (the $e$ a touch
+high, the $a_1$ pinned to the VBM edge) are the finite $12\times12$ sampling and the 21-band truncation,
+not the qualitative structure.
+
 ## 4. Wannier representation and locality (P5-b)
 
 The textbook way to avoid the large $(N_b N_k)$ inversion on fine grids is the Koster–Slater /
@@ -309,7 +342,7 @@ reproduces the NSCF bands to $2\times10^{-5}$ eV).
 
 ![Electron-index decay of M before (left, q!=0 flat) and after (right, all q decay) the gauge fix.](../assets/vtilde_gauge_fix.png)
 
-*Figure 14. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
+*Figure 15. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
 $q\!\neq\!0$ is flat — the gauge mismatch. **Right (new `filukk`, re-Wannierized on the 150-band
 NSCF):** every $q$ now decays together by $\sim10^{3}\times$ over $\sim5$ cells.*
 
@@ -320,7 +353,7 @@ momentum transfer $q$.
 
 ![Wannierized downfolded potential V~^W: both-index locality (left, old flat vs new peaked+decaying) and electron-index decay (right, all q decay).](../assets/vtilde_W_locality.png)
 
-*Figure 15. Wannierization of $\tilde V$ and its locality. **Left:** both-index
+*Figure 16. Wannierization of $\tilde V$ and its locality. **Left:** both-index
 $\lVert\tilde V^W(R',R)\rVert_F$ by shell $\max(|R'|,|R|)$ — flat with the mismatched gauge (red),
 but with `filukk_150` (blue) it peaks on the defect cell ($\sim3$ cells from the Wannier origin)
 and decays $\sim250\times$. **Right:** electron-index $\lVert\tilde V^W(R_e;q)\rVert$ decays
@@ -333,7 +366,7 @@ with the minimum-image distance of $R$ from the defect:
 
 ![On-site |V~^W_ij(R,R)| for a fixed Wannier pair vs distance from the defect; drops 0.52 Ry to ~1e-3 in one cell, envelope decay length ~2 Angstrom.](../assets/vtilde_onsite_decay.png)
 
-*Figure 16. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
+*Figure 17. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
 $i\!=\!j\!=\!6$; $(1,1)$ and $(1,2)$ shown for context) vs the minimum-image distance of cell $R$
 from the defect. It drops from $0.52$ Ry on the defect cell to $\sim\!10^{-3}$ Ry one cell
 ($\sim3.2$ Å) away, with envelope decay length $\lambda\approx2$ Å ($<1$ cell) — the downfolded
@@ -351,7 +384,7 @@ $T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converge quickly:
 
 ![Koster-Slater truncation: ||T(Rcut)|| vs cutoff, converges by Rcut=4 with the consistent gauge.](../assets/vtilde_ks_converge.png)
 
-*Figure 17. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
+*Figure 18. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
 dimension under each tick). With the gauge-consistent `filukk_150` (blue) the inversion converges
 by $R_{\rm cut}=4$ (dim 891, $\sim56\%$ of the full 1584); with the mismatched gauge (red) it only
 reaches the full value at the full subspace. The localized $\tilde V^W$ is what makes the truncation
@@ -374,7 +407,7 @@ inversion at $N_f=12$ and converges by $N_f\approx24$:
 
 ![Wannier-basis active T-matrix converges with the host G^A k-grid: 2.06 at Nf=12 to 1.97 by Nf=24, flat to Nf=96.](../assets/vtilde_wannier_converge.png)
 
-*Figure 18. Convergence of the Wannier-basis active T-matrix $\lVert T_{PP}(\omega_0)\rVert$ with the
+*Figure 19. Convergence of the Wannier-basis active T-matrix $\lVert T_{PP}(\omega_0)\rVert$ with the
 host $G^A$ $k$-grid $N_f$. $N_f=12$ matches the coarse direct inversion (P5-a, $2.064$ Ry); the host
 converges by $N_f\approx24$ to $1.974$ Ry — the coarse $12\times12$ over-estimated by $\sim4.6\%$
 (under-resolved band-edge DOS). The inversion stays $891$-dimensional at every $N_f$ — the payoff of
