@@ -186,4 +186,23 @@ A|v> ,  v in Q   (每次 CG 迭代):
 
 **$\omega$ 自洽 → 精确能级。** $\Sigma(\omega)$ 依赖 $\omega$;缺陷能级是自洽根 $\det[\omega-H_0^{PP}-M-\Sigma(\omega)]=0$,迭代 $\omega$ 即得。全阶 Feshbach 在自洽 $\omega$ 下给出**精确**能级 —— 即 §5 自洽 Feshbach 复刻 explicit $+1.35$ 的那个量。
 
-**成本与定位。** 每源一次**全 $\mathbf k$** 的 Sternheimer solve,$n_{\rm iter}$ 步、每步带一次 $\Delta V$ 作用($\Sigma^{(3)}$ 量级),全 block $N_A$ 个源;比二阶贵 $\sim n_{\rm iter}$ 倍的全-$\mathbf k$ 耦合,但它**收敛**。它与 21-band explicit 互为印证:一个把 conduction 放 $Q$ 全阶 dress、一个放 $P$ 显式不 dress —— 既然逐阶发散,这两条才是该走的路。
+**成本与定位。** 每源一次**全 $\mathbf k$** 的 Sternheimer solve,$n_{\rm iter}$ 步、每步带一次 $\Delta V$ 作用($\Sigma^{(3)}$ 量级),全 block $N_A$ 个源 —— 它**收敛**(级数不收敛)。它与 21-band explicit 互为印证:一个把 conduction 放 $Q$ 全阶 dress、一个放 $P$ 显式不 dress —— 既然逐阶发散,这两条才是该走的路。
+
+**成本估算(实测锚定,36 ranks / 1 node)。**
+
+| run | 规模 | 实测 WALL |
+|---|---|---|
+| 二阶 block(`h_psi` matvec,逐 $\mathbf k$) | $N_A=1584$,full BZ | $1$ h $59$ m |
+| explicit 21-band $M$(born_only,无 solve) | $N_A=3002$ | $46$ m |
+| 单态 $\Sigma^{(3)}$(`do_sigma3`,folded $\Delta V$) | $1$ 源 $+$ 一次 cross-channel | $10$ m |
+
+全阶 Feshbach $\approx$ 二阶的 `h_psi` 部分($\sim2$ h)$+\ N_A\times n_{\rm iter}\times t_{\Delta V}$。全部成本压在每步 matvec 那个 cross-channel $\Delta V$ 上,而 $t_{\Delta V}$ **完全取决于实现**:
+
+| $\Delta V$ 实现 | 一次 $t_{\Delta V}$(单源,全 channel) | $N_A\,n_{\rm iter}\!\sim\!10^5$ 之后 |
+|---|---|---|
+| folded 双重和(`do_sigma3` 现状) | $\sim5$ min($144^2$ 个超胞折叠) | **月级,不可行** |
+| supercell-FFT(需新写,一次超胞 FFT 过所有 channel) | $\sim1$–$4$ s | $\Delta V$ 部分 $\sim1$–$2$ h,**可行** |
+
+两者差 **$10^2$–$10^3\times$**:folded 路(我给单态 $\Sigma^{(3)}$ 用的那套)在内层每步重算 $144^2$ 个超胞折叠,放进迭代里就是月级;正确做法是把 $\Delta V$ 用**一次超胞 FFT**作用(把 $X$ 的 $144$ 个 channel 分量拼成超胞实空间 $\to$ 乘 $\Delta V(\mathbf r)\to$ 拼回,一次过所有 $\mathbf k$)。走 supercell-FFT:**单 $\omega$ $\sim3$–$4$ h**(算符不定/病态、要 BiCGStab + 更多迭代再 $\times2$–$3$),**自洽 $\omega$(缺陷能级,$\sim5$–$10$ 次)$\sim1$–$3$ 天 / node**。
+
+**对比:explicit 便宜 $1$–$2$ 个量级。** explicit 21-band(实测 **$46$ min,一次过**)给同样的 $e=+1.35$,无迭代、无 $\Delta V$-in-matvec —— 比优化后的全阶 Feshbach 还便宜 $\sim10$–$50\times$。所以对**缺陷能级**,explicit 是实用生产路线;全阶 Feshbach 的不可替代性只在 (i) 要整条频率依赖的 $\Sigma(\omega)$(谱函数 self-energy)、或 (ii) active space 无法再扩大、必须把带留在 $Q$ 里全阶 dress 时 —— 且即便如此也必须走 supercell-FFT,`do_sigma3` 的 folded 路只配做**一次性**诊断。
