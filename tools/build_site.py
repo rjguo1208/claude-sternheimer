@@ -27,6 +27,7 @@ RESEARCH  = os.path.join(ROOT, "research.md")
 PLAN      = os.path.join(ROOT, "plan.md")
 NOTE_KNORM = os.path.join(ROOT, "content", "note_kprime_norm.md")
 NOTE_RESULTS = os.path.join(ROOT, "content", "note_tmatrix_results.md")
+NOTE_LADDER = os.path.join(ROOT, "content", "note_sternheimer_ladder.md")
 DOCS      = os.path.join(ROOT, "docs")
 PAGES_DIR = os.path.join(DOCS, "pages")
 
@@ -260,8 +261,9 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            '%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
+                                      a("pages/sternheimer-ladder.html", "Rest-space ladder", "ladder"),
                                       a("pages/plan.html", "Implementation Plan", "plan"),
                                       a("pages/results.html", "Results", "results"),
                                       a("pages/note-kprime-normalization.html", "Note: k&prime;-norm", "note")))
@@ -351,6 +353,30 @@ def build_note():
         f.write(out)
     return r
 
+def build_ladder():
+    with open(NOTE_LADDER, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=False)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">Why the 2nd-order (Born) rest-space self-energy over-screens the '
+              'MoS&#8322; S-vacancy $e$ level by $\\sim$1 eV, and the order-by-order Sternheimer ladder '
+              '($Q(\\omega-H_0)Q$ reused each order; one solve buys two orders, the odd order free) '
+              'that systematically corrects it.</p>'
+              '<div class="meta"><span class="pill">Method / derivation</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">MathJax v3</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " — Rest-space Sternheimer ladder",
+                     header, _topnav("ladder", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "sternheimer-ladder.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
 def build_results():
     with open(NOTE_RESULTS, encoding="utf-8") as f:
         md = f.read()
@@ -413,15 +439,23 @@ CATALOG = [
      "$e$ doublet ($+1.35$ eV) &mdash; matching DFT to $\\lesssim0.18$ eV. The 2nd-order rest dressing, not the active "
      "space, was the culprit.",
      '<a href="pages/results.html#sec-3">Open results &rarr;</a>'),
+    ("Rest-space Sternheimer ladder: beyond 2nd order", "Theory", GEN_DATE, "ok", "Derived",
+     "Why the 2nd-order (Born) rest dressing over-screens &mdash; Born series $\\rho\\sim\\mathcal O(1)$ for the deep "
+     "vacancy, so it over-binds the $e$ by $\\sim$1 eV &mdash; and the order-by-order Sternheimer ladder that fixes it: "
+     "$Q(\\omega\\!-\\!H_0)Q$ reused each order, $\\Sigma^{(2+p)}_{ab}=\\langle\\chi^i_a|\\Delta V_{QQ}|\\chi^j_b\\rangle$ "
+     "with $i+j=p-1$ (one solve buys two orders; $\\Sigma^{(3)}$ free). Full Feshbach is the resummed endpoint. "
+     "Derivation + nonlocal implementation plan; not yet coded.",
+     '<a href="pages/sternheimer-ladder.html">Open derivation &rarr;</a>'),
     ("QE-Hamiltonian Sternheimer validation", "Test", "2026-05-31", "ok", "Complete",
      "Per-$k$ solve of $Q(\\omega_0-H_0)Q$ via projected PCG (QE <code>h_psi</code> matvec): "
      "$\\langle\\psi|H_0|\\psi\\rangle\\!=\\!\\varepsilon$ gate to $6\\times10^{-10}$ eV across all ranks; "
      "explicit rest-band sum converges to the all-band Sternheimer value (Born limit $T\\!\\to\\!V$ at $10^{-13}$ Ry).",
      '<a href="pages/plan.html">see P0&ndash;P3 in the plan &rarr;</a>'),
     ("Rest dressing ladder convergence", "Test", "&mdash;", "plan", "Planned",
-     "Successive-ratio $\\lVert\\tilde V^{(m+1)}-\\tilde V^{(m)}\\rVert/\\lVert\\tilde V^{(m)}-"
-     "\\tilde V^{(m-1)}\\rVert$ vs. rest $k$-grid and band cutoff (geometric rate "
-     "$\\rho\\sim\\lVert V_{QQ}\\rVert/\\Delta$).", "&mdash;"),
+     "Successive-ratio $r_m=\\lVert\\Sigma^{(m+1)}\\rVert/\\lVert\\Sigma^{(m)}\\rVert\\!\\to\\!\\rho$ vs. rest "
+     "$k$-grid and band cutoff; the free $\\Sigma^{(3)}$ (no new solve) gives $r_3$ as a cheap 2nd-order "
+     "reliability check. Method now derived; the numerical run is pending.",
+     '<a href="pages/sternheimer-ladder.html">See the ladder derivation &rarr;</a>'),
     ("Wannier representation &amp; Koster&ndash;Slater (P5-b)", "Result", "2026-06-01", "ok", "Resolved",
      "Wannierizing $\\tilde V$ needs $U(k)$ in the same Bloch gauge as the evc that build $M$. The original "
      "<code>filukk</code> (a separate 17-band run) mismatched the 150-band NSCF evc, so $M^W(R_e;q{\\neq}0)$ "
@@ -532,12 +566,14 @@ def main():
     build_plan()
     build_note()
     build_results()
+    build_ladder()
     build_index()
 
     th = open(os.path.join(PAGES_DIR, "theory.html"), encoding="utf-8").read()
     pl = open(os.path.join(PAGES_DIR, "plan.html"),   encoding="utf-8").read()
     nt = open(os.path.join(PAGES_DIR, "note-kprime-normalization.html"), encoding="utf-8").read()
     rs = open(os.path.join(PAGES_DIR, "results.html"), encoding="utf-8").read()
+    ld = open(os.path.join(PAGES_DIR, "sternheimer-ladder.html"), encoding="utf-8").read()
     ix = open(os.path.join(DOCS, "index.html"),       encoding="utf-8").read()
 
     def check(txt):
@@ -558,9 +594,10 @@ def main():
     stats("note-knorm",  nt)
     stats("results.html", rs)
     print("results.html: %d <img>, %d tables" % (rs.count("<img "), rs.count("<table>")))
+    stats("ladder.html", ld)
     print("index.html  : %d bytes, %d catalog rows" % (len(ix), ix.count("<tr")))
     for nm, txt in (("theory.html", th), ("plan.html", pl), ("note-knorm", nt),
-                    ("results.html", rs), ("index.html", ix)):
+                    ("results.html", rs), ("ladder.html", ld), ("index.html", ix)):
         p = check(txt)
         print("  [%s] %s" % (nm, "OK" if not p else " ; ".join(p)))
 
