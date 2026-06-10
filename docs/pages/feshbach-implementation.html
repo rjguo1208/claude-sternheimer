@@ -1,0 +1,68 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sternheimer Electron-Defect T-matrix — Full-order Feshbach implementation plan</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head><body>
+<nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html" style="color:#fff;text-decoration:underline">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
+<header><div class="header-inner"><h1>全阶 Feshbach Sternheimer:rest-space 求解的实现计划(v2)</h1><p class="subtitle">Static-$\omega_0$ full-order rest dressing as ONE all-$k$ Sternheimer solve $[Q(H_0{+}\Delta V{-}\omega_0)Q{+}\alpha P]\,X_b=Q\Delta V|b\rangle$. v1 post-mortem (the isolated check caught a $1/N_k^2$ convention bug), the corrected cube-anchored $\Delta V$ applier, an element-wise validation ladder anchored on the trusted $M$ block, a zero-communication source-parallel layout, and measured-anchor cost.</p><div class="meta"><span class="pill">Implementation plan (v2)</span><span class="pill">7 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<main>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. v1 验收的 post-mortem:三个结构性根因</a><a href="#sec-2">2. 归一化契约(一次定死,只在文件边界出现)</a><a href="#sec-3">3. 件 B v2:cube-anchored <code>apply_dV</code></a><a href="#sec-4">4. 验收阶梯:V0(对 $M$ 块逐元素)是基石</a><a href="#sec-5">5. 求解器与并行布局(两处实质修订)</a><a href="#sec-6">6. 成本与内存(实测锚定)</a><a href="#sec-7">7. 阶段计划、风险与定位</a></div></section>
+<p><a href="sternheimer-ladder.html">Ladder 页</a> §5 实测逐阶展开对全 rest <strong>发散</strong>($r_3=1.54$),§6 推导了不展开、直接求逆的全阶 Feshbach 路线。本页是它的<strong>代码实现计划(v2)</strong>:对 rest contribution 取<strong>静态参考</strong>($\omega\to\omega_0$,取在 gap 内),全阶 $\Sigma$ 化成一个全 $\mathbf k$ 耦合的 Sternheimer 线性解</p>
+<div class="math">
+$$A\,|X_b\rangle=|S_b\rangle,\qquad A=Q\,(H_0+\Delta V-\omega_0)\,Q+\alpha P,\qquad
+|S_b\rangle=Q\,\Delta V\,|b\rangle,\qquad \Sigma_{ab}(\omega_0)=-\langle S_a|X_b\rangle .$$
+</div>
+<p>唯一的新物理机器是 matvec 里的 <strong>cross-channel $\Delta V$ 作用子</strong>(<code>apply_dV</code>,超胞实现)。第一版(v1)已编码并跑过<strong>隔离验收 —— 抓到一个 $1/N_k^2$ 量级的约定 bug</strong>。本页先做 post-mortem,再给修正后的设计:以"对已验证的 $M$ 矩阵<strong>逐元素</strong>回归"为基石的验收阶梯、零通信的 source-parallel 布局、对算符不定性的诚实分析,以及实测锚定的成本。</p>
+<section id="sec-1"><h2>1. v1 验收的 post-mortem:三个结构性根因</h2>
+<p>v1(预存 $\Delta V$ 场 + 超胞 FFT 作用子)编译、运行都干净,隔离验收用 <code>do_sigma3</code> 的 folded $\Sigma^{(3)}$ 做参考:</p>
+<div class="table-wrap"><table><thead><tr><th>量</th><th>值</th></tr></thead><tbody><tr><td>$\Sigma^{(3)}$,folded 参考(raw)</td><td>$1.526\times10^{4}$</td></tr><tr><td>$\Sigma^{(3)}$,v1 超胞 FFT(raw)</td><td>$6.70\times10^{-1}$</td></tr><tr><td><strong>ratio</strong></td><td>$4.4\times10^{-5}\approx0.91/N_k^2$(对照 $1/N_k^2=4.82\times10^{-5}$,$N_k{=}144$)</td></tr></tbody></table></div>
+<p>干净的 $\sim1/N_k^2$ 加 ~9% 残差 ⇒ 不是少乘一个因子,是<strong>约定层面的结构错误</strong>。三个根因:</p>
+<ol><li><strong>丢了胞内 Bloch 相位 $e^{i\mathbf k\cdot\mathbf r}$。</strong> v1 的展开/折回用 $\sum_k u_k(\mathbf r)\,e^{i\mathbf k\cdot\mathbf R}$,但真实波函数是 $\psi(\mathbf r{+}\mathbf R)=\sum_k e^{i\mathbf k\cdot(\mathbf r+\mathbf R)}u_k(\mathbf r)$ —— 胞内与胞间相位<strong>都要</strong>。<code>build_V_folded</code> 的相位约定(<code>arg=irx*d1</code>,位置含胞内分数)正是完整的 $\mathbf q\cdot(\mathbf r{+}\mathbf R)$;v1 只配了胞间一半,相干性被破坏。</li><li><strong>$\Delta V$ 超胞场的组装方式结构错。</strong> v1 从 144 个 folded 势 $V_f(\mathbf q)$ 做 $\mathbf q$-逆变换 —— 但 $V_f$ 的相位含连续 $\mathbf r$,$\mathbf q$-和不是干净的 $\delta$,产生 aliasing(那 ~9%)。<strong>正确做法根本不经过 $V_f(\mathbf q)$</strong>:$\Delta V$ 的超胞场就是已在内存里的 <code>V_colin</code>(对齐后的 cube 数据),只需一次网格重排。</li><li><strong>支撑域弄错。</strong> $\Delta V$ 的支撑是 <strong>6×6 cube 区域(36 个原胞)</strong>,不是 12×12 BvK 的 144 个胞(BvK 晶胞 = 2×2 个缺陷超胞,势只在其中一个超胞上非零)。v1 把场摊到 144 胞 —— 既错又贵 4 倍。</li></ol>
+<p><strong>方法论教训:</strong> 标量级验收(一个 $\Sigma^{(3)}$ 数)只能判错、不能定位。v2 的基石改成<strong>逐元素</strong>回归(§4 的 V0)。</p>
+</section>
+<section id="sec-2"><h2>2. 归一化契约(一次定死,只在文件边界出现)</h2>
+<p>BvK 归一基 $|kG\rangle$ 下,态 = evc 系数向量按通道堆叠,$\langle k'G'|\Delta V|kG\rangle$ <strong>自带 $1/N_k$</strong>。物理作用子:</p>
+<div class="math">
+$$\big[\Delta V_{\rm phys}X\big]_{k'}=\frac1{N_k}\sum_{\mathbf k}V_f^{\,\mathbf k-\mathbf k'}\!\circ u_{\mathbf k},
+\qquad V_f^{\mathbf q}(\mathbf r)=\sum_{\mathbf R\in\text{cube}}\Delta V(\mathbf r{+}\mathbf R)\,e^{i\mathbf q\cdot(\mathbf r+\mathbf R)} .$$
+</div>
+<p>一致性链(全部可验):$M_{\rm phys}=M_{\rm raw}/N_k$(项目既有契约,$H_{\rm eff}$ 已对 DFT 验证);$\Sigma^{(2)}_{\rm phys}={\rm Sgblk}/N_k$(已验);folded 路的 $Y$ <strong>不带</strong> $1/N_k$ ⇒ §4 V1 验收的 ratio 目标是 $1/N_k$ 而非 $1$。<strong>求解器内部一律用 physical 量</strong>($S^{\rm phys}$、$\Delta V_{\rm phys}$、$\Sigma_{\rm phys}=-\langle S^{\rm phys}_a|X_b\rangle$,无游离因子);只在写 <code>.dat</code> 时乘回 $N_k$,兼容既有后处理(<code>H_eff = diag(ε) + (M+Σ)/N_k</code>)。</p>
+</section>
+<section id="sec-3"><h2>3. 件 B v2:cube-anchored <code>apply_dV</code></h2>
+<p><strong>预备(一次性,~30 行):</strong> 把 <code>V_colin</code>(240×240×300)重排成 <code>dV_blk(nnr_p, 36)</code>(原胞网格 40×40×300 × 36 胞;启动 assert 公度 $240=6\times40$、$300=300$、k-grid $12\times12\times1$);相位表 $E(k,m)=e^{i\mathbf k\cdot\mathbf R_m}$($144\times36$)。锚点由构造对齐:cube 原点 = 原胞原点、$m=0..5$,胞内+胞间相位合成后逐点等于 <code>build_V_folded</code> 的 <code>irx*d1</code> 约定。</p>
+<p><strong>每次作用(单源向量,~6–8 s):</strong></p>
+<pre><code class="language-text">1. 每通道:  ũ_k(r) = e^{i k·r} ∘ invfft(X(:,k))            # 144 个原胞 FFT + 胞内相位
+2. 展开:    Psi_blk(nnr,36) = ũ(nnr,144) · E(144,36)        # ZGEMM -&gt; cube 区域的真实波函数
+3. 乘势:    W_blk = dV_blk ∘ Psi_blk                         # 逐点 (17M)
+4. 折回:    ṽ(nnr,144) = (1/N_k) · W_blk · E^H               # ZGEMM
+5. 每通道:  Y(:,k&#x27;) = gather_G[ fwfft( e^{-i k&#x27;·r} ∘ ṽ_k&#x27; ) ] # 144 个 FFT, igk_all 映射
+6. 非局域:  Y(k&#x27;) += Σ_I |β_I(k&#x27;)&gt; D_I · (1/N_k) Σ_k &lt;β_I(k)|X(k)&gt;   # KB 可分离; get_betavkb/make_coeff 复用
+7. 逐通道 apply_Qproj</code></pre>
+<p><strong>非局域必须在</strong>(它是 $\Delta V$ 的一部分,(7a) 的源就含 nl;v1 的 folded 对照只比局域是验收口径,不是物理口径)。</p>
+</section>
+<section id="sec-4"><h2>4. 验收阶梯:V0(对 $M$ 块逐元素)是基石</h2>
+<div class="table-wrap"><table><thead><tr><th>级</th><th>测试</th><th>判据</th><th>成本</th></tr></thead><tbody><tr><td><strong>V0(基石)</strong></td><td><code>apply_dV</code>(单位源 $=|b\rangle$ 在其 home-$k$ 通道)与全部 $\langle a|$ 缩并</td><td>$=M_{\rm blk}(a,b)/N_k$ <strong>逐元素</strong>(若干 $b$ 扫全列;局域+非局域、相位、锚点、归一化一次全验)</td><td>秒级,in-run 用内存里的 $M_{\rm blk}$</td></tr><tr><td>V1</td><td>对 folded $\Sigma^{(3)}$(关 nl,局域对局域)</td><td>ratio $=1/N_k$ <strong>精确</strong></td><td>复用 <code>do_sigma3</code> harness</td></tr><tr><td>V2</td><td>求解器回归:matvec 关掉 $\Delta V$ 项</td><td>$\Sigma$ 逐列 $={\rm Sgblk}/N_k$(对已存 2nd-order block 直接回归)</td><td>小子集</td></tr><tr><td>V3</td><td>物理验收:全解后 $H_{\rm eff}$</td><td><strong>$e$ 回到 $+1.2$–$1.4$</strong>、$a_1$ 贴 VBM;与 explicit / Koster–Slater 对照</td><td>全跑</td></tr><tr><td>V4</td><td>$\max\lvert\Sigma-\Sigma^\dagger\rvert$;两个 $\omega_0$ 抽查</td><td>Hermitian;$\omega_0$ 行为合理</td><td>免费</td></tr></tbody></table></div>
+<p>V0 不过,后面全不动 —— 相位/锚点类 bug 在 V0 是逐元素的明牌,不再像 v1 那样只看到一个错的标量。</p>
+</section>
+<section id="sec-5"><h2>5. 求解器与并行布局(两处实质修订)</h2>
+<p><strong>(1) source-parallel,matvec 零通信。</strong> 2nd-order 是 pool-per-channel;全阶 matvec 耦合所有通道,沿用通道并行就要每步 <code>mp_sum</code> 一个 ~280 MB 的 cube 场 —— 不可接受。改为:<strong>每 rank 持有 $N_A/36\approx44$ 个源的完整全通道向量</strong>($\approx15$ MB/源),<code>h_psi</code>(逐通道、按源批量)与 <code>apply_dV</code> 全部 rank 内完成,只在最后 <code>mp_sum</code> 拼 $\Sigma$。源天然并行 ⇒ 多节点线性加速。新 plumbing:<code>hpsi_setup_globalk(kg)</code> —— 用已 gather 的 <code>igk_all/xkc</code> 覆写本地 <code>igk_k</code> 槽 + 手算 <code>g2kin</code> + <code>get_betavkb</code> 填 <code>vkb</code>(带 save/restore,~40 行),让任意 rank 对任意全局 $k$ 跑 <code>h_psi</code>。启动自检:每 rank 对<strong>全部 144 通道</strong>各做一次 $\langle\psi|H_0|\psi\rangle=\varepsilon$ gate(现有 gate 的全局版),立刻暴露 igk/vkb/g2kin 错配。</p>
+<p><strong>(2) 算符不定性:不再赌正定,先测谱再定案。</strong> 之前"rest 在 $\omega_0$ 之上 ⇒ $A\succ0$ ⇒ 实 CG"的断言<strong>不严谨</strong>,两处风险:</p>
+<ul><li><strong>深带 bands 1–6</strong>(Mo 4s4p 半芯 $\sim-30$ 到 $-60$ eV、S 3s $\sim-12.5$ eV)在 $\omega_0$ 之下,$(H_0-\omega_0)$ 在其上为<strong>负</strong> —— 其实现有 2nd-order 算符就已轻度不定;它一直收敛且全部验证通过,是<strong>实践幸存而非定理</strong>。</li><li>加上 $\Delta V$(vacancy 核心区 $+11.8$ Ry)后,$Q(H_0{+}\Delta V)Q$ 可能有本征值被推近 $\omega_0$(rest-space 共振)⇒ 近奇异。</li></ul>
+<p>策略:沿用验证过的 <strong>deflated block-CG 骨架 + breakdown 监控</strong>($p^\dagger Ap$ 变号即报);smoke run 顺带用 Lanczos 系数<strong>实测</strong> $A|_Q$ 的极端 Ritz 值;若有负方向作怪 ⇒ 换 <strong>MINRES</strong>(对称不定的正解,~100 行、同存储);若近共振病态 ⇒ $\omega_0+i\eta$ 复解法。预条件子沿用每通道 Jacobi $1/\max(g_{\rm kin}^2,1)$。$\alpha=2(\omega_0-{\rm win_{min}})$ 不变。</p>
+</section>
+<section id="sec-6"><h2>6. 成本与内存(实测锚定)</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>锚</th><th>值</th></tr></thead><tbody><tr><td><code>apply_dV</code> / 源·迭代</td><td>288 个原胞 FFT $\approx2$ s + 2 个 ZGEMM($4.8\times10^5\times144\times36$)$\approx4$ s + nl $\approx1$ s</td><td><strong>~6–8 s</strong></td></tr><tr><td><code>h_psi</code> / 源·迭代(批量摊薄)</td><td>2nd-order block(1 h 59 m)的逐通道成本</td><td>~1 s</td></tr><tr><td>$n_{\rm iter}$</td><td>待 smoke 实测($\Delta V$ 核心 $+11.8$ Ry,预条件子只含动能,可能高于 2nd-order)</td><td>~100(假设)</td></tr><tr><td><strong>全块 1584 源</strong></td><td>$1584\times100\times7\,{\rm s}/36\ {\rm ranks}$</td><td><strong>$\approx$8.6 h(1 node)</strong>;零通信 ⇒ $\div N$(4 nodes $\approx$2 h)</td></tr></tbody></table></div>
+<p>内存/rank:$X$ 批(8 源 × 5 个 CG 向量 × 15 MB)$\approx0.6$ GB + cube 缓冲 $2\times0.28$ GB + <code>evc_act_all</code> 165 MB $\approx$ <strong>1.5 GB</strong> ✓。ZGEMM 按小批源合并、<code>vkb</code> 每通道每迭代缓存,可再省 1.5–2×。</p>
+</section>
+<section id="sec-7"><h2>7. 阶段计划、风险与定位</h2>
+<div class="table-wrap"><table><thead><tr><th>阶段</th><th>内容</th><th>验收</th><th>工作量</th></tr></thead><tbody><tr><td><strong>P-I</strong></td><td><code>dV_blk</code> 重排 + <code>apply_dV</code> v2(含 nl)+ V0/V1 harness</td><td>V0 逐元素过;V1 ratio $=1/N_k$</td><td>~1–2 天</td></tr><tr><td>P-II</td><td><code>hpsi_setup_globalk</code> + matvec + 全通道 gate</td><td>V2 回归 $={\rm Sgblk}/N_k$</td><td>~1 天</td></tr><tr><td>P-III</td><td>block 求解(deflation+监控)→ smoke(288 列,band 13–14)→ 全 1584 列 @ $\omega_0{=}$VBM,2–4 nodes</td><td>Hermiticity;$n_{\rm iter}$/谱实测</td><td>~1 天 + 2–4 h 机时</td></tr><tr><td>P-IV</td><td>$H_{\rm eff}$ 能级 + 上页</td><td>$e$ 回 $+1.2$–$1.4$,与 explicit/KS 对照</td><td>半天</td></tr></tbody></table></div>
+<p><strong>风险表:</strong> ① 相位/锚点(v1 的杀手)→ V0 逐元素钉死;② 不定性/迭代数 → 先测谱,MINRES / $+i\eta$ 备选;③ nl 漏项或重复计 → V0 含 nl;④ <code>h_psi</code> 全局 $k$ 的模块状态副作用 → save/restore + 全通道 gate;⑤ cube 缓冲内存 → 源批 $\le$4 时上限受控。</p>
+<p><strong>定位。</strong> 若只要缺陷能级,<a href="koster-slater.html">Koster–Slater</a>(分钟级)与 explicit(46 min)已给出同样的 $a_1{+}e$ —— 本计划的价值在于把 rest dressing <strong>治本</strong>(全阶 $\Delta V_{QQ}$,消除二阶的过度屏蔽/发散),并产出谱函数级的生产对象:静态 $\Sigma(\omega_0)$ block 一次 ~半天/node;将来要整条 $\Sigma(\omega)$ 时,逐 $\omega$ 重复 P-III 即可(多节点线性摊)。</p>
+</section>
+</main>
+<footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
+Static HTML; equations rendered client-side with MathJax v3. No raw wavefunctions, cubes,
+binaries, or logs are published.</footer>
+</body></html>

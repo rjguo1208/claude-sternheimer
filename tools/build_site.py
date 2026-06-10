@@ -29,6 +29,7 @@ NOTE_KNORM = os.path.join(ROOT, "content", "note_kprime_norm.md")
 NOTE_RESULTS = os.path.join(ROOT, "content", "note_tmatrix_results.md")
 NOTE_LADDER = os.path.join(ROOT, "content", "note_sternheimer_ladder.md")
 NOTE_KOSTER = os.path.join(ROOT, "content", "note_koster_slater.md")
+NOTE_FESH = os.path.join(ROOT, "content", "note_feshbach_plan.md")
 DOCS      = os.path.join(ROOT, "docs")
 PAGES_DIR = os.path.join(DOCS, "pages")
 
@@ -262,10 +263,11 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            '%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
                                       a("pages/sternheimer-ladder.html", "Rest-space ladder", "ladder"),
                                       a("pages/koster-slater.html", "Koster&ndash;Slater", "koster"),
+                                      a("pages/feshbach-implementation.html", "Feshbach impl.", "fesh"),
                                       a("pages/plan.html", "Implementation Plan", "plan"),
                                       a("pages/results.html", "Results", "results"),
                                       a("pages/note-kprime-normalization.html", "Note: k&prime;-norm", "note")))
@@ -403,6 +405,31 @@ def build_koster():
         f.write(out)
     return r
 
+def build_feshplan():
+    with open(NOTE_FESH, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=False)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">Static-$\\omega_0$ full-order rest dressing as ONE all-$k$ Sternheimer '
+              'solve $[Q(H_0{{+}}\\Delta V{{-}}\\omega_0)Q{{+}}\\alpha P]\\,X_b=Q\\Delta V|b\\rangle$. '
+              'v1 post-mortem (the isolated check caught a $1/N_k^2$ convention bug), the corrected '
+              'cube-anchored $\\Delta V$ applier, an element-wise validation ladder anchored on the trusted '
+              '$M$ block, a zero-communication source-parallel layout, and measured-anchor cost.</p>'
+              '<div class="meta"><span class="pill">Implementation plan (v2)</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">MathJax v3</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " — Full-order Feshbach implementation plan",
+                     header, _topnav("fesh", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "feshbach-implementation.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
 def build_results():
     with open(NOTE_RESULTS, encoding="utf-8") as f:
         md = f.read()
@@ -479,6 +506,14 @@ CATALOG = [
      "$\\sim$seconds vs explicit&rsquo;s 46 min / Feshbach&rsquo;s days. $C_{3v}$ blocks give rigorous $a_1$/$e$ "
      "labels; Krein&ndash;Friedel gives the $\\Delta$DOS. Groundwork (gauge-fixed $M^W$, $R_{\\rm cut}{=}4$) in place; not yet run.",
      '<a href="pages/koster-slater.html">Open derivation &rarr;</a>'),
+    ("Full-order Feshbach Sternheimer: implementation plan (v2)", "Plan", GEN_DATE, "ok", "Drafted",
+     "Static-$\\omega_0$ full-order rest dressing as ONE all-$k$ Sternheimer solve "
+     "$[Q(H_0{+}\\Delta V{-}\\omega_0)Q{+}\\alpha P]X_b=Q\\Delta V|b\\rangle$. Piece-B v1's isolated check caught a "
+     "$1/N_k^2$ convention bug &rarr; v2 fixes the three root causes (cube-anchored unfold, 36 cells + intra-cell "
+     "Bloch phases; $\\Delta V$ field straight from <code>V_colin</code>), validates element-wise against the "
+     "trusted $M$ block (V0), and runs source-parallel with a zero-communication matvec. "
+     "Measured-anchor cost $\\sim$8.6 h/node, $\\div N$ nodes. Implementation pending (P-I&ndash;P-IV).",
+     '<a href="pages/feshbach-implementation.html">Open plan &rarr;</a>'),
     ("QE-Hamiltonian Sternheimer validation", "Test", "2026-05-31", "ok", "Complete",
      "Per-$k$ solve of $Q(\\omega_0-H_0)Q$ via projected PCG (QE <code>h_psi</code> matvec): "
      "$\\langle\\psi|H_0|\\psi\\rangle\\!=\\!\\varepsilon$ gate to $6\\times10^{-10}$ eV across all ranks; "
@@ -601,6 +636,7 @@ def main():
     build_results()
     build_ladder()
     build_koster()
+    build_feshplan()
     build_index()
 
     th = open(os.path.join(PAGES_DIR, "theory.html"), encoding="utf-8").read()
@@ -609,6 +645,7 @@ def main():
     rs = open(os.path.join(PAGES_DIR, "results.html"), encoding="utf-8").read()
     ld = open(os.path.join(PAGES_DIR, "sternheimer-ladder.html"), encoding="utf-8").read()
     ks = open(os.path.join(PAGES_DIR, "koster-slater.html"), encoding="utf-8").read()
+    fp = open(os.path.join(PAGES_DIR, "feshbach-implementation.html"), encoding="utf-8").read()
     ix = open(os.path.join(DOCS, "index.html"),       encoding="utf-8").read()
 
     def check(txt):
@@ -631,9 +668,11 @@ def main():
     print("results.html: %d <img>, %d tables" % (rs.count("<img "), rs.count("<table>")))
     stats("ladder.html", ld)
     stats("koster.html", ks)
+    stats("feshplan", fp)
     print("index.html  : %d bytes, %d catalog rows" % (len(ix), ix.count("<tr")))
     for nm, txt in (("theory.html", th), ("plan.html", pl), ("note-knorm", nt),
-                    ("results.html", rs), ("ladder.html", ld), ("koster.html", ks), ("index.html", ix)):
+                    ("results.html", rs), ("ladder.html", ld), ("koster.html", ks),
+                    ("feshplan", fp), ("index.html", ix)):
         p = check(txt)
         print("  [%s] %s" % (nm, "OK" if not p else " ; ".join(p)))
 
