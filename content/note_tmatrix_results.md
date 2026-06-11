@@ -321,25 +321,30 @@ the 21-band truncation — the truncation part now **confirmed and removed** by 
 
 The defect-induced $\Delta\mathrm{DOS}=-\tfrac1\pi\,\mathrm{Im}\,\mathrm{Tr}\,[G^A T G^A]$ makes the
 mechanism unmistakable. The bare host has no states in the gap, so every in-gap feature of
-$\Delta\mathrm{DOS}$ *is* a defect level; computed three ways on one common grid and broadening:
+$\Delta\mathrm{DOS}$ *is* a defect level; computed four ways on one common grid and broadening:
 
-![Three stacked defect-induced delta-DOS panels on a common axis: (1) explicit 21-band bare M and (2) active-space 11-band bare M are nearly identical with a tall e peak deep in the gap; (3) the 11-band with 2nd-order rest dressing has its e peak over-screened down to near the VBM, leaving the mid-gap flat.](../assets/vtilde_ddos_three.png)
+![Four stacked defect-induced delta-DOS panels on a common axis: (1) explicit 21-band bare M and (2) active-space 11-band bare M are nearly identical with a tall e peak deep in the gap; (3) the 11-band with 2nd-order rest dressing has its e peak over-screened down to near the VBM; (4) the 11-band with FULL-ORDER rest dressing puts the e peak back mid-gap at -4.71 eV, the closest of all four to the DFT marker.](../assets/vtilde_ddos_four.png)
 
-*Figure 15. Defect-induced $\Delta\mathrm{DOS}$ of the S-vacancy, three treatments on one grid
-($\eta=50$ meV). **(1) explicit 21-band** (bare $M$) and **(2) active-space 11-band** (bare $M$) are
-**nearly identical** — a tall, clean $e$ peak deep in the gap (at $-4.59$ / $-4.44$ eV, i.e. $+1.35$ /
-$+1.50$ above the VBM), with the shallow $a_1$ blended into the VBM edge. Neither the band count nor the
-Wannier/downfolding changes the bare-$M$ answer. **(3) 11 bands $+$ 2nd-order rest space**
-($\tilde V=M+\Sigma$): the $e$ peak **collapses $\sim1.1$ eV down to $-5.58$ eV** ($+0.36$), nearly onto
-the VBM, leaving the mid-gap flat. That is the whole story of the "missing" $e$ — it is not omitted, it is
-dragged to the wrong energy by the Born self-energy. The negative dips at the band edges are the
+*Figure 15. Defect-induced $\Delta\mathrm{DOS}$ of the S-vacancy — the rest-dressing story in four
+panels on one grid ($\eta=50$ meV). **(1) explicit 21-band** (bare $M$) and **(2) active-space 11-band**
+(bare $M$) are **nearly identical** — a tall, clean $e$ peak deep in the gap ($-4.59$ / $-4.44$ eV, i.e.
+$+1.35$ / $+1.50$ above the VBM): neither the band count nor the Wannier/downfolding changes the
+bare-$M$ answer. **(3) 11 bands $+$ 2nd-order rest** ($\tilde V=M+\Sigma^{(2)}$): the $e$ peak
+**collapses $\sim1.1$ eV down to $-5.58$** ($+0.36$), nearly onto the VBM — the $e$ is not omitted, it
+is dragged to the wrong energy by the Born self-energy. **(4) 11 bands $+$ full-order rest**
+($\tilde V=M+N_k\Sigma_{\rm full}(\omega_0)$, the direct-resolvent dressing): the $e$ peak returns to
+**mid-gap at $-4.71$ eV** ($+1.23$) — and because the full-order $\Sigma$ carries the *band-converged*
+rest (to band 70), this is the **most accurate of the four** ($60$ meV from the DFT $e$ at $-4.77$,
+vs $0.18$/$0.33$ eV for the band-truncated bare-$M$ panels). The negative dips at the band edges are the
 compensating spectral-weight depletion ($\int\Delta\mathrm{DOS}\,d\omega\simeq0$; Friedel/Levinson).*
 
 The lesson is sharp: in this system the **2nd-order (Born) rest dressing is an over-screening, not an
 improvement** — the bare explicit $M$, paying the $\mathcal{O}(N_b^2)$ cost of carrying the conduction
-bands directly, is the more faithful object. A correct rest dressing here would need to go beyond 2nd
-order (or use the full frequency-dependent $\Sigma_{\rm rest}(\omega)$), not the static Born
-$\Sigma(\omega_0)$.
+bands directly, is the more faithful object. A correct rest dressing must go to **full order** in
+$\Delta V_{QQ}$ — and panel (4) shows that once it does, downfolding becomes *better* than bare
+truncated explicitness: the full-order $\tilde V$ on the small 11-band space carries the whole
+band-converged rest. (How it is computed — and why order-by-order cannot get there — is the
+direct-resolvent subsection below and the [ladder page](sternheimer-ladder.html).)
 
 ### Band convergence: the explicit $e$ converges onto DFT
 
@@ -402,7 +407,9 @@ $H_{QQ}$ spectrum has **no** eigenvalue within $5.5$ eV of $\omega_0$, so the st
 well-conditioned.)
 
 The dressed block $\tilde V=M+N_k\Sigma_{\rm full}(\omega_0)$ — the production *partially scattered
-$T$-matrix* with full-order rest dressing — feeds the same spectral-function pipeline as Figure 10:
+$T$-matrix* with full-order rest dressing — feeds the same pipelines as the 2nd-order block: its
+defect-induced $\Delta\mathrm{DOS}$ is **panel (4) of Figure 15** (the $e$ peak back at mid-gap,
+$60$ meV from DFT), and the multiband spectral function reads:
 
 ![Multiband spectral function from the full-order-dressed Vtilde (explicit-60 resolvent): same 2x2 grid as Figure 10, but the in-gap resonance now sits mid-gap at about -4.7 eV instead of hugging the VBM.](../assets/vtilde_spectral_multiband_fesh60.png)
 
