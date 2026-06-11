@@ -519,11 +519,20 @@ CATALOG = [
      "$\\langle\\psi|H_0|\\psi\\rangle\\!=\\!\\varepsilon$ gate to $6\\times10^{-10}$ eV across all ranks; "
      "explicit rest-band sum converges to the all-band Sternheimer value (Born limit $T\\!\\to\\!V$ at $10^{-13}$ Ry).",
      '<a href="pages/plan.html">see P0&ndash;P3 in the plan &rarr;</a>'),
-    ("Rest dressing ladder convergence", "Test", "&mdash;", "plan", "Planned",
-     "Successive-ratio $r_m=\\lVert\\Sigma^{(m+1)}\\rVert/\\lVert\\Sigma^{(m)}\\rVert\\!\\to\\!\\rho$ vs. rest "
-     "$k$-grid and band cutoff; the free $\\Sigma^{(3)}$ (no new solve) gives $r_3$ as a cheap 2nd-order "
-     "reliability check. Method now derived; the numerical run is pending.",
-     '<a href="pages/sternheimer-ladder.html">See the ladder derivation &rarr;</a>'),
+    ("Rest dressing ladder convergence", "Test", "2026-06-11", "ok", "Measured",
+     "Successive ratios MEASURED across rest sizes: $r_3{=}0.37$ ($Q$=18&ndash;28), "
+     "$r_3{=}0.74,\\ r_4{=}0.91,\\ r_5{=}1.21$ ($Q$=18&ndash;70, crossing 1), $r_3{=}1.54$ (full rest, in-code) "
+     "&mdash; the Born series for the rest dressing is <em>divergent</em>, and the partial sums oscillate "
+     "($e$: $+1.50\\to+0.73\\to+1.60$). Only the full resummation lands correctly.",
+     '<a href="pages/sternheimer-ladder.html">See the ladder page &rarr;</a>'),
+    ("Full-order rest dressing: direct resolvent from explicit-60", "Result", "2026-06-11", "prod", "Complete",
+     "The full-order static-$\\omega_0$ Feshbach dressing of the 11-band active space, computed by DIRECT "
+     "resolvent inversion on the explicit-60 data ($Q$=bands 18&ndash;70, one $H_{QQ}$ eigendecomposition "
+     "&mdash; no Sternheimer iteration). <strong>Self-consistent full-order $e$ = $+1.205$ = the explicit-60 "
+     "all-band value, to the displayed digits</strong> (DFT $+1.19$): the downfolding identity closes exactly, "
+     "and the over-screening of the 2nd order ($+0.73$) is cured. Dressed $\\tilde V$ written in the standard "
+     "block format; full-order multiband spectral function on the results page (Fig 17 vs Fig 10).",
+     '<a href="pages/results.html#sec-3">Open results &rarr;</a>'),
     ("Wannier representation &amp; Koster&ndash;Slater (P5-b)", "Result", "2026-06-01", "ok", "Resolved",
      "Wannierizing $\\tilde V$ needs $U(k)$ in the same Bloch gauge as the evc that build $M$. The original "
      "<code>filukk</code> (a separate 17-band run) mismatched the 150-band NSCF evc, so $M^W(R_e;q{\\neq}0)$ "

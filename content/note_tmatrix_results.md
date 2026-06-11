@@ -367,6 +367,53 @@ matrix elements alone. Second, the **acceptance target for the full-order Feshba
 the rest-space Sternheimer implicitly carries *all* bands, so its converged $e$ must land at
 $\approx+1.19$–$1.21$ — the band-converged value, not the 21-band $+1.35$.
 
+### Full-order rest dressing, realized: the direct-resolvent $\tilde V$ from explicit-60
+
+The explicit-60 matrix contains every block needed for the **full-order static-$\omega_0$ Feshbach
+dressing of the original 11-band active space** — no Sternheimer iteration required. With
+$P=$ bands $7$–$17$ ($N_P{=}1584$), $Q=$ bands $18$–$70$ ($N_Q{=}7174$, the band-converged rest) and
+$W=M^{(60)}/N_k$,
+$$\Sigma_{\rm full}(\omega_0)=W_{PQ}\,\big(\omega_0-E_Q-W_{QQ}\big)^{-1}W_{QP}
+=B^\dagger\,\mathrm{diag}\!\Big(\tfrac{1}{\omega_0-\lambda_q}\Big)\,B,\qquad
+B=U^\dagger W_{QP},$$
+via **one** eigendecomposition $E_Q+W_{QQ}=U\Lambda U^\dagger$ (after which any $\omega$ costs one GEMM
+— the $\omega$-self-consistency is nearly free). The resulting defect levels, treatment by treatment:
+
+| rest treatment ($Q$ = bands 18–70) | $e$ doublet (above VBM) | $a_1$ |
+|---|---|---|
+| bare $M$ (no rest) | $+1.495$ | $+0.010$ |
+| $+\,\Sigma^{(2)}(\omega_0)$ — 2nd order | $+0.732$ | **pushed out of the gap** |
+| $+\,\Sigma^{(2)}{+}\Sigma^{(3)}(\omega_0)$ | $+1.595$ | $+0.023$ |
+| $+\,\Sigma_{\rm full}(\omega_0)$ — resummed, static | $+1.223$ | $+0.005$ |
+| **self-consistent $\omega$, resummed** | $\boxed{+1.205}$ | — |
+| *references* | explicit-60 all-band $+1.205$ · DFT $+1.19$ | |
+
+Three things are settled at once. **(i) The downfolding identity closes exactly**: the self-consistent
+full-order dressing reproduces the explicit-60 all-band diagonalization *to the displayed digits*
+($-4.731$ eV both) — folding bands $18$–$70$ into $\Sigma$ and keeping them explicitly are now verified
+to be the same physics. **(ii) The order-by-order series is divergent and oscillates**: 2nd order
+crashes the $e$ to $+0.73$ (and expels the $a_1$), 3rd order overshoots to $+1.60$, while the
+per-order ratios grow through one ($r_3{=}0.74,\ r_4{=}0.91,\ r_5{=}1.21$) — only the resummation
+(resolvent inversion) lands correctly, confirming the [ladder-page](sternheimer-ladder.html) verdict
+with this rest as well. **(iii) The static reference is mild**: $\Sigma_{\rm full}(\omega_0{=}\varepsilon_{\rm VBM})$
+alone is already within $20$ meV of the self-consistent answer. (Diagnostics: the $M_{PP}$ block matches
+the archived 11-band $M$ to $4.6\times10^{-16}$; $\Sigma_{\rm full}$ Hermitian to $10^{-17}$; the
+$H_{QQ}$ spectrum has **no** eigenvalue within $5.5$ eV of $\omega_0$, so the static resolvent is
+well-conditioned.)
+
+The dressed block $\tilde V=M+N_k\Sigma_{\rm full}(\omega_0)$ — the production *partially scattered
+$T$-matrix* with full-order rest dressing — feeds the same spectral-function pipeline as Figure 10:
+
+![Multiband spectral function from the full-order-dressed Vtilde (explicit-60 resolvent): same 2x2 grid as Figure 10, but the in-gap resonance now sits mid-gap at about -4.7 eV instead of hugging the VBM.](../assets/vtilde_spectral_multiband_fesh60.png)
+
+*Figure 17. Complete multiband spectral function built from the **full-order** dressed
+$\tilde V=M+N_k\Sigma_{\rm full}(\omega_0)$ (same layout, window and $\omega_0$ as Figure 10: rows
+$n_d=1\%/5\%$, columns with/without rest). The contrast with Figure 10 (2nd-order $\Sigma$) is the
+whole story of this page in one picture: with the **2nd-order** dressing the in-gap resonance hugged
+the VBM near $-5.6$ eV (the over-screened $e$); with the **full-order** dressing it sits **mid-gap at
+$\approx-4.7$ eV** — the $e$ doublet at its band-converged position ($+1.2$ above the VBM, DFT
+$+1.19$). The no-rest column (bare $M$, resonance at $-4.44$) is unchanged by construction.*
+
 ## 4. Wannier representation and locality (P5-b)
 
 The textbook way to avoid the large $(N_b N_k)$ inversion on fine grids is the Koster–Slater /
@@ -391,7 +438,7 @@ reproduces the NSCF bands to $2\times10^{-5}$ eV).
 
 ![Electron-index decay of M before (left, q!=0 flat) and after (right, all q decay) the gauge fix.](../assets/vtilde_gauge_fix.png)
 
-*Figure 17. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
+*Figure 18. Electron-index decay $\lVert M^W(R_e;q)\rVert$. **Left (old `filukk`, 17-band run):**
 $q\!\neq\!0$ is flat — the gauge mismatch. **Right (new `filukk`, re-Wannierized on the 150-band
 NSCF):** every $q$ now decays together by $\sim10^{3}\times$ over $\sim5$ cells.*
 
@@ -402,7 +449,7 @@ momentum transfer $q$.
 
 ![Wannierized downfolded potential V~^W: both-index locality (left, old flat vs new peaked+decaying) and electron-index decay (right, all q decay).](../assets/vtilde_W_locality.png)
 
-*Figure 18. Wannierization of $\tilde V$ and its locality. **Left:** both-index
+*Figure 19. Wannierization of $\tilde V$ and its locality. **Left:** both-index
 $\lVert\tilde V^W(R',R)\rVert_F$ by shell $\max(|R'|,|R|)$ — flat with the mismatched gauge (red),
 but with `filukk_150` (blue) it peaks on the defect cell ($\sim3$ cells from the Wannier origin)
 and decays $\sim250\times$. **Right:** electron-index $\lVert\tilde V^W(R_e;q)\rVert$ decays
@@ -415,7 +462,7 @@ with the minimum-image distance of $R$ from the defect:
 
 ![On-site |V~^W_ij(R,R)| for a fixed Wannier pair vs distance from the defect; drops 0.52 Ry to ~1e-3 in one cell, envelope decay length ~2 Angstrom.](../assets/vtilde_onsite_decay.png)
 
-*Figure 19. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
+*Figure 20. On-site downfolded potential $|\tilde V^W_{ij}(R,R)|$ for a fixed Wannier pair (dominant
 $i\!=\!j\!=\!6$; $(1,1)$ and $(1,2)$ shown for context) vs the minimum-image distance of cell $R$
 from the defect. It drops from $0.52$ Ry on the defect cell to $\sim\!10^{-3}$ Ry one cell
 ($\sim3.2$ Å) away, with envelope decay length $\lambda\approx2$ Å ($<1$ cell) — the downfolded
@@ -433,7 +480,7 @@ $T=[1-\tilde V^W G^A]^{-1}\tilde V^W$ converge quickly:
 
 ![Koster-Slater truncation: ||T(Rcut)|| vs cutoff, converges by Rcut=4 with the consistent gauge.](../assets/vtilde_ks_converge.png)
 
-*Figure 20. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
+*Figure 21. Koster–Slater truncation $\lVert T(R_{\rm cut})\rVert$ vs the cutoff radius (subspace
 dimension under each tick). With the gauge-consistent `filukk_150` (blue) the inversion converges
 by $R_{\rm cut}=4$ (dim 891, $\sim56\%$ of the full 1584); with the mismatched gauge (red) it only
 reaches the full value at the full subspace. The localized $\tilde V^W$ is what makes the truncation
@@ -456,7 +503,7 @@ inversion at $N_f=12$ and converges by $N_f\approx24$:
 
 ![Wannier-basis active T-matrix converges with the host G^A k-grid: 2.06 at Nf=12 to 1.97 by Nf=24, flat to Nf=96.](../assets/vtilde_wannier_converge.png)
 
-*Figure 21. Convergence of the Wannier-basis active T-matrix $\lVert T_{PP}(\omega_0)\rVert$ with the
+*Figure 22. Convergence of the Wannier-basis active T-matrix $\lVert T_{PP}(\omega_0)\rVert$ with the
 host $G^A$ $k$-grid $N_f$. $N_f=12$ matches the coarse direct inversion (P5-a, $2.064$ Ry); the host
 converges by $N_f\approx24$ to $1.974$ Ry — the coarse $12\times12$ over-estimated by $\sim4.6\%$
 (under-resolved band-edge DOS). The inversion stays $891$-dimensional at every $N_f$ — the payoff of
