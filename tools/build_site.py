@@ -487,10 +487,10 @@ CATALOG = [
     ("Defect levels recovered: explicit 21-band $T$-matrix", "Result", "2026-06-08", "prod", "Complete",
      "Benchmarked against the S-vacancy supercell (&Gamma;-point KS levels): the active-space + Born-$\\Sigma$ "
      "pipeline keeps the $a_1$ but <em>over-screens</em> the $e$ (drags it to the VBM). Keeping the conduction "
-     "manifold <em>explicitly</em> (raw Bloch $M=\\langle nk|\\Delta V|mk'\\rangle$, $\\approx21$ bands, $12\\times12$, "
-     "no Wannier / no downfolding) recovers the full $C_{3v}$ pattern &mdash; $a_1$ singlet ($+0.01$ eV above VBM) and "
-     "$e$ doublet ($+1.35$ eV) &mdash; matching DFT to $\\lesssim0.18$ eV. The 2nd-order rest dressing, not the active "
-     "space, was the culprit.",
+     "manifold <em>explicitly</em> (raw Bloch $M=\\langle nk|\\Delta V|mk'\\rangle$, $12\\times12$, no Wannier / no "
+     "downfolding) recovers the full $C_{3v}$ pattern, and the $e$ is now <strong>band-converged onto DFT</strong>: "
+     "$+1.495$ (11 bands) $\\to$ $+1.348$ (21) $\\to$ $+1.205$ (61, $N_A{=}8758$) vs DFT $+1.19$ &mdash; within "
+     "$15$ meV. The 2nd-order rest dressing, not the active space, was the culprit.",
      '<a href="pages/results.html#sec-3">Open results &rarr;</a>'),
     ("Rest-space Sternheimer ladder: beyond 2nd order", "Theory", GEN_DATE, "ok", "Derived",
      "Why the 2nd-order (Born) rest dressing over-screens &mdash; Born series $\\rho\\sim\\mathcal O(1)$ for the deep "
