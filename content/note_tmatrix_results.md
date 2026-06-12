@@ -516,7 +516,59 @@ converges by $N_f\approx24$ to $1.974$ Ry — the coarse $12\times12$ over-estim
 (under-resolved band-edge DOS). The inversion stays $891$-dimensional at every $N_f$ — the payoff of
 the localized $\tilde V^W$.*
 
-## 5. On the magnitude of $\tilde V$
+## 5. Defect-limited scattering rates near the band edges
+
+What does the full-order rest dressing do to *transport*? The on-shell optical-theorem rate
+
+$$\frac{\hbar}{\tau_{n\mathbf k}}\;=\;-2\,n_d\,\mathrm{Im}\,T_{nn}(\mathbf k,\mathbf k;\,\varepsilon_{n\mathbf k}+i\eta)$$
+
+is the defect-limited quasiparticle scattering rate to **all orders** in the defect potential (by the
+optical theorem it reduces to the golden rule $2\pi n_d\sum_{m\mathbf k'}|T_{n\mathbf k,m\mathbf k'}|^2
+\delta(\varepsilon_{n\mathbf k}-\varepsilon_{m\mathbf k'})$). We evaluate it for every interpolated
+state within $0.3$ eV of a band edge ($677$ states on a $48\times48$ grid: valence top, band 6, and
+conduction bottom, band 7; interpolated edges VBM $-5.937$, CBM $-4.280$ eV), with exactly the
+machinery of the §4 spectral functions — the Wannier real-space sub-block ($R_{\rm cut}{=}4$) and the
+fine-grid host Green's function ($\eta{=}50$ meV) — and with **both potential blocks read from the same
+fesh60 file**: the bare-$M$ record (11-band active space, no rest) vs the full-order
+$\tilde V=M+N_k\Sigma_{\rm full}(\omega_0)$ record of §3. Rates are quoted at $n_d=1\%$ (one vacancy
+per 100 cells) and scale linearly with $n_d$:
+
+| distance from edge | bare $M$ (11 bands): $\hbar/\tau$ ($\tau$) | full-order $\tilde V$: $\hbar/\tau$ ($\tau$) | ratio $\tilde V/M$ |
+|---|---|---|---|
+| **VBM** $0$–$50$ meV | $6.2$ meV ($106$ fs) | $2.1$ meV ($310$ fs) | $0.34$ |
+| VBM $50$–$150$ meV | $4.2$ meV ($157$ fs) | $2.0$ meV ($337$ fs) | $0.46$ |
+| VBM $150$–$300$ meV | $6.6$ meV ($100$ fs) | $3.2$ meV ($205$ fs) | $0.49$ |
+| **CBM** $0$–$50$ meV | $23.6$ meV ($28$ fs) | $7.4$ meV ($89$ fs) | $0.31$ |
+| CBM $50$–$150$ meV | $21.6$ meV ($30$ fs) | $8.6$ meV ($77$ fs) | $0.40$ |
+| CBM $150$–$300$ meV | $12.4$ meV ($53$ fs) | $6.8$ meV ($96$ fs) | $0.55$ |
+
+![On-shell defect scattering rates near the VBM and CBM: bare-M (green) vs full-order Vtilde (purple), log scale; the bare-M rates near the CBM are ~3x larger because the e resonance sits too close to the conduction edge.](../assets/vtilde_scatrate.png)
+
+*Figure 23. Defect-limited scattering rate $\hbar/\tau_{n\mathbf k}$ for every state within $0.3$ eV
+of the VBM (left) and CBM (right), at $n_d=1\%$ ($\eta=50$ meV, log scale). Green: 11-band active
+space with the bare $M$; purple: the same active space with the full-order rest dressing
+$\tilde V=M+N_k\Sigma_{\rm full}$ from the explicit-60 resolvent (§3).*
+
+Three observations:
+
+1. **The full-order dressing suppresses near-edge scattering by a factor $2$–$3$** (lifetimes
+   correspondingly longer). This is not a rigid shift — it is the genuine renormalization of the
+   active-space effective potential by the rest manifold.
+2. **The CBM side is where the resonance position matters most.** With the bare $M$ the $e$ level
+   sits at $-4.44$ eV — only $0.16$ eV below the interpolated CBM — so its resonance tail floods the
+   conduction edge and the bare-$M$ rate *rises* toward the CBM, reaching $\sim24$ meV. The
+   full-order $\tilde V$ puts the $e$ back at mid-gap ($-4.71$ eV, $0.43$ eV below the CBM); the
+   tail recedes and the near-CBM rate flattens at $7$–$9$ meV. **A bare truncated active space
+   overestimates defect scattering of conduction-edge electrons by more than $3\times$** — the
+   transport-level counterpart of panels (2) vs (4) in Figure 15.
+3. On the VBM side both treatments share the $a_1$ resonance pinned at the edge (both rates turn up
+   as $\varepsilon\to$ VBM), but the full-order rates are uniformly $\sim2\times$ weaker: hole
+   lifetimes at the edge correct from $\sim106$ fs (bare) to $\sim310$ fs.
+
+The absolute values carry an $\mathcal O(\eta)$ broadening systematic, but the *ratio* between the
+two treatments — the beyond-Born content — is insensitive to $\eta$.
+
+## 6. On the magnitude of $\tilde V$
 
 The Frobenius norm $\lVert\tilde V\rVert_F=100$ Ry can look alarming, but the *individual* matrix
 elements are small (RMS $\approx0.06$ Ry, on-site $\tilde V_{nn}\approx-0.12$ Ry): the norm is large
@@ -528,17 +580,20 @@ $\max|\Delta V|\approx12$ Ry and giving a multiple-scattering parameter $\lVert\
 (strong but sensible; the $T$-matrix resummation is essential, possibly resonant). See the
 [$k'$-normalization note](note-kprime-normalization.html).
 
-## 6. Status and next steps
+## 7. Status and next steps
 
 P0–P3 and P5-a/b are complete and validated (the P5-b gauge consistency is now resolved with a
-`filukk` re-Wannierized on the 150-band NSCF). Open items:
+`filukk` re-Wannierized on the 150-band NSCF). Status:
 
-- [ ] **P6 — transport:** feed $|T_{PP}(\omega)|^2$ on-shell into the golden-rule rate (replacing
-  EDI's $|M|^2$) for a beyond-Born vs first-Born mobility (uses P5-a directly).
+- [x] **recover the $e$ defect level — RESOLVED** (§3). The explicit $T$-matrix recovers
+  $a_1\oplus e$ (Fig 14) and band-converges onto DFT (Fig 16); the failure mode was the
+  **2nd-order rest dressing** (over-screening, Fig 15), not the static $\omega_0$ — the full-order
+  resolvent dressing reproduces the explicit answer from the 11-band active space (Figs 15, 17).
+- [x] **P6 — transport, first installment** (§5): on-shell optical-theorem scattering rates near
+  both band edges, beyond-Born ($\tilde V$, full $T$) vs bare $M$ — the bare active space
+  overestimates near-CBM defect scattering by $>3\times$. Remaining: the mobility integral on fine
+  grids (velocity factors + BZ sum), and the frequency-dependent $\Sigma_{\rm rest}(\omega)$
+  beyond the static reference.
 - [ ] **fine-grid Koster–Slater** transport using the gauge-consistent `filukk` (P5-b machinery),
   where the localized $\tilde V^W$ delivers the inversion-size speed-up.
 - [ ] **T9 / T5:** rest-BZ-grid convergence of $\tilde V$ and Wannier-gauge invariance.
-- [ ] **recover the $e$ defect level.** The static single-reference $\omega_0=\varepsilon_{\rm VBM}$
-  captures the $a_1$ but misses the $e$ doublet (supercell benchmark, Fig. 12); a **second static
-  reference $\omega_0'=-4.8$ eV was tested (Fig. 11) and also fails**, so the fix is not a shifted
-  reference but the full frequency-dependent $\Sigma_{\rm rest}(\omega)$ and/or a larger active space.

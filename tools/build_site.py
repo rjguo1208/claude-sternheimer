@@ -540,9 +540,18 @@ CATALOG = [
      "$\\sim\\!10^3\\times$, $\\tilde V^W$ is localized, and Koster&ndash;Slater converges by $R_{\\rm cut}{=}4$. "
      "The neutral defect is short-ranged &mdash; no supercell / range-separation issue.",
      '<a href="pages/results.html#sec-3">Open results &rarr;</a>'),
+    ("Near-edge scattering rates: bare $M$ vs full-order $\\tilde V$", "Result", "2026-06-12", "prod", "Complete",
+     "On-shell optical-theorem rates $\\hbar/\\tau_{nk}=-2n_d\\,\\mathrm{Im}\\,T_{nn}(k,\\varepsilon_{nk}{+}i\\eta)$ "
+     "for all 677 states within 0.3 eV of the band edges (48&times;48 interpolation, $n_d{=}1\\%$), both "
+     "treatments from the same fesh60 block. <strong>The full-order rest dressing suppresses near-edge "
+     "scattering $2$&ndash;$3\\times$</strong>; at the CBM the bare $M$ overestimates by $&gt;3\\times$ "
+     "($\\hbar/\\tau$ 24 vs 7 meV, $\\tau$ 28 vs 89 fs) because its $e$ resonance sits only 0.16 eV below the "
+     "conduction edge &mdash; the full-order $\\tilde V$ moves it mid-gap and the rate flattens. The "
+     "transport-level counterpart of Fig 15 panels (2) vs (4).",
+     '<a href="pages/results.html#sec-5">Open results &rarr;</a>'),
     ("Active-space dynamic resummation / transport", "Test", "&mdash;", "plan", "Planned",
-     "Next (P6): frequency-dependent $T_{PP}(\\omega)$ on-shell, feeding $|T_{PP}|^2$ into the "
-     "golden-rule rate in place of $|M|^2$ &mdash; beyond-Born vs Born mobility.", "&mdash;"),
+     "Next (P6): the remaining mobility integral &mdash; velocity factors + BZ sum over the on-shell rates "
+     "of &sect;5 (beyond-Born vs Born mobility), and the frequency-dependent $\\Sigma_{\\rm rest}(\\omega)$.", "&mdash;"),
 ]
 
 def build_index():
