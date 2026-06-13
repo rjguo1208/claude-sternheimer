@@ -544,7 +544,7 @@ Rates are at $n_d=1\%$ (one vacancy per 100 cells) and scale linearly with $n_d$
 | CBM $50$–$150$ meV | $37.0$ meV ($18$ fs) | $21.6$ meV ($30$ fs) | $8.6$ meV ($77$ fs) |
 | CBM $150$–$300$ meV | $180.8$ meV ($3.6$ fs) | $12.4$ meV ($53$ fs) | $6.8$ meV ($96$ fs) |
 
-![On-shell defect scattering rates near the VBM and CBM for three treatments, log scale: the bare |M|^2 first-Born rate (orange) sits 1-1.5 orders of magnitude above the full T-matrix rate from the same potential (green), which the full-order rest dressing (purple) then lowers by a further factor of 2-3.](../assets/vtilde_scatrate.png)
+![On-shell defect scattering rates near the VBM and CBM for three treatments, log scale: the bare |M|^2 first-Born rate (orange) sits 1-1.5 orders of magnitude above the full T-matrix rate from the same potential (green), which the full-order rest dressing (purple) then lowers by a further factor of 2-3.](../assets/vtilde_scatrate_3way.png)
 
 *Figure 23. Defect-limited scattering rate $\hbar/\tau_{n\mathbf k}$ for every state within $0.3$ eV
 of the VBM (left) and CBM (right), at $n_d=1\%$ ($\eta=50$ meV, log scale). Orange: the bare-$|M|^2$
