@@ -522,51 +522,58 @@ What does the full-order rest dressing do to *transport*? The on-shell optical-t
 
 $$\frac{\hbar}{\tau_{n\mathbf k}}\;=\;-2\,n_d\,\mathrm{Im}\,T_{nn}(\mathbf k,\mathbf k;\,\varepsilon_{n\mathbf k}+i\eta)$$
 
-is the defect-limited quasiparticle scattering rate to **all orders** in the defect potential (by the
-optical theorem it reduces to the golden rule $2\pi n_d\sum_{m\mathbf k'}|T_{n\mathbf k,m\mathbf k'}|^2
-\delta(\varepsilon_{n\mathbf k}-\varepsilon_{m\mathbf k'})$). We evaluate it for every interpolated
-state within $0.3$ eV of a band edge ($677$ states on a $48\times48$ grid: valence top, band 6, and
-conduction bottom, band 7; interpolated edges VBM $-5.937$, CBM $-4.280$ eV), with exactly the
-machinery of the §4 spectral functions — the Wannier real-space sub-block ($R_{\rm cut}{=}4$) and the
-fine-grid host Green's function ($\eta{=}50$ meV) — and with **both potential blocks read from the same
-fesh60 file**: the bare-$M$ record (11-band active space, no rest) vs the full-order
-$\tilde V=M+N_k\Sigma_{\rm full}(\omega_0)$ record of §3. Rates are quoted at $n_d=1\%$ (one vacancy
-per 100 cells) and scale linearly with $n_d$:
+is the defect-limited quasiparticle scattering rate. The on-shell diagonal of the **full** $T$ resums
+the defect potential to all orders; its lowest-order truncation $T\to M$ inside the same optical-theorem
+formula, $\hbar/\tau=-2n_d\,\mathrm{Im}[MgM]_{nn}$, is exactly the **first-Born golden rule**
+$2\pi n_d\sum_{m\mathbf k'}|M_{n\mathbf k,m\mathbf k'}|^2\delta(\varepsilon_{n\mathbf k}-\varepsilon_{m\mathbf k'})$
+that conventional first-principles transport (EDI included) uses. We therefore plot **three** rates for
+every interpolated state within $0.3$ eV of a band edge ($677$ states on a $48\times48$ grid: valence
+top, band 6, and conduction bottom, band 7; interpolated edges VBM $-5.937$, CBM $-4.280$ eV), all with
+the §4 machinery (Wannier sub-block $R_{\rm cut}{=}4$, fine-grid host Green's function, $\eta{=}50$ meV):
+**(i)** the bare-$|M|^2$ golden rule (first Born); **(ii)** the full $T$ built from that same bare $M$
+(11-band active space, no rest); **(iii)** the full $T$ from the full-order
+$\tilde V=M+N_k\Sigma_{\rm full}(\omega_0)$ of §3 — $M$ and $\tilde V$ read from the **same** fesh60 file.
+Rates are at $n_d=1\%$ (one vacancy per 100 cells) and scale linearly with $n_d$:
 
-| distance from edge | bare $M$ (11 bands): $\hbar/\tau$ ($\tau$) | full-order $\tilde V$: $\hbar/\tau$ ($\tau$) | ratio $\tilde V/M$ |
+| distance from edge | golden rule, bare $\lvert M\rvert^2$ (1st Born) | full $T$, bare $M$ | full $T$, full-order $\tilde V$ |
 |---|---|---|---|
-| **VBM** $0$–$50$ meV | $6.2$ meV ($106$ fs) | $2.1$ meV ($310$ fs) | $0.34$ |
-| VBM $50$–$150$ meV | $4.2$ meV ($157$ fs) | $2.0$ meV ($337$ fs) | $0.46$ |
-| VBM $150$–$300$ meV | $6.6$ meV ($100$ fs) | $3.2$ meV ($205$ fs) | $0.49$ |
-| **CBM** $0$–$50$ meV | $23.6$ meV ($28$ fs) | $7.4$ meV ($89$ fs) | $0.31$ |
-| CBM $50$–$150$ meV | $21.6$ meV ($30$ fs) | $8.6$ meV ($77$ fs) | $0.40$ |
-| CBM $150$–$300$ meV | $12.4$ meV ($53$ fs) | $6.8$ meV ($96$ fs) | $0.55$ |
+| **VBM** $0$–$50$ meV | $219.7$ meV ($3.0$ fs) | $6.2$ meV ($106$ fs) | $2.1$ meV ($310$ fs) |
+| VBM $50$–$150$ meV | $195.0$ meV ($3.4$ fs) | $4.2$ meV ($157$ fs) | $2.0$ meV ($337$ fs) |
+| VBM $150$–$300$ meV | $194.6$ meV ($3.4$ fs) | $6.6$ meV ($100$ fs) | $3.2$ meV ($205$ fs) |
+| **CBM** $0$–$50$ meV | $25.3$ meV ($26$ fs) | $23.6$ meV ($28$ fs) | $7.4$ meV ($89$ fs) |
+| CBM $50$–$150$ meV | $37.0$ meV ($18$ fs) | $21.6$ meV ($30$ fs) | $8.6$ meV ($77$ fs) |
+| CBM $150$–$300$ meV | $180.8$ meV ($3.6$ fs) | $12.4$ meV ($53$ fs) | $6.8$ meV ($96$ fs) |
 
-![On-shell defect scattering rates near the VBM and CBM: bare-M (green) vs full-order Vtilde (purple), log scale; the bare-M rates near the CBM are ~3x larger because the e resonance sits too close to the conduction edge.](../assets/vtilde_scatrate.png)
+![On-shell defect scattering rates near the VBM and CBM for three treatments, log scale: the bare |M|^2 first-Born rate (orange) sits 1-1.5 orders of magnitude above the full T-matrix rate from the same potential (green), which the full-order rest dressing (purple) then lowers by a further factor of 2-3.](../assets/vtilde_scatrate.png)
 
 *Figure 23. Defect-limited scattering rate $\hbar/\tau_{n\mathbf k}$ for every state within $0.3$ eV
-of the VBM (left) and CBM (right), at $n_d=1\%$ ($\eta=50$ meV, log scale). Green: 11-band active
-space with the bare $M$; purple: the same active space with the full-order rest dressing
-$\tilde V=M+N_k\Sigma_{\rm full}$ from the explicit-60 resolvent (§3).*
+of the VBM (left) and CBM (right), at $n_d=1\%$ ($\eta=50$ meV, log scale). Orange: the bare-$|M|^2$
+golden rule (first Born). Green: the full $T$-matrix built from the same bare $M$ (11-band active
+space). Purple: the full $T$ from the full-order rest dressing $\tilde V=M+N_k\Sigma_{\rm full}$ of §3.
+The two beyond-Born steps — resummation, then dressing — are the two vertical gaps between the colours.*
 
-Three observations:
+The two beyond-Born corrections stack, and the first one is large:
 
-1. **The full-order dressing suppresses near-edge scattering by a factor $2$–$3$** (lifetimes
-   correspondingly longer). This is not a rigid shift — it is the genuine renormalization of the
-   active-space effective potential by the rest manifold.
-2. **The CBM side is where the resonance position matters most.** With the bare $M$ the $e$ level
-   sits at $-4.44$ eV — only $0.16$ eV below the interpolated CBM — so its resonance tail floods the
-   conduction edge and the bare-$M$ rate *rises* toward the CBM, reaching $\sim24$ meV. The
-   full-order $\tilde V$ puts the $e$ back at mid-gap ($-4.71$ eV, $0.43$ eV below the CBM); the
-   tail recedes and the near-CBM rate flattens at $7$–$9$ meV. **A bare truncated active space
-   overestimates defect scattering of conduction-edge electrons by more than $3\times$** — the
-   transport-level counterpart of panels (2) vs (4) in Figure 15.
-3. On the VBM side both treatments share the $a_1$ resonance pinned at the edge (both rates turn up
-   as $\varepsilon\to$ VBM), but the full-order rates are uniformly $\sim2\times$ weaker: hole
-   lifetimes at the edge correct from $\sim106$ fs (bare) to $\sim310$ fs.
+1. **The first-Born golden rule overestimates near-edge scattering by $1$–$1.5$ orders of magnitude.**
+   At the VBM the bare-$|M|^2$ rate is $\sim200$ meV — a $\tau\approx3$ fs lifetime — which the full
+   $T$-matrix *in the same potential* cuts to $\sim4$–$7$ meV ($\tau\sim100$ fs), a $29$–$45\times$
+   suppression. This is the whole point of going beyond Born: the S-vacancy is a **strong** scatterer
+   ($\lVert\Delta V\,G^A\rVert\sim\mathcal O(1)$, §6), so the Born series does not converge and only the
+   resummation gives physical lifetimes. (Near the CBM *edge* the available phase space is tiny and the
+   two nearly coincide — $25$ vs $24$ meV — but a few hundred meV into the conduction band the gap
+   reopens to $\sim15\times$.)
+2. **On top of that, the full-order rest dressing suppresses the rate by a further $2$–$3\times$**
+   ($\tilde V/M\approx0.3$–$0.55$; hole lifetimes at the VBM correcting from $\sim106$ to $\sim310$ fs).
+   This is the genuine renormalization of the active-space potential by the rest manifold — not a rigid
+   shift.
+3. **The CBM side is where the resonance position matters most.** With the bare $M$ the $e$ level sits
+   at $-4.44$ eV — only $0.16$ eV below the interpolated CBM — so its tail floods the conduction edge
+   and the full-$T$ bare-$M$ rate *rises* toward the CBM. The full-order $\tilde V$ puts the $e$ back at
+   mid-gap ($-4.71$ eV, $0.43$ eV below the CBM); the tail recedes and the near-CBM rate flattens at
+   $7$–$9$ meV — the transport-level counterpart of panels (2) vs (4) in Figure 15.
 
-The absolute values carry an $\mathcal O(\eta)$ broadening systematic, but the *ratio* between the
-two treatments — the beyond-Born content — is insensitive to $\eta$.
+The absolute values carry an $\mathcal O(\eta)$ broadening systematic, but the *ratios* between the
+treatments — the beyond-Born content — are insensitive to $\eta$.
 
 ## 6. On the magnitude of $\tilde V$
 
