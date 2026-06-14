@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""Multiband electron-defect spectral function at ARBITRARY defect concentration n_d,
+with the (concentration-INDEPENDENT) band-space T(k,omega) CACHED to disk.
+
+  A(k,omega) = -(1/pi) Im Tr [ omega - H0(k) - n_d T(k,omega) ]^{-1}
+
+First run computes T_{nn'}(k,omega) (the expensive part, ~7 min single-thread) and saves it to
+p7b_Tcache_<TAG>.npz.  Every later run (any n_d, any list of n_d) just reloads T and redoes the
+cheap Dyson inversion -> seconds.  n_d is defects PER PRIMITIVE CELL (same convention as the 1%/5%
+figures: n_d=1% = one defect per 100 cells).  Pass n_d values on the command line; default = 1/36
+(one defect in a 6x6 supercell).
+
+usage:  p7b_spectral_nd.py <block.dat> <TAG> [nd1 nd2 ...]
+"""
+import sys, os, numpy as np, matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+from scipy.io import FortranFile
+RY=13.605693122994; ETA=0.05/RY; RCUT=4; NF=48; NSEG=50; NW=280; VBM=6; CBM=7
+BLOCK=sys.argv[1] if len(sys.argv)>1 else "vtilde_block_fesh60.dat"
+TAG  =sys.argv[2] if len(sys.argv)>2 else "fesh60"
+NDS  =[float(x) for x in sys.argv[3:]] or [1.0/36.0]
+CACHE=f"p7b_Tcache_{TAG}.npz"
+
+def label_nd(nd):
+    if abs(nd-1/36)<1e-6: return r"$n_d=1/36\approx2.78\%$  (one defect per $6\times6$ supercell)"
+    return rf"$n_d={nd*100:.3g}\%$"
+
+if os.path.exists(CACHE):
+    print(f"[cache HIT] loading T(omega) from {CACHE} (skip the ~7-min recompute)",flush=True)
+    z=np.load(CACHE)
+    TbV=z["TbV"]; TbM=z["TbM"]; EPS=z["EPS"]; om_eV=z["om_eV"]; dist=z["dist"]
+    xM=float(z["xM"]); xK=float(z["xK"]); WLO=float(z["WLO"]); WHI=float(z["WHI"]); omega0=float(z["omega0"])
+else:
+    print(f"[cache MISS] computing T(omega) once and caching to {CACHE} ...",flush=True)
+    fb=FortranFile(BLOCK,"r")
+    N_A,nk,nk_use,nbndskip=fb.read_ints(np.int32); omega0,wmin,wmax=fb.read_reals(np.float64)
+    idx=fb.read_ints(np.int32); a2band=idx[N_A:]; eact=fb.read_reals(np.float64)
+    M=fb.read_record(np.complex128).reshape((N_A,N_A),order="F"); fb.read_record(np.complex128)
+    V=fb.read_record(np.complex128).reshape((N_A,N_A),order="F"); fb.close()
+    nb=N_A//nk; n1=int(round(nk**0.5)); M4=M.reshape(nk,nb,nk,nb); V4=V.reshape(nk,nb,nk,nb); Ek=eact.reshape(nk,nb)
+    fw=FortranFile("wann_data.dat","r"); fw.read_ints(np.int32); fw.read_ints(np.int32)
+    xk=fw.read_reals(np.float64).reshape((3,nk),order="F")
+    U=fw.read_record(np.complex128).reshape((nb,nb,nk),order="F"); fw.close()
+    Ub=np.transpose(U,(2,0,1))
+    ms=np.arange(-n1//2,n1//2); Rg=np.array([(m,n) for m in ms for n in ms]); nR=len(Rg)
+    F=np.exp(2j*np.pi*(Rg@xk[:2]))
+    def toR(O4):
+        OW=np.einsum("fsp,fsgt,gtw->fpgw",Ub.conj(),O4,Ub,optimize=True)
+        return np.einsum("Af,fpgw,Bg->ApBw",F,OW,F.conj(),optimize=True)/nk**2
+    VWR=toR(V4); MWR=toR(M4)
+    HWk=np.einsum("ksp,ks,ksw->kpw",Ub.conj(),Ek,Ub,optimize=True)
+    HWR=np.einsum("Rk,kpw->Rpw",np.exp(-2j*np.pi*(Rg@xk[:2])),HWk,optimize=True)/nk
+    def Hk1(k): return np.einsum("R,Rpw->pw",np.exp(2j*np.pi*(Rg@k)),HWR)
+    Rd=int(np.argmax([np.linalg.norm(VWR[r,:,r,:]) for r in range(nR)]))
+    def msh(R): return ((Rg[R,0]-Rg[Rd,0]+n1//2)%n1)-n1//2, ((Rg[R,1]-Rg[Rd,1]+n1//2)%n1)-n1//2
+    sel=[r for r in range(nR) if max(abs(msh(r)[0]),abs(msh(r)[1]))<=RCUT]; ns=len(sel); dim=nb*ns
+    Rsel=np.array([Rg[r] for r in sel])
+    def sub(WR):
+        S=np.zeros((dim,dim),complex)
+        for a in range(ns):
+            for b in range(ns): S[a*nb:(a+1)*nb,b*nb:(b+1)*nb]=WR[sel[a],:,sel[b],:]
+        return S
+    Vsub=sub(VWR); Msub=sub(MWR)
+    kfg=np.array([[i/NF,j/NF] for i in range(NF) for j in range(NF)])
+    Hf=np.einsum("kR,Rpw->kpw",np.exp(2j*np.pi*(kfg@Rg.T)),HWR); efine,Wfine=np.linalg.eigh(Hf)
+    dRs=sorted({(Rg[sel[a],0]-Rg[sel[b],0],Rg[sel[a],1]-Rg[sel[b],1]) for a in range(ns) for b in range(ns)})
+    dRidx={dR:i for i,dR in enumerate(dRs)}
+    phdR=np.array([np.exp(2j*np.pi*(kfg[:,0]*dm+kfg[:,1]*dn)) for (dm,dn) in dRs])
+    dRmat=np.array([[dRidx[(Rg[sel[a],0]-Rg[sel[b],0],Rg[sel[a],1]-Rg[sel[b],1])] for b in range(ns)] for a in range(ns)])
+    def Tsub_of(omega,Xsub):
+        D=1.0/((omega+1j*ETA)-efine); G=np.einsum("kpn,kn,kqn->kpq",Wfine,D,Wfine.conj())
+        gt=(np.einsum("dk,kpq->dpq",phdR,G)/NF**2)[dRmat].transpose(0,2,1,3).reshape(dim,dim)
+        return np.linalg.solve(np.eye(dim)-Xsub@gt,Xsub)
+    Gpt=np.array([0.,0.]); Mpt=np.array([0.5,0.]); Kpt=np.array([1/3,1/3])
+    seg=lambda a,b,n:[a+(b-a)*t for t in np.linspace(0,1,n,endpoint=False)]
+    path=np.array(seg(Gpt,Mpt,NSEG)+seg(Mpt,Kpt,NSEG)+[Kpt]); Nk=len(path)
+    Vall=np.empty((Nk,nb,nb),complex); EPS=np.empty((Nk,nb)); phbL=np.empty((Nk,ns),complex); phkL=np.empty((Nk,ns),complex)
+    for i,k in enumerate(path):
+        e,Vk=np.linalg.eigh(Hk1(k)); EPS[i]=e; Vall[i]=Vk
+        phbL[i]=np.exp(-2j*np.pi*(Rsel@k)); phkL[i]=np.exp(2j*np.pi*(Rsel@k))
+    a1=np.array([240*0.150478,0.0])/6; a2=np.array([240*-0.075239,240*0.130318])/6
+    area=a1[0]*a2[1]-a1[1]*a2[0]; b1=2*np.pi/area*np.array([a2[1],-a2[0]]); b2=2*np.pi/area*np.array([-a1[1],a1[0]])
+    kc=np.array([k[0]*b1+k[1]*b2 for k in path]); dist=np.concatenate([[0],np.cumsum(np.linalg.norm(np.diff(kc,axis=0),axis=1))])
+    xM,xK=dist[NSEG],dist[-1]
+    WLO=EPS[:,VBM].min()*RY-0.8; WHI=-3.0
+    omega=np.linspace(WLO,WHI,NW)/RY; om_eV=omega*RY
+    def Tband(Xsub,tag):
+        Tb=np.empty((Nk,NW,nb,nb),complex)
+        for j,om in enumerate(omega):
+            Ts=Tsub_of(om,Xsub).reshape(ns,nb,ns,nb)
+            TW=np.einsum("ka,apbq,kb->kpq",phbL,Ts,phkL,optimize=True)
+            Tb[:,j]=np.einsum("kpn,kpq,kqm->knm",Vall.conj(),TW,Vall,optimize=True)
+            if j%40==0: print(f"  T {tag} {j}/{NW}",flush=True)
+        return Tb
+    TbV=Tband(Vsub,"V~"); TbM=Tband(Msub,"M")
+    np.savez(CACHE,TbV=TbV,TbM=TbM,EPS=EPS,om_eV=om_eV,dist=dist,xM=xM,xK=xK,WLO=WLO,WHI=WHI,omega0=omega0)
+    print(f"[cached] wrote {CACHE}  ({os.path.getsize(CACHE)/1e6:.0f} MB)",flush=True)
+
+# ---- cheap part: Dyson inversion for each n_d ----
+nb=EPS.shape[1]; Inb=np.eye(nb); H0d=(EPS*RY)[:,:,None]*Inb[None]
+def Aspec(Tb,nd):
+    Sig=nd*Tb*RY
+    Am=om_eV[None,:,None,None]*Inb[None,None]-H0d[:,None]-Sig
+    return -(1/np.pi)*np.imag(np.einsum("kjnn->kj",np.linalg.inv(Am)))
+maps={(nd,inp):Aspec(Tb,nd) for nd in NDS for inp,Tb in (("V",TbV),("M",TbM))}
+allA=np.concatenate([m.ravel() for m in maps.values()]); vmax=np.percentile(allA,99.8); vmin=vmax/1e3
+gap=(EPS[:,CBM].min()-EPS[:,VBM].max())*RY
+print(f"window [{WLO:.2f},{WHI:.2f}] eV; VBM={EPS[:,VBM].max()*RY:.3f}, CBM={EPS[:,CBM].min()*RY:.3f}, gap={gap:.3f} eV",flush=True)
+
+nrow=len(NDS)
+fig,ax=plt.subplots(nrow,2,figsize=(13,4.6*nrow),squeeze=False)
+for r,nd in enumerate(NDS):
+    for c,(inp,lbl) in enumerate([("V","with rest-space ($\\tilde V$)"),("M","no rest-space ($M$)")]):
+        A=maps[(nd,inp)]; a=ax[r,c]
+        pc=a.pcolormesh(dist,om_eV,np.clip(A.T,vmin,None),shading="gouraud",cmap="magma",norm=LogNorm(vmin=vmin,vmax=vmax))
+        for s in range(nb): a.plot(dist,EPS[:,s]*RY,c="c",lw=0.6,ls="--",alpha=0.55)
+        a.axvline(xM,c="w",lw=0.6,alpha=0.5); a.set_xticks([0,xM,xK]); a.set_xticklabels(["Γ","M","K"])
+        a.set_xlim(0,xK); a.set_ylim(WLO,WHI); a.set_ylabel(r"$\omega$ (eV)")
+        a.set_title(f"{label_nd(nd)}, {lbl}",fontsize=10)
+        if r==nrow-1: a.set_xlabel("k-path")
+        plt.colorbar(pc,ax=a,label="A  (1/eV)")
+plt.suptitle(r"S-vacancy spectral function  $A(k,\omega)=-\frac{1}{\pi}\,\mathrm{Im}\,\mathrm{Tr}\,[\omega-H_0-n_d\,T]^{-1}$  "+rf"(rest ref $\omega_0$={omega0*RY:.3f} eV; cyan = bare $\varepsilon_{{nk}}$; log scale)",y=1.0)
+plt.tight_layout()
+ndtag="_".join(f"{nd:.4f}".rstrip("0").rstrip(".") for nd in NDS)
+out=f"p7b_spectral_{TAG}_nd{ndtag}.png"
+plt.savefig(out,dpi=130,bbox_inches="tight")
+np.savez(f"p7b_maps_{TAG}_nd{ndtag}.npz",dist=dist,om_eV=om_eV,EPS=EPS,xM=xM,xK=xK,WLO=WLO,WHI=WHI,NDS=NDS,
+         **{f"{i}_{inp}":maps[(nd,inp)] for i,nd in enumerate(NDS) for inp in ("V","M")})
+print(f"wrote {out}",flush=True)
+for nd in NDS:
+    AV=maps[(nd,"V")]; print(f"  n_d={nd:.4f} ({nd*100:.2f}%): peak A (V~) in gap = {AV.max():.1f}/eV",flush=True)

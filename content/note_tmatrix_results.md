@@ -575,6 +575,28 @@ The two beyond-Born corrections stack, and the first one is large:
 The absolute values carry an $\mathcal O(\eta)$ broadening systematic, but the *ratios* between the
 treatments — the beyond-Born content — are insensitive to $\eta$.
 
+### The spectral function at the supercell's own concentration
+
+The rates above and the maps of Figure 17 are quoted at round numbers ($n_d=1\%,5\%$); the
+concentration *actually defined by our supercell* is **one vacancy per $6\times6$ cell, i.e.
+$n_d=1/36\approx2.78\%$** (defects per primitive cell). Sweeping $n_d$ is essentially free: the
+self-energy $\Sigma=n_d\,T(\omega)$ is **linear** in concentration, and the single-defect
+$T(\mathbf k,\omega)$ is itself concentration-*independent* — it is computed once and cached, after
+which every new $n_d$ is a single Dyson inversion $[\omega-H_0-n_d T]^{-1}$ (a couple of seconds for
+the whole $\Gamma$–M–K map, versus the $\sim$7-minute one-off cost of $T$). Figure 24 is the
+full-order spectral function at the supercell density:
+
+![S-vacancy spectral function along Gamma-M-K at the supercell concentration n_d=1/36, full-order Vtilde (left) versus bare M (right); the in-gap e resonance sits mid-gap on a log colour scale.](../assets/vtilde_spectral_nd36.png)
+
+*Figure 24. S-vacancy spectral function $A(\mathbf k,\omega)=-\frac1\pi\,\mathrm{Im}\,\mathrm{Tr}\,
+[\omega-H_0-n_d T]^{-1}$ at the supercell's own defect density $n_d=1/36\approx2.78\%$ (one vacancy per
+$6\times6$ cell). Left: full-order rest dressing $\tilde V=M+N_k\Sigma_{\rm full}$ (§3); right: bare
+$M$. Same window/$\omega_0$ as Figure 17; cyan = bare $\varepsilon_{n\mathbf k}$, log colour scale.*
+
+The in-gap $e$ resonance peaks at $A\approx1.6\times10^2$/eV; raising $n_d$ broadens and deepens it
+**linearly** while leaving its position fixed (set by $T$, not by concentration). This holds in the
+dilute single-site regime; at high $n_d$ defect–defect interaction breaks $\Sigma=n_d T$.
+
 ## 6. On the magnitude of $\tilde V$
 
 The Frobenius norm $\lVert\tilde V\rVert_F=100$ Ry can look alarming, but the *individual* matrix

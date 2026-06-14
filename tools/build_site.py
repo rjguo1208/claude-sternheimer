@@ -550,6 +550,13 @@ CATALOG = [
      "At the CBM the bare-$M$ $e$ resonance (0.16 eV below the edge) floods the rate; $\\tilde V$ moves it "
      "mid-gap and flattens it &mdash; the transport-level counterpart of Fig 15 panels (2) vs (4).",
      '<a href="pages/results.html#sec-5">Open results &rarr;</a>'),
+    ("Spectral function at the supercell concentration ($n_d{=}1/36$)", "Result", "2026-06-14", "ok", "Complete",
+     "S-vacancy $A(k,\\omega)$ at the density actually defined by the cell &mdash; one vacancy per "
+     "$6\\times6$ = $n_d{=}1/36\\approx2.78\\%$ (Fig 24, full-order $\\tilde V$ vs bare $M$). Since "
+     "$\\Sigma{=}n_d T$ is linear and $T(\\omega)$ is concentration-independent, $T$ is computed once and "
+     "cached &mdash; after which <strong>any $n_d$ is a 2-second Dyson inversion</strong> (vs the ~7-min "
+     "one-off $T$ cost). The in-gap $e$ resonance broadens linearly with $n_d$ at fixed position.",
+     '<a href="pages/results.html#sec-5">Open results &rarr;</a>'),
     ("Active-space dynamic resummation / transport", "Test", "&mdash;", "plan", "Planned",
      "Next (P6): the remaining mobility integral &mdash; velocity factors + BZ sum over the on-shell rates "
      "of &sect;5 (beyond-Born vs Born mobility), and the frequency-dependent $\\Sigma_{\\rm rest}(\\omega)$.", "&mdash;"),
