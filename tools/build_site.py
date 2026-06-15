@@ -557,6 +557,15 @@ CATALOG = [
      "cached &mdash; after which <strong>any $n_d$ is a 2-second Dyson inversion</strong> (vs the ~7-min "
      "one-off $T$ cost). The in-gap $e$ resonance broadens linearly with $n_d$ at fixed position.",
      '<a href="pages/results.html#sec-5">Open results &rarr;</a>'),
+    ("Substitutional defects O$_S$ / Se$_S$ (explicit-60 + spectral)", "Result", "2026-06-15", "prod", "Complete",
+     "The explicit-60 pipeline extended to two isovalent chalcogen substitutions with NO code change: the "
+     "defect-species nonlocal $d_{\\mathrm{van}}$ is loaded by declaring O/Se as a <strong>zero-atom extra "
+     "species in the host NSCF</strong> (&psi; unchanged). Full local+nonlocal $M$ from the relaxed cells, "
+     "full-order rest dressing, spectral $A(k,\\omega)$ at $n_d{=}1/36$ (Figs 25&ndash;26). <strong>The two "
+     "isovalent subs scatter oppositely</strong>: O$_S$ keeps the bands sharp (weak/localized, one mid-gap "
+     "doublet $+0.73$); Se$_S$ broadens the whole valence edge across the BZ (strong/broadband; $\\sim$15 "
+     "resonant near-VBM levels + a deep $+1.19$).",
+     '<a href="pages/results.html#sec-6">Open results &rarr;</a>'),
     ("Active-space dynamic resummation / transport", "Test", "&mdash;", "plan", "Planned",
      "Next (P6): the remaining mobility integral &mdash; velocity factors + BZ sum over the on-shell rates "
      "of &sect;5 (beyond-Born vs Born mobility), and the frequency-dependent $\\Sigma_{\\rm rest}(\\omega)$.", "&mdash;"),

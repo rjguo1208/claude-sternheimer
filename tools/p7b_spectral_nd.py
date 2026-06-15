@@ -119,7 +119,8 @@ for r,nd in enumerate(NDS):
         a.set_title(f"{label_nd(nd)}, {lbl}",fontsize=10)
         if r==nrow-1: a.set_xlabel("k-path")
         plt.colorbar(pc,ax=a,label="A  (1/eV)")
-plt.suptitle(r"S-vacancy spectral function  $A(k,\omega)=-\frac{1}{\pi}\,\mathrm{Im}\,\mathrm{Tr}\,[\omega-H_0-n_d\,T]^{-1}$  "+rf"(rest ref $\omega_0$={omega0*RY:.3f} eV; cyan = bare $\varepsilon_{{nk}}$; log scale)",y=1.0)
+DEFECT=("Se$_S$ substitution" if "SeS" in TAG else "O$_S$ substitution" if "OS" in TAG else "S-vacancy")
+plt.suptitle(DEFECT+r" spectral function  $A(k,\omega)=-\frac{1}{\pi}\,\mathrm{Im}\,\mathrm{Tr}\,[\omega-H_0-n_d\,T]^{-1}$  "+rf"(rest ref $\omega_0$={omega0*RY:.3f} eV; cyan = bare $\varepsilon_{{nk}}$; log scale)",y=1.0)
 plt.tight_layout()
 ndtag="_".join(f"{nd:.4f}".rstrip("0").rstrip(".") for nd in NDS)
 out=f"p7b_spectral_{TAG}_nd{ndtag}.png"

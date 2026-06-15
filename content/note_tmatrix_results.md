@@ -597,7 +597,50 @@ The in-gap $e$ resonance peaks at $A\approx1.6\times10^2$/eV; raising $n_d$ broa
 **linearly** while leaving its position fixed (set by $T$, not by concentration). This holds in the
 dilute single-site regime; at high $n_d$ defect–defect interaction breaks $\Sigma=n_d T$.
 
-## 6. On the magnitude of $\tilde V$
+## 6. Beyond the vacancy: O$_S$ and Se$_S$ substitutional defects
+
+The same explicit-60 pipeline extends to **substitutional** defects — one S replaced by an isovalent
+chalcogen (O or Se) — with **no change to the EDT code**. The only new ingredient is the defect
+species' *nonlocal* pseudopotential. Because the Kleinman–Bylander coefficients $d_{\rm van}$ are a
+per-species global array that `pw.x` fills from the loaded UPFs, it suffices to **declare O (resp. Se)
+as an extra, zero-atom species in the host primitive NSCF** (ntyp $2\to3$, still 1 Mo + 2 S, no O/Se
+atom): the host Bloch states $\psi_{n\mathbf k}$ are unchanged (a zero-atom species contributes nothing
+to the Hamiltonian), but $d_{\rm van}$ now carries the O/Se entry, so the explicit matrix element
+$M=\langle n\mathbf k|\Delta V|m\mathbf k'\rangle$ picks up the full **local + nonlocal** substitution
+potential. $\Delta V=V^{\rm def}-V^{\rm host}$ is read from the **relaxed** substitution supercell
+(O sinks $0.55$ Å toward the Mo plane, $\mathrm{Mo\text{–}O}=2.07$ Å, $-14\%$; Se rises $0.20$ Å,
+$\mathrm{Mo\text{–}Se}=2.54$ Å, $+5.3\%$; both keep $C_{3v}$), with the same $[-11.8,+21]$ eV window
+and full-order rest dressing as the vacancy.
+
+In-gap levels (full-order dressed, relative to the VBM):
+
+| defect | shallow manifold (near VBM) | deep level |
+|---|---|---|
+| **S vacancy** (reference) | $a_1$ at $+0.005$ | $e$ doublet $+1.205$ (DFT $+1.19$) |
+| **O$_S$** | $+0.04,\,+0.04,\,+0.10$ | **doublet $+0.73$** (bare $M$ $+1.10$ — the dressing pulls it down) |
+| **Se$_S$** | dense $+0.02\ldots+0.45$ ($\sim15$ states) | $+1.19$ (self-consistent) |
+
+The spectral functions tell the sharper story — **two isovalent substitutions scatter oppositely**:
+
+![O_S substitution spectral function along Gamma-M-K at n_d=1/36: the host bands stay sharp and dispersive with localized extra weight near the VBM.](../assets/sub_spectral_OS.png)
+
+*Figure 25. O$_S$ substitution spectral function $A(\mathbf k,\omega)$ at $n_d=1/36$ (left full-order
+$\tilde V$, right bare $M$; same window/$\omega_0$ as Fig 24). The host bands stay **sharp**; the extra
+weight is a localized in-gap feature near the VBM.*
+
+![Se_S substitution spectral function along Gamma-M-K at n_d=1/36: the entire valence edge is heavily broadened across the Brillouin zone.](../assets/sub_spectral_SeS.png)
+
+*Figure 26. Se$_S$ substitution spectral function, same layout. The **entire valence edge is broadened
+across the BZ** — a strong, broadband scatterer.*
+
+**O$_S$** leaves the host bands sharp (a weak, localized scatterer) with one mid-gap doublet at
+$+0.73$; **Se$_S$** smears the whole valence edge — its "dense manifold" of $\sim15$ near-VBM levels is
+**resonant broadening of the valence states, not clean bound states**. The contrast is chemical: the
+large Se atom with its $3s3p3d$ semicore drives a strong valence-edge resonance, while the small O sits
+quietly. (No DFT defect-level benchmark exists for the substitutions yet; the $T$-matrix prediction
+rests on the band-converged explicit-60 + full-order dressing validated on the vacancy in §3.)
+
+## 7. On the magnitude of $\tilde V$
 
 The Frobenius norm $\lVert\tilde V\rVert_F=100$ Ry can look alarming, but the *individual* matrix
 elements are small (RMS $\approx0.06$ Ry, on-site $\tilde V_{nn}\approx-0.12$ Ry): the norm is large
@@ -609,7 +652,7 @@ $\max|\Delta V|\approx12$ Ry and giving a multiple-scattering parameter $\lVert\
 (strong but sensible; the $T$-matrix resummation is essential, possibly resonant). See the
 [$k'$-normalization note](note-kprime-normalization.html).
 
-## 7. Status and next steps
+## 8. Status and next steps
 
 P0–P3 and P5-a/b are complete and validated (the P5-b gauge consistency is now resolved with a
 `filukk` re-Wannierized on the 150-band NSCF). Status:
