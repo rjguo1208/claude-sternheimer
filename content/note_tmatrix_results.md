@@ -633,12 +633,13 @@ weight is a localized in-gap feature near the VBM.*
 *Figure 26. Se$_S$ substitution spectral function, same layout. The **entire valence edge is broadened
 across the BZ** — a strong, broadband scatterer.*
 
-**O$_S$** leaves the host bands sharp (a weak, localized scatterer) with one mid-gap doublet at
-$+0.73$; **Se$_S$** smears the whole valence edge — its "dense manifold" of $\sim15$ near-VBM levels is
-**resonant broadening of the valence states, not clean bound states**. The contrast is chemical: the
-large Se atom with its $3s3p3d$ semicore drives a strong valence-edge resonance, while the small O sits
-quietly. (No DFT defect-level benchmark exists for the substitutions yet; the $T$-matrix prediction
-rests on the band-converged explicit-60 + full-order dressing validated on the vacancy in §3.)
+**O$_S$** appears to leave the host bands sharp (a weak, localized scatterer) with one mid-gap doublet
+at $+0.73$; **Se$_S$** smears the whole valence edge. **However — these substitution in-gap features
+are now known to be spurious.** Direct DFT of the O$_S$ supercell (isovalent substitution) shows **no
+in-gap state at all**, contradicting the $+0.73$ doublet above. The artifact is traced to the
+electron–defect matrix element for the *newly introduced* species (the O/Se nonlocal Kleinman–Bylander
+projectors, the one ingredient absent from the DFT-validated vacancy); see the DOS subsection below.
+**Only the vacancy results are DFT-validated; Figs 25–28 are under reinvestigation.**
 
 ### Sensitivity to relaxation and alignment
 
@@ -672,6 +673,36 @@ isolated in-gap levels** (peaks $9$–$13\times$ taller). The **deep doublet is 
 feature** — O$_S$ barely moves ($+0.73\to+0.725$), while Se$_S$'s shifts more ($+1.19\to+0.48$). Since
 the relaxed geometry is the physical ground state, the relaxed spectra (Figs 25–26) are the physical
 prediction; this frozen-lattice comparison isolates the distortion's contribution.
+
+### DOS by direct diagonalization — and a caveat on the substitution in-gap states
+
+The defect DOS can be obtained without the $T$-matrix at all, by directly diagonalizing the
+single-defect Hamiltonian in the host-Bloch basis,
+$$H_{\rm eff}=\mathrm{diag}(\varepsilon_i)+g,\qquad g_{ij}=\langle i|\Delta V|j\rangle=M_{ij}/N_k,$$
+and broadening the eigenvalues into a DOS. This is the single-defect $H_{e\text{-}i}$ of the standard
+formulation; its eigenvalues are exactly the poles of the $T$-matrix (where $\det[1-VG_0]=0$), so the
+two routes give the *same* DOS, and in the complete-basis limit it equals the supercell DFT spectrum.
+
+![DOS by direct diagonalization on the 12x12 grid for the S vacancy, O_S and Se_S: the vacancy shows the a1 and e in-gap peaks matching DFT, while O_S shows a spurious in-gap doublet.](../assets/dos_diag_12x12.png)
+
+*Figure 29. DOS by direct diagonalization of $H_{\rm eff}=\mathrm{diag}(\varepsilon)+g$ (12×12,
+explicit-60; defect = colour, bare host = dashed grey; gap shaded; in-gap eigenvalues as dotted ticks).
+The **S vacancy** reproduces $a_1$ ($+0.005$) and the $e$ doublet ($+1.205$) — matching the DFT
+$a_1\oplus e$, confirming the route is exact and the pipeline sound. The substitution panels show in-gap
+features that are **not** physical (caveat below).*
+
+**Validation, then the caveat.** For the **S vacancy** the diagonalization reproduces the DFT
+$a_1\oplus e$ to $\lesssim$0.1 eV — the route is exact and our machinery is correct. For **O$_S$**,
+direct DFT of the supercell shows **no in-gap state**, yet the diagonalization (and the $T$-matrix)
+produce a spurious in-gap doublet at $+0.73$. Because $H_{\rm eff}=\mathrm{diag}(\varepsilon)+g$ is
+exact in the complete basis *and the vacancy matches DFT*, the error must lie in the substitution
+$g=\langle i|\Delta V|j\rangle$ — specifically the nonlocal part of $\Delta V$ for the newly introduced
+species (the O/Se Kleinman–Bylander projectors loaded through the zero-atom-species $d_{\rm van}$, the
+one piece never exercised by the vacancy). **The substitution in-gap states (Figs 25–28) are therefore
+a likely artifact of the new-species nonlocal e-d matrix element and are under active diagnosis; only
+the S-vacancy results are DFT-validated.** This is a clean illustration of the method's self-consistency
+check: when diagonalization disagrees with direct DFT, the electron–defect matrix element — not the
+$T$-matrix solver — is where to look.
 
 ## 7. On the magnitude of $\tilde V$
 
