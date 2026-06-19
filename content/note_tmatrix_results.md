@@ -636,10 +636,12 @@ across the BZ** — a strong, broadband scatterer.*
 **O$_S$** appears to leave the host bands sharp (a weak, localized scatterer) with one mid-gap doublet
 at $+0.73$; **Se$_S$** smears the whole valence edge. **However — these substitution in-gap features
 are now known to be spurious.** Direct DFT of the O$_S$ supercell (isovalent substitution) shows **no
-in-gap state at all**, contradicting the $+0.73$ doublet above. The artifact is traced to the
-electron–defect matrix element for the *newly introduced* species (the O/Se nonlocal Kleinman–Bylander
-projectors, the one ingredient absent from the DFT-validated vacancy); see the DOS subsection below.
-**Only the vacancy results are DFT-validated; Figs 25–28 are under reinvestigation.**
+in-gap state at all**, contradicting the $+0.73$ doublet above. The cause is now **diagnosed: it is a
+basis under-convergence artifact** — the explicit-60 host-band basis is band-converged for the vacancy
+but *not* for the weak isovalent substitution, whose apparent in-gap level keeps descending toward the
+VBM as bands are added (see the DOS + band-convergence subsection below). The electron–defect matrix
+element itself is correct. **Only the vacancy results are DFT-validated; the substitution in-gap states
+(Figs 25–28) are under-convergence artifacts, not physical levels.**
 
 ### Sensitivity to relaxation and alignment
 
@@ -693,16 +695,34 @@ features that are **not** physical (caveat below).*
 
 **Validation, then the caveat.** For the **S vacancy** the diagonalization reproduces the DFT
 $a_1\oplus e$ to $\lesssim$0.1 eV — the route is exact and our machinery is correct. For **O$_S$**,
-direct DFT of the supercell shows **no in-gap state**, yet the diagonalization (and the $T$-matrix)
-produce a spurious in-gap doublet at $+0.73$. Because $H_{\rm eff}=\mathrm{diag}(\varepsilon)+g$ is
-exact in the complete basis *and the vacancy matches DFT*, the error must lie in the substitution
-$g=\langle i|\Delta V|j\rangle$ — specifically the nonlocal part of $\Delta V$ for the newly introduced
-species (the O/Se Kleinman–Bylander projectors loaded through the zero-atom-species $d_{\rm van}$, the
-one piece never exercised by the vacancy). **The substitution in-gap states (Figs 25–28) are therefore
-a likely artifact of the new-species nonlocal e-d matrix element and are under active diagnosis; only
-the S-vacancy results are DFT-validated.** This is a clean illustration of the method's self-consistency
-check: when diagonalization disagrees with direct DFT, the electron–defect matrix element — not the
-$T$-matrix solver — is where to look.
+direct DFT of the supercell shows **no in-gap state**, yet the diagonalization produces an apparent
+in-gap doublet at $+0.73$. Because $H_{\rm eff}=\mathrm{diag}(\varepsilon)+g$ is exact *in the complete
+basis* and the vacancy matches DFT, the discrepancy must be either the matrix element $g$ or the
+**completeness of the host-band basis**. We ruled the rest out one by one: the O pseudopotential is
+read correctly (`pw.x` builds its $5$ KB projectors and $d_{\rm van}$ despite the zero-atom trick); the
+projector machinery is generic and species-grouped consistently; and the doublet is **$k$-grid
+independent** ($+1.102$ on both $12\times12$ and $18\times18$ at fixed band count). What remained was
+**basis convergence in band count** — and that is the culprit:
+
+![Band convergence of the in-gap level on the 12x12 grid: the S-vacancy e level saturates at the DFT value +1.19, while the O_S level descends steadily toward the VBM without converging.](../assets/bandconv_OS_vac.png)
+
+*Figure 30. Highest in-gap level vs the number of host bands in the diagonalization basis (12×12,
+sliced from the explicit-60 $M$). The **S-vacancy** $e$ (blue) **saturates** at the DFT value
+($+1.495\to+1.205$, slope $\to0$ by 60 bands; DFT $+1.19$) — a genuine bound state. The **O$_S$** level
+(red) **never saturates** — it descends linearly ($+1.10\to+0.73$, still $\sim-0.005$ eV/band at 60
+bands, $\sim4\times$ the vacancy's residual slope) straight toward the VBM, and the in-gap state count
+drops $7\to5$ as bands are added (states leaking back into the valence).*
+
+**Diagnosis.** The substitution in-gap level is a **basis under-convergence artifact**, not a real
+state and not a code/$\Delta V$ bug. The strong S-vacancy binds a deep dangling-bond state that
+converges by 60 bands; the **weak isovalent O$_S$ has no true bound state**, but a truncated host-band
+basis variationally holds a valence-edge state up in the gap, which descends below the VBM (out of the
+gap) only as the basis approaches completeness — recovering the DFT result of no in-gap level. The
+explicit-60 window is therefore band-converged for the vacancy but **not** for the substitutions. **Only
+the S-vacancy results (Figs 10, 14–17, 24) are DFT-validated; the substitution in-gap features
+(Figs 25–29) are under-convergence artifacts.** The episode is a clean self-consistency check of the
+method: diagonalization equals DFT in the complete basis, so a disagreement localizes either to the
+matrix element or — as here — to basis completeness.
 
 ## 7. On the magnitude of $\tilde V$
 
