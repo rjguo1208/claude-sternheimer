@@ -58,6 +58,8 @@ MODULE edt_input
   LOGICAL  :: dump_wann        = .FALSE.            ! P5-b: dump xk_cryst + U(k) to wann_data.dat (run in audit mode)
   LOGICAL  :: born_only        = .FALSE.            ! skip the Sternheimer rest solves: Vtilde = Born M only
   INTEGER  :: nbndskip_force   = -1                 ! >=0: override the filukk-derived semicore skip (0 = include semicores)
+  CHARACTER(LEN=256) :: edmat_infile = ''           ! EDI edmat.bin to supply Mblk (same-save gauge REQUIRED)
+  LOGICAL  :: edmat_check      = .FALSE.            ! compute M anyway and report |M_file - M_computed| (orientation gate)
 
   NAMELIST / edt_nml / &
        edi_prefix, edi_outdir, coarse_nk1, coarse_nk2, coarse_nk3, &
@@ -68,7 +70,7 @@ MODULE edt_input
        rest_nk1, rest_nk2, rest_nk3, sternheimer_thr, dress_order, dress_tol, &
        active_resum, resum_grid, rest_split, &
        do_full_block, block_nk, block_single_band, block_single_ki, vtilde_outfile, dump_wann, born_only, &
-       nbndskip_force
+       nbndskip_force, edmat_infile, edmat_check
 
 CONTAINS
 
@@ -131,6 +133,8 @@ CONTAINS
     CALL mp_bcast(dump_wann,        ionode_id, world_comm)
     CALL mp_bcast(born_only,        ionode_id, world_comm)
     CALL mp_bcast(nbndskip_force,   ionode_id, world_comm)
+    CALL mp_bcast(edmat_infile,     ionode_id, world_comm)
+    CALL mp_bcast(edmat_check,      ionode_id, world_comm)
 
     IF (ionode) THEN
        WRITE(stdout,'(/,5X,A)') REPEAT('=',64)
