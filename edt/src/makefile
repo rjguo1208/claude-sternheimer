@@ -46,6 +46,15 @@ EDIOBJ = $(EDIROOT)/src/edic_mod.o $(EDIROOT)/src/delta_weights.o $(EDIROOT)/src
 
 EDT_OBJ = edt_input.o edt_partition.o edt_wannier.o edt_source.o edt_sternheimer.o edt.o
 
+# MKL (sequential, gfortran ABI) placed BEFORE QELIBS so BLAS/LAPACK/FFTW3
+# symbols bind to MKL (51.6 GFLOP/s zgemm) instead of QE's bundled netlib
+# (7.2 GFLOP/s).  Static archives; validated against the netlib build by the
+# explicit-60 regression gate.
+MKLROOT_A = /apps/anvil/external/apps/intel/cluster.2020.4/compilers_and_libraries_2020.4.304/linux/mkl
+MKLBLAS = -Wl,--start-group $(MKLROOT_A)/lib/intel64_lin/libmkl_gf_lp64.a \
+          $(MKLROOT_A)/lib/intel64_lin/libmkl_sequential.a \
+          $(MKLROOT_A)/lib/intel64_lin/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+
 .DEFAULT_GOAL := edt.x
 
 %.o : %.f90
@@ -53,6 +62,9 @@ EDT_OBJ = edt_input.o edt_partition.o edt_wannier.o edt_source.o edt_sternheimer
 
 edt.x : $(EDT_OBJ)
 	$(LD) $(LDFLAGS) -o edt.x $(EDT_OBJ) $(EDIOBJ) $(LIBGRP) $(LIBOBJS) $(QELIBS)
+
+edt_opt.x : $(EDT_OBJ)
+	$(LD) $(LDFLAGS) -o edt_opt.x $(EDT_OBJ) $(EDIOBJ) $(LIBGRP) $(LIBOBJS) $(MKLBLAS) $(QELIBS)
 
 # intra-package module dependencies
 edt_partition.o : edt_partition.f90
