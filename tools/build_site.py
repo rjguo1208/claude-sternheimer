@@ -29,6 +29,7 @@ NOTE_KNORM = os.path.join(ROOT, "content", "note_kprime_norm.md")
 NOTE_RESULTS = os.path.join(ROOT, "content", "note_tmatrix_results.md")
 NOTE_LADDER = os.path.join(ROOT, "content", "note_sternheimer_ladder.md")
 NOTE_KOSTER = os.path.join(ROOT, "content", "note_koster_slater.md")
+NOTE_DEFLATED = os.path.join(ROOT, "content", "note_deflated_ladder.md")
 NOTE_FESH = os.path.join(ROOT, "content", "note_feshbach_plan.md")
 DOCS      = os.path.join(ROOT, "docs")
 PAGES_DIR = os.path.join(DOCS, "pages")
@@ -263,9 +264,10 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            '%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
                                       a("pages/sternheimer-ladder.html", "Rest-space ladder", "ladder"),
+                                      a("pages/deflated-ladder.html", "Deflated ladder", "deflated"),
                                       a("pages/koster-slater.html", "Koster&ndash;Slater", "koster"),
                                       a("pages/feshbach-implementation.html", "Feshbach impl.", "fesh"),
                                       a("pages/plan.html", "Implementation Plan", "plan"),
@@ -381,6 +383,30 @@ def build_ladder():
         f.write(out)
     return r
 
+def build_deflated():
+    with open(NOTE_DEFLATED, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=False)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">The production formulation of the dressed rest: Schur-eliminate the '
+              'explicit $\\le$150-band block into an exact all-order inverse $D_1$, leaving only '
+              'tail-passing vertices $W_{{22}}$ for a short Neumann/GMRES ladder — plain iteration '
+              'diverges ($\\rho=1.215$), the deflated one contracts at $\\rho\\approx0.15$.</p>'
+              '<div class="meta"><span class="pill">Method / derivation</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">MathJax v3</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " — Deflated ladder (explicit + tail)",
+                     header, _topnav("deflated", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "deflated-ladder.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
 def build_koster():
     with open(NOTE_KOSTER, encoding="utf-8") as f:
         md = f.read()
@@ -457,6 +483,12 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
+    ("Deflated ladder: explicit all-order rest ($\\le$150) + Sternheimer tail", "Method", "2026-08-05", "ok", "Derived &amp; certified",
+     "Schur elimination locks the coherent low rest into an exact inverse $D_1$; only tail vertices "
+     "$W_{22}=V_{22}+V_{21}D_1V_{12}$ iterate. Plain ladder diverges ($\\rho=1.215$, measured); deflated "
+     "contracts $\\rho=0.574\\to0.323\\to0.153$ at splits $N_1=90/120/140$ &rArr; physical tail "
+     "$\\rho\\approx0.1$&ndash;$0.2$, 4&ndash;5 rungs. Stage-B production formula.",
+     '<a href="pages/deflated-ladder.html">Open derivation &rarr;</a>'),
     ("Active/Rest T-matrix &amp; Sternheimer theory", "Theory", GEN_DATE, "ok", "Complete",
      "Two-layer beyond-Born T-matrix: rest dressing via a $k$-decoupled Sternheimer ladder "
      "(exact to all orders in $V_{QQ}$) feeding an exact active-space inversion "
@@ -679,6 +711,7 @@ def main():
     build_note()
     build_results()
     build_ladder()
+    build_deflated()
     build_koster()
     build_feshplan()
     build_index()

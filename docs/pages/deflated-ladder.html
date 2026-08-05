@@ -1,0 +1,87 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sternheimer Electron-Defect T-matrix — Deflated ladder (explicit + tail)</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head><body>
+<nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html" style="color:#fff;text-decoration:underline">Deflated ladder</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
+<header><div class="header-inner"><h1>Deflated ladder: explicit all-order rest ($\le$150) + Sternheimer tail ($>$150)</h1><p class="subtitle">The production formulation of the dressed rest: Schur-eliminate the explicit $\le$150-band block into an exact all-order inverse $D_1$, leaving only tail-passing vertices $W_{22}$ for a short Neumann/GMRES ladder — plain iteration diverges ($\rho=1.215$), the deflated one contracts at $\rho\approx0.15$.</p><div class="meta"><span class="pill">Method / derivation</span><span class="pill">7 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<main>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. Motivation: why neither pure scheme survives</a><a href="#sec-2">2. Space partition and notation</a><a href="#sec-3">3. Schur elimination of $R_1$ (exact)</a><a href="#sec-4">4. The tail ladder (the only iterative part)</a><a href="#sec-5">5. Measured convergence (the certificate)</a><a href="#sec-6">6. Built-in limits and validation gates</a><a href="#sec-7">7. Implementation notes (design frozen, not yet built)</a></div></section>
+
+<section id="sec-1"><h2>1. Motivation: why neither pure scheme survives</h2>
+<p>Stage A of the Sdisp probe (one S displaced $+0.30$ Å in the 6$\times$6 MoS$_2$ supercell, non-SOC, truth = supercell diagonalization) left two hard facts on the table:</p>
+<ol><li><strong>The bare (2nd-order) Sternheimer rest over-binds.</strong> With the 11-band active manifold and the rest folded at $\omega_0$ through the <em>pristine</em> propagator, a spurious pair of conduction-derived bound states appears in the gap ($-103/-38$ meV below the CBM; the true gap is clean), robust against every static-fold variant (both anchors, raised window, semicore-in-active). Dressing the $\le$150-band rest to all orders in $\Delta V$ removes the pair and lands the CBM doublet at $+4.6/+13.6$ meV vs the exact $+6.5$ meV — but the $>$150 tail, re-added at 2nd order, brings the artifact back at half depth. The tail (42% of the total rest dressing by the T2 gate) must be dressed too.</li><li><strong>The plain Neumann ladder for the full rest diverges.</strong> Power iteration on the explicit $\le$150 block gives $\rho(G^0 V_{RR}) = 1.215$ (cross-checked on two machines), despite a 5.46 eV spectral gap and $|V_{RR}|_{\max} = 36$ meV per element: the localized $\Delta V$ couples the $2\times10^4$ rest states coherently — $\lVert\Sigma_{\rm tail}^{AA}\rVert_2 = 7.5$ eV against 29 meV single elements. Same physics as the classic divergence of the Born series for potentials strong enough to bind.</li></ol>
+<p>The cure is to split the rest and let each half be handled by the method that is exact for it: the dangerous, coherent low part by an <strong>explicit all-order inverse</strong>, and only the remote tail by iteration.</p>
+</section>
+<section id="sec-2"><h2>2. Space partition and notation</h2>
+<p>Within the plane-wave Hilbert space at the wavefunction cutoff (measured $n_{\rm pw}\simeq 24{,}205$ per $k$; 144 $k$-points):</p>
+<div class="math">
+$$\mathcal{H}=A\;\oplus\;R_1\;\oplus\;R_2$$
+</div>
+<div class="table-wrap"><table><thead><tr><th>block</th><th>content</th><th>projector</th><th>dimension</th></tr></thead><tbody><tr><td>$A$</td><td>active manifold, bands 7–17</td><td>$P_A$</td><td>$11\times144=1584$</td></tr><tr><td>$R_1$</td><td>explicit rest: semicore 1–6 + conduction 18–150</td><td>$P_1$</td><td>$139\times144=20{,}016$</td></tr><tr><td>$R_2$</td><td>tail: everything the NSCF never represented, $P_2=1-P_{150}$</td><td>$P_2$</td><td>$\sim 3.4\times10^6$ (implicit)</td></tr></tbody></table></div>
+<p>Write $V\equiv\Delta V$, $V_{XY}=P_X V P_Y$, $H_1=P_1H_0P_1=\mathrm{diag}(\varepsilon_i)$, $H_2^0=P_2H_0P_2$. The object to compute is the Feshbach rest self-energy with $V$ to all orders inside the rest:</p>
+<div class="math">
+$$\Sigma(\omega_0)=V_{AR}\,\big[\omega_0-H_R^0-V_{RR}\big]^{-1}\,V_{RA},\qquad R=R_1\oplus R_2 .$$
+</div>
+</section>
+<section id="sec-3"><h2>3. Schur elimination of $R_1$ (exact)</h2>
+<p>On $R_1\oplus R_2$ the resolvent to invert is the block operator</p>
+<div class="math">
+$$\omega_0-H_R=\begin{pmatrix}\omega_0-H_1-V_{11} & -V_{12}\\[2pt] -V_{21} & \omega_0-H_2^0-V_{22}\end{pmatrix}.$$
+</div>
+<p>Define the two solvable resolvents:</p>
+<div class="math">
+$$D_1=(\omega_0-H_1-V_{11})^{-1}=W\,(\omega_0-\mu)^{-1}W^\dagger
+\qquad\text{(explicit: one } 20{,}016^2 \text{ eigendecomposition, in hand)}$$
+</div>
+<div class="math">
+$$D_2=P_2\,(\omega_0-H_0)^{-1}P_2
+\qquad\text{(implicit: Sternheimer CG with all 150 explicit bands lifted by the }\alpha\text{-shift)}$$
+</div>
+<p>Standard Schur inversion then gives, with no approximation,</p>
+<div class="math">
+$$\boxed{\;\Sigma(\omega_0)=\underbrace{V_{A1}\,D_1\,V_{1A}}_{\Sigma^{R_1}_{\rm dressed}}
+\;+\;\langle\tilde s_b|\,G_{22}\,|\tilde s_a\rangle\;}$$
+</div>
+<p>where both tail-channel objects are <em>dressed by</em> $D_1$:</p>
+<div class="math">
+$$\tilde s_a=P_2\,V\big(1+D_1P_1V\big)\,|\psi_a\rangle
+\qquad\text{(entrance channel: virtual } R_1 \text{ excursion before entering the tail)}$$
+</div>
+<div class="math">
+$$G_{22}=\big[\omega_0-H_2^0-W_{22}\big]^{-1},\qquad
+W_{22}=\underbrace{V_{22}}_{\text{direct tail scattering}}
++\underbrace{V_{21}\,D_1\,V_{12}}_{R_1\text{-mediated round trip}} .$$
+</div>
+<p>The first term is exactly the object already computed in the explicit-dressing verdict run. All coherent low-energy scattering — the driver of the $\rho=1.215$ divergence — is locked inside the exact $D_1$; only vertices that genuinely pass through the tail remain for iteration.</p>
+</section>
+<section id="sec-4"><h2>4. The tail ladder (the only iterative part)</h2>
+<p>For $x_a\equiv G_{22}\tilde s_a$, iterate</p>
+<div class="math">
+$$x^{(0)}=D_2\,\tilde s_a,\qquad
+\boxed{\;x^{(n+1)}=D_2\big[\tilde s_a+W_{22}\,x^{(n)}\big]\;},\qquad
+\Sigma^{\rm tail}_{ba}=\langle\tilde s_b|x_a\rangle .$$
+</div>
+<p>Every ingredient is an executable operation: $W_{22}$ = real-space fold-multiply by $\Delta V$</p>
+<ul><li>projections against the stored 150-band wavefunctions (ZGEMM) + small dense $D_1$ algebra in</li></ul>
+<p>the $\mu$-eigenbasis; $D_2$ = one CG solve. Note that the $D_2$ solves are <em>fast</em>: the tail spectrum starts $\gtrsim 40$ eV above $\omega_0$, so the preconditioned CG condition number is $\sim$17 (10–15 iterations), far better than the bare-arm solves with their 5.4 eV nearest neighbor. The equivalent GMRES form solves $(1-D_2W_{22})\,x=D_2\tilde s$ with the same operator applications and typically fewer iterations.</p>
+</section>
+<section id="sec-5"><h2>5. Measured convergence (the certificate)</h2>
+<p>The contraction rate was measured directly by power iteration on $G_{\rm pre}W$ using the explicit all-band block, with a <em>model tail</em> $R_2'=$ bands $N_1{+}1..150$ (fully explicit, so $\rho$ is exact) and the real construction mimicked block by block:</p>
+<div class="table-wrap"><table><thead><tr><th>split $N_1$</th><th>model tail starts (eV)</th><th>$\rho$</th><th>verdict</th></tr></thead><tbody><tr><td>— (plain ladder, no deflation)</td><td>5.46</td><td><strong>1.215</strong></td><td>diverges</td></tr><tr><td>90</td><td>25.7</td><td>0.574</td><td>converges, slow</td></tr><tr><td>120</td><td>32.8</td><td>0.323</td><td>good</td></tr><tr><td>140</td><td>37.5</td><td><strong>0.153</strong></td><td>fast</td></tr></tbody></table></div>
+<p>The decay is monotone and accelerating; the physical $>$150 tail sits farther still, giving the extrapolated working point $\rho\approx0.1$–$0.2$: <strong>4–5 rungs</strong> (GMRES $\sim$3–4) for $10^{-3}$ accuracy, i.e. a production cost of $\approx$4–5$\times$ the bare Sternheimer arm.</p>
+</section>
+<section id="sec-6"><h2>6. Built-in limits and validation gates</h2>
+<div class="table-wrap"><table><thead><tr><th>truncation of the full formula</th><th>reduces to</th><th>gate</th></tr></thead><tbody><tr><td>$D_1\to$ bare, $W_{22}\to0$, $\tilde s\to P_2V\psi$</td><td>bare Sternheimer arm</td><td>bit-level regression</td></tr><tr><td>keep $D_1$, drop $W_{22}$</td><td>explicit dressing + 2nd-order tail</td><td>must land between the V3/V2 brackets</td></tr><tr><td>full formula at a model split $N_1<150$</td><td>fully explicit exact answer</td><td>T2-dressed comparison</td></tr></tbody></table></div>
+<p>Physical acceptance: the spurious CBM-side pair must vanish and the CBM doublet land at the exact $+6.5$ meV, with the $+215/+231$ meV resonances recovered simultaneously (the bare arm could only get one side right per anchor).</p>
+</section>
+<section id="sec-7"><h2>7. Implementation notes (design frozen, not yet built)</h2>
+<ol><li>The CG projector shift must lift <strong>all 150 explicit bands</strong> (the current code lifts only the 11 active ones) — otherwise $D_2$ leaks back into $R_1$.</li><li>$\tilde s_a$ is built once per source and reused across rungs; all $D_1$ algebra is dense GEMM work in the 20,016-dimensional $\mu$-basis.</li><li>$W_{22}$ mixes all 144 $k$ (the dilute single-defect $\Delta V$ has continuous Fourier support — the commensurability-class block structure applies only to the supercell-array problem, as verified numerically: cross-class $|M|$ up to 0.51 vs 0.20 within class). The multi-$k$ vectors are gathered in source batches.</li><li>Convergence dial: raising the NSCF band count (150 $\to$ 300, $\sim$40 min) pushes the $R_1/R_2$ boundary up and lowers $\rho$ further.</li></ol>
+</section>
+</main>
+<footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
+Static HTML; equations rendered client-side with MathJax v3. No raw wavefunctions, cubes,
+binaries, or logs are published.</footer>
+</body></html>
