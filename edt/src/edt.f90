@@ -25,13 +25,13 @@ PROGRAM edt
                                range_sep_on => range_sep, rhofile_d, rhofile_p, coulomb_2d, alpha_gauss, sternheimer_thr, &
                                do_full_block, block_nk, block_single_band, block_single_ki, vtilde_outfile, &
                                dump_wann, born_only, nbndskip_force, dress_order, &
-                               tail_split_band, n_rung, edmat_infile
+                               tail_split_band, n_rung, edmat_infile, n_lancz, lancz_outfile
   USE edt_partition,    ONLY : build_active_set, print_partition_audit
   USE ed_coarse,        ONLY : load_pot_from_file, &
                                build_vcolin_aligned, build_vcolin_corealign, write_vcolin_cube
   USE edt_wannier,      ONLY : edt_read_filukk
   USE edt_source,       ONLY : test_source, explicit_rest_channel
-  USE edt_twolevel,     ONLY : vtilde_block_twolevel
+  USE edt_twolevel,     ONLY : vtilde_block_twolevel, vtilde_block_lanczos
   USE edt_sternheimer,  ONLY : edt_set_vrs, test_hpsi_eigen, rest_channel_compare, vtilde_diag_full, &
                                vtilde_block_mpi
   USE edi_read_hr,      ONLY : read_hr_file
@@ -239,7 +239,13 @@ PROGRAM edt
            IF (ionode) WRITE(stdout,'(5X,A,I3,A,I3)') 'nbndskip override: ', nbndskip, ' -> ', nbndskip_force
            nbndskip = nbndskip_force
         ENDIF
-        IF (dress_order > 0) THEN
+        IF (n_lancz > 0) THEN
+           ! ---- MODE C: omega-resolved rest (global block Lanczos chains) ----
+           IF (LEN_TRIM(edmat_infile) == 0) CALL errore('edt', &
+                'MODE C (n_lancz>0) requires edmat_infile (all-band block)', 1)
+           CALL vtilde_block_lanczos(xk_cryst, om0/rytoev, win_min/rytoev, win_max/rytoev, &
+                nbndskip, n_lancz, TRIM(edmat_infile), TRIM(lancz_outfile))
+        ELSE IF (dress_order > 0) THEN
            ! ---- two-level (Schur-partitioned) dressed rest ----
            IF (LEN_TRIM(edmat_infile) == 0) CALL errore('edt', &
                 'two-level mode (dress_order>0) requires edmat_infile (all-band block)', 1)

@@ -25,7 +25,7 @@ MODULE edt_twolevel
   USE kinds, ONLY : dp
   IMPLICIT NONE
   PRIVATE
-  PUBLIC :: vtilde_block_twolevel
+  PUBLIC :: vtilde_block_twolevel, vtilde_block_lanczos
 
 CONTAINS
 
@@ -731,5 +731,424 @@ CONTAINS
     END SUBROUTINE sweep_synth
 
   END SUBROUTINE twolevel_physical
+
+
+  SUBROUTINE vtilde_block_lanczos(xkcr, omega0_ry, win_min_ry, win_max_ry, &
+                                  nbndskip_in, nstep, edmat_file, outfile)
+    !-------------------------------------------------------------------------
+    ! MODE C: omega-RESOLVED rest self-energy via GLOBAL BLOCK LANCZOS on the
+    ! full rest space,
+    !     Sigma(w)_ab = <chi_b| [w - P_R H P_R]^-1 |chi_a>,
+    !     chi_a = P_R V_raw |psi_a>,   P_R = 1 - P_A  (A = active manifold),
+    !     H = H0 (h_psi) + V_raw/N_k   (discrete-grid convention, Ry).
+    ! One chain serves every omega: after nstep block steps the file carries
+    ! (R0, A_j, B_j); python evaluates the block continued fraction
+    !     S_N = (w-A_N)^-1,  S_j = [w - A_j - B_j^dag S_{j+1} B_j]^-1,
+    !     Sigma_file(w) = R0^dag S_1(w) R0 / N_k
+    ! (same Sg_file scale as MODE A/B: H_eff = eps + (VAA + Sg)*RY/N_k).
+    ! Recurrence convention:  H Q_j = Q_{j-1} B_{j-1}^dag + Q_j A_j + Q_{j+1} B_j
+    ! with B_j upper triangular from the block QR of the residual.
+    ! Efficiency: folds cached once per (local channel, source-k); KB bec sums
+    ! as ZGEMM; full re-orth (CGS x2) as ONE strided ZGEMM against all stored
+    ! blocks; h_psi batched over the whole 396-wide block per channel.
+    !-------------------------------------------------------------------------
+    USE io_global,        ONLY : ionode, ionode_id, stdout
+    USE wvfct,            ONLY : nbnd, et, npwx
+    USE klist,            ONLY : nkstot, nks, ngk, igk_k, xk
+    USE fft_base,         ONLY : dffts
+    USE fft_interfaces,   ONLY : invfft, fwfft
+    USE noncollin_module, ONLY : npol
+    USE pw_restart_new,   ONLY : read_collected_wfc
+    USE io_files,         ONLY : restart_dir
+    USE constants,        ONLY : rytoev
+    USE gvect,            ONLY : g, ngm
+    USE gvecw,            ONLY : gcutw
+    USE edic_mod,         ONLY : V_d, V_p
+    USE edt_source,       ONLY : build_V_folded, count_nkb, make_coeff
+    USE edt_sternheimer,  ONLY : edmat_fill_or_check, hpsi_setup_k
+    USE mp,               ONLY : mp_sum, mp_bcast
+    USE mp_pools,         ONLY : inter_pool_comm, my_pool_id, npool
+    USE mp_world,         ONLY : world_comm
+    USE becmod,           ONLY : becp, allocate_bec_type, deallocate_bec_type
+    USE uspp,             ONLY : nkb
+    IMPLICIT NONE
+    REAL(dp), INTENT(IN) :: xkcr(3,nkstot), omega0_ry, win_min_ry, win_max_ry
+    INTEGER,  INTENT(IN) :: nbndskip_in, nstep
+    CHARACTER(LEN=*), INTENT(IN) :: edmat_file, outfile
+
+    INTEGER :: kg, ib, n, NU, NA_, iu, info, ik, iks, a, i, j, jj, npw
+    INTEGER :: nkb_d, nkb_p, owner, nact_max, nstep_done, istat
+    REAL(dp) :: w0, eR, xnk, t0, t1, tfold, thpsi, tortho, herm
+    INTEGER,  ALLOCATABLE :: uk(:), ub(:), selA(:), nact_k(:), actb(:,:)
+    INTEGER,  ALLOCATABLE :: igk_all(:,:), ngk_all(:), kowner(:)
+    REAL(dp), ALLOCATABLE :: et_all(:,:), epsU(:), gk_tmp(:)
+    COMPLEX(dp), ALLOCATABLE :: MU_(:,:), VAA(:,:), R0(:,:), Aj(:,:), Bj(:,:), prevB(:,:)
+    COMPLEX(dp), ALLOCATABLE :: Ast(:,:,:), Bst(:,:,:), Gm(:,:), Cm(:,:), projm(:,:)
+    COMPLEX(dp), ALLOCATABLE :: Qs(:,:,:,:), W3(:,:,:), xbuf(:,:), acc3(:,:,:)
+    COMPLEX(dp), ALLOCATABLE :: Vfa(:,:,:), psic(:), evtmp(:,:), actA(:,:,:)
+    COMPLEX(dp), ALLOCATABLE :: vkb_d(:,:), vkb_p(:,:), kcd(:,:), kcp(:,:)
+    COMPLEX(dp), ALLOCATABLE :: BDl(:,:), BPl(:,:), tmpd(:), tmpp(:), psi_c(:,:), hps_c(:,:)
+    COMPLEX(dp), ALLOCATABLE :: evc_all_l(:,:,:)
+    REAL(dp) :: xk3(3)
+    COMPLEX(dp) :: cone, czero
+    INTEGER, EXTERNAL :: global_kpoint_index
+    EXTERNAL :: h_psi
+
+    cone = (1.0_dp,0.0_dp); czero = (0.0_dp,0.0_dp)
+    w0 = omega0_ry; xnk = DBLE(nkstot)
+    IF (npol /= 1) CALL errore('vtilde_block_lanczos','npol=1 only',1)
+    iks = global_kpoint_index(nkstot, 1)
+
+    ! ---- eigenvalues, active manifold, k ownership ----
+    ALLOCATE(et_all(nbnd,nkstot))
+    CALL poolcollect(nbnd, nks, et, nkstot, et_all)
+    NU = nbnd*nkstot
+    ALLOCATE(uk(NU), ub(NU), epsU(NU))
+    n = 0
+    DO kg = 1, nkstot
+       DO ib = 1, nbnd
+          n = n+1; uk(n) = kg; ub(n) = ib; epsU(n) = et_all(ib,kg)
+       ENDDO
+    ENDDO
+    ALLOCATE(selA(NU))
+    NA_ = 0
+    DO n = 1, NU
+       eR = epsU(n)
+       IF (ub(n) > nbndskip_in .AND. eR >= win_min_ry .AND. eR <= win_max_ry) THEN
+          NA_ = NA_+1; selA(NA_) = n
+       ENDIF
+    ENDDO
+    ALLOCATE(nact_k(nkstot)); nact_k = 0
+    DO a = 1, NA_
+       nact_k(uk(selA(a))) = nact_k(uk(selA(a))) + 1
+    ENDDO
+    nact_max = MAXVAL(nact_k)
+    ALLOCATE(actb(nact_max, nkstot)); actb = 0; nact_k = 0
+    DO a = 1, NA_
+       kg = uk(selA(a)); nact_k(kg) = nact_k(kg) + 1
+       actb(nact_k(kg), kg) = ub(selA(a))
+    ENDDO
+    ALLOCATE(kowner(nkstot)); kowner = 0
+    DO ik = 1, nks
+       kowner(ik + iks - 1) = my_pool_id
+    ENDDO
+    CALL mp_sum(kowner, inter_pool_comm)
+    IF (ionode) THEN
+       WRITE(stdout,'(/,5X,A)') REPEAT('=',64)
+       WRITE(stdout,'(5X,A)') 'OMEGA-RESOLVED rest — MODE C (global block Lanczos, full rest)'
+       WRITE(stdout,'(5X,A,I8,A,I4)') 'N_A (block width) = ', NA_, '   block steps = ', nstep
+       FLUSH(stdout)
+    ENDIF
+
+    ! ---- VAA from the all-band block file (ionode) ----
+    ALLOCATE(VAA(NA_,NA_))
+    IF (ionode) THEN
+       ALLOCATE(MU_(NU,NU)); MU_ = czero
+       CALL edmat_fill_or_check(edmat_file, xkcr, uk, ub, NU, MU_, .FALSE.)
+       VAA = MU_(selA(1:NA_), selA(1:NA_))
+       DEALLOCATE(MU_)
+    ENDIF
+
+    ! ---- replicate wavefunctions; igk tables; active-column buffers ----
+    ALLOCATE(evc_all_l(npwx,nbnd,nkstot), STAT=istat)
+    IF (istat /= 0) CALL errore('vtilde_block_lanczos','evc_all alloc failed',1)
+    evc_all_l = czero
+    ALLOCATE(evtmp(npwx,nbnd))
+    DO ik = 1, nks
+       kg = ik + iks - 1
+       CALL read_collected_wfc(restart_dir(), ik, evtmp)
+       evc_all_l(:,:,kg) = evtmp
+    ENDDO
+    DO kg = 1, nkstot
+       CALL mp_sum(evc_all_l(:,:,kg), inter_pool_comm)
+    ENDDO
+    DEALLOCATE(evtmp)
+    ALLOCATE(igk_all(npwx,nkstot), ngk_all(nkstot), gk_tmp(npwx))
+    DO kg = 1, nkstot
+       xk3 = xkc3_of(kg)
+       CALL gk_sort(xk3, ngm, g, gcutw, ngk_all(kg), igk_all(1,kg), gk_tmp)
+    ENDDO
+    ALLOCATE(actA(npwx, nact_max, nks))
+    DO ik = 1, nks
+       kg = ik + iks - 1
+       actA(:,:,ik) = czero
+       DO i = 1, nact_k(kg)
+          actA(:, i, ik) = evc_all_l(:, actb(i,kg), kg)
+       ENDDO
+    ENDDO
+
+    CALL count_nkb(V_d%nat, V_d%ityp, V_d%ntyp, nkb_d)
+    CALL count_nkb(V_p%nat, V_p%ityp, V_p%ntyp, nkb_p)
+    ALLOCATE(vkb_d(npwx,nkb_d), vkb_p(npwx,nkb_p), tmpd(nkb_d), tmpp(nkb_p))
+    ALLOCATE(kcd(nkb_d,NA_), kcp(nkb_p,NA_), BDl(nkb_d,NA_), BPl(nkb_p,NA_))
+    ALLOCATE(psic(dffts%nnr))
+
+    ! ---- fold cache: ALL (source-k, local channel) folds built once ----
+    ALLOCATE(Vfa(dffts%nnr, nks, nkstot), STAT=istat)
+    IF (istat /= 0) CALL errore('vtilde_block_lanczos','fold cache alloc failed (reduce npool?)',1)
+    DO kg = 1, nkstot
+       DO ik = 1, nks
+          CALL build_V_folded(xkcr(:,kg) - xkcr(:,ik+iks-1), Vfa(:,ik,kg))
+       ENDDO
+    ENDDO
+
+    ! ---- Krylov storage ----
+    ALLOCATE(Qs(npwx,nks,NA_,0:nstep), STAT=istat)
+    IF (istat /= 0) CALL errore('vtilde_block_lanczos','Qs alloc failed (lower n_lancz)',1)
+    ALLOCATE(W3(npwx,nks,NA_), xbuf(npwx,NA_), acc3(dffts%nnr,nks,NA_))
+    ALLOCATE(Gm(NA_,NA_), Aj(NA_,NA_), Bj(NA_,NA_), prevB(NA_,NA_), R0(NA_,NA_))
+    ALLOCATE(projm(nact_max,NA_))
+    IF (ionode) THEN
+       ALLOCATE(Ast(NA_,NA_,nstep), Bst(NA_,NA_,nstep))
+    ENDIF
+    CALL allocate_bec_type(nkb, NA_, becp)
+    ALLOCATE(psi_c(npwx,NA_), hps_c(npwx,NA_))
+
+    ! ================= sources: chi_a = P_A-projected V_raw |psi_a> ==========
+    W3 = czero
+    DO a = 1, NA_
+       kg = uk(selA(a))
+       IF (kowner(kg) == my_pool_id) W3(:, kg-iks+1, a) = evc_all_l(:, ub(selA(a)), kg)
+    ENDDO
+    CALL apply_dV(W3, .TRUE.)     ! W3 <- V_raw * (planted bundle); raw scale
+    CALL project_PA(W3)
+    CALL block_gram(W3, W3, Gm)
+    Gm = 0.5_dp*(Gm + CONJG(TRANSPOSE(Gm)))
+    CALL ZPOTRF('U', NA_, Gm, NA_, info)
+    IF (info /= 0) CALL errore('vtilde_block_lanczos','source QR breakdown',ABS(info))
+    R0 = czero
+    DO i = 1, NA_
+       R0(1:i,i) = Gm(1:i,i)
+    ENDDO
+    CALL apply_trsm(W3, Gm)
+    Qs(:,:,:,0) = W3
+    IF (ionode) THEN
+       WRITE(stdout,'(5X,A,ES12.4)') 'sources built; max diag R0 (Ry) = ', MAXVAL(ABS(R0))
+       FLUSH(stdout)
+    ENDIF
+
+    ! ================= block Lanczos =================
+    prevB = czero; nstep_done = nstep
+    DO j = 0, nstep-1
+       t0 = wtime()
+       ! W = H_phys Q_j
+       W3 = Qs(:,:,:,j)
+       CALL apply_dV(W3, .FALSE.)          ! W3 <- V_raw Q_j (bundle sweep)
+       W3 = W3 / xnk
+       t1 = wtime(); tfold = t1-t0; t0 = t1
+       DO ik = 1, nks
+          kg = ik + iks - 1
+          npw = ngk_all(kg)
+          CALL hpsi_setup_k(ik)
+          psi_c = czero
+          psi_c(:,1:NA_) = Qs(:,ik,1:NA_,j)
+          hps_c = czero
+          CALL h_psi(npwx, npw, NA_, psi_c, hps_c)
+          W3(1:npw,ik,1:NA_) = W3(1:npw,ik,1:NA_) + hps_c(1:npw,1:NA_)
+       ENDDO
+       CALL project_PA(W3)
+       t1 = wtime(); thpsi = t1-t0; t0 = t1
+       ! A_j
+       CALL block_gram(Qs(:,:,:,j), W3, Aj)
+       herm = MAXVAL(ABS(Aj - CONJG(TRANSPOSE(Aj))))
+       Aj = 0.5_dp*(Aj + CONJG(TRANSPOSE(Aj)))
+       ! residual: W - Q_j A_j - Q_{j-1} B_{j-1}^dag
+       CALL gemm_sub(W3, Qs(:,:,:,j), Aj, 'N')
+       IF (j > 0) CALL gemm_sub(W3, Qs(:,:,:,j-1), prevB, 'C')
+       ! full re-orthogonalization, CGS x2, one strided GEMM per pass
+       CALL reorth_all(W3, j)
+       CALL reorth_all(W3, j)
+       t1 = wtime(); tortho = t1-t0
+       ! QR -> B_j, Q_{j+1}
+       CALL block_gram(W3, W3, Gm)
+       Gm = 0.5_dp*(Gm + CONJG(TRANSPOSE(Gm)))
+       CALL ZPOTRF('U', NA_, Gm, NA_, info)
+       IF (info /= 0) THEN
+          nstep_done = j+1
+          IF (ionode) WRITE(stdout,'(5X,A,I4)') 'invariant subspace at step ', j+1
+          IF (ionode) Ast(:,:,j+1) = Aj
+          IF (ionode) Bst(:,:,j+1) = czero
+          EXIT
+       ENDIF
+       Bj = czero
+       DO i = 1, NA_
+          Bj(1:i,i) = Gm(1:i,i)
+       ENDDO
+       CALL apply_trsm(W3, Gm)
+       Qs(:,:,:,j+1) = W3
+       prevB = Bj
+       IF (ionode) THEN
+          Ast(:,:,j+1) = Aj; Bst(:,:,j+1) = Bj
+          WRITE(stdout,'(5X,A,I4,A,ES9.2,A,3F8.1,A)') 'step ', j+1, &
+               '  herm(A) = ', herm, '   t(fold,hpsi,orth) = ', tfold, thpsi, tortho, ' s'
+          FLUSH(stdout)
+       ENDIF
+    ENDDO
+    CALL deallocate_bec_type(becp)
+
+    ! ---- write chains (ionode) ----
+    IF (ionode) THEN
+       iu = 79
+       OPEN(unit=iu, file=TRIM(outfile), form='unformatted', status='replace')
+       WRITE(iu) NA_, nkstot, nbndskip_in, nstep_done
+       WRITE(iu) w0, win_min_ry, win_max_ry
+       WRITE(iu) uk(selA(1:NA_)), ub(selA(1:NA_))
+       WRITE(iu) epsU(selA(1:NA_))
+       WRITE(iu) VAA
+       WRITE(iu) R0
+       WRITE(iu) Ast(:,:,1:nstep_done)
+       WRITE(iu) Bst(:,:,1:nstep_done)
+       CLOSE(iu)
+       WRITE(stdout,'(5X,3A,I4,A)') 'wrote ', TRIM(outfile), '  (MODE C chains, nstep = ', nstep_done, ')'
+       WRITE(stdout,'(5X,A)') REPEAT('=',64)
+       FLUSH(stdout)
+    ENDIF
+
+  CONTAINS
+
+    FUNCTION xkc3_of(kg_) RESULT(xkc3)
+      USE cell_base, ONLY : bg
+      INTEGER, INTENT(IN) :: kg_
+      REAL(dp) :: xkc3(3)
+      xkc3 = MATMUL(bg, xkcr(:,kg_))
+    END FUNCTION xkc3_of
+
+    FUNCTION wtime() RESULT(t_)
+      REAL(dp) :: t_
+      INTEGER(KIND=8) :: cnt, rate
+      CALL SYSTEM_CLOCK(cnt, rate)
+      t_ = DBLE(cnt)/DBLE(MAX(rate,1_8))
+    END FUNCTION wtime
+
+    SUBROUTINE apply_dV(v3, src_pass)
+      !! v3 <- (V_local-fold + V_KB) v3   (raw scale), bundle over all k.
+      !! src_pass: skip exactly-zero columns per source-k (planted bundles).
+      COMPLEX(dp), INTENT(INOUT) :: v3(:,:,:)
+      LOGICAL, INTENT(IN) :: src_pass
+      INTEGER :: kgs, ikl, kgl, aa, n2, ig
+      acc3 = czero
+      kcd = czero; kcp = czero
+      DO kgs = 1, nkstot
+         owner = kowner(kgs)
+         IF (owner == my_pool_id) xbuf(:,1:NA_) = v3(:, kgs-iks+1, 1:NA_)
+         CALL mp_bcast(xbuf(:,1:NA_), owner, inter_pool_comm)
+         ! KB bec at this source-k (ZGEMM), OWNER POOL ONLY (mp_sum'd below)
+         IF (owner == my_pool_id) THEN
+            CALL get_betavkb(ngk_all(kgs), igk_all(1,kgs), xkc3_of(kgs), vkb_d, &
+                             V_d%nat,V_d%ityp,V_d%tau, nkb_d)
+            CALL get_betavkb(ngk_all(kgs), igk_all(1,kgs), xkc3_of(kgs), vkb_p, &
+                             V_p%nat,V_p%ityp,V_p%tau, nkb_p)
+            CALL ZGEMM('C','N', nkb_d, NA_, ngk_all(kgs), cone, vkb_d, npwx, xbuf, npwx, czero, BDl, nkb_d)
+            CALL ZGEMM('C','N', nkb_p, NA_, ngk_all(kgs), cone, vkb_p, npwx, xbuf, npwx, czero, BPl, nkb_p)
+            DO aa = 1, NA_
+               IF (src_pass .AND. uk(selA(aa)) /= kgs) CYCLE
+               CALL make_coeff(V_d%nat,V_d%ityp,V_d%ntyp,nkb_d,BDl(:,aa),tmpd)
+               CALL make_coeff(V_p%nat,V_p%ityp,V_p%ntyp,nkb_p,BPl(:,aa),tmpp)
+               kcd(:,aa) = kcd(:,aa) + tmpd
+               kcp(:,aa) = kcp(:,aa) + tmpp
+            ENDDO
+         ENDIF
+         DO aa = 1, NA_
+            IF (src_pass .AND. uk(selA(aa)) /= kgs) CYCLE
+            psic = czero
+            DO n2 = 1, ngk_all(kgs)
+               psic(dffts%nl(igk_all(n2,kgs))) = xbuf(n2,aa)
+            ENDDO
+            CALL invfft('Wave', psic, dffts)
+            DO ikl = 1, nks
+               acc3(:,ikl,aa) = acc3(:,ikl,aa) + Vfa(:,ikl,kgs) * psic
+            ENDDO
+         ENDDO
+      ENDDO
+      CALL mp_sum(kcd, inter_pool_comm)
+      CALL mp_sum(kcp, inter_pool_comm)
+      v3 = czero
+      DO ikl = 1, nks
+         kgl = ikl + iks - 1
+         DO aa = 1, NA_
+            psic = acc3(:,ikl,aa)
+            CALL fwfft('Wave', psic, dffts)
+            DO n2 = 1, ngk_all(kgl)
+               v3(n2,ikl,aa) = psic(dffts%nl(igk_all(n2,kgl)))
+            ENDDO
+         ENDDO
+         CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xk(1,ikl), vkb_d, V_d%nat,V_d%ityp,V_d%tau, nkb_d)
+         CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xk(1,ikl), vkb_p, V_p%nat,V_p%ityp,V_p%tau, nkb_p)
+         CALL ZGEMM('N','N', ngk_all(kgl), NA_, nkb_d,  cone, vkb_d, npwx, kcd, nkb_d, cone, v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2))
+         CALL ZGEMM('N','N', ngk_all(kgl), NA_, nkb_p, -cone, vkb_p, npwx, kcp, nkb_p, cone, v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2))
+      ENDDO
+    END SUBROUTINE apply_dV
+
+    SUBROUTINE project_PA(v3)
+      !! v3 <- (1 - P_A) v3 per local channel (subtract active bands only)
+      COMPLEX(dp), INTENT(INOUT) :: v3(:,:,:)
+      INTEGER :: ikl, kgl, na_k
+      DO ikl = 1, nks
+         kgl = ikl + iks - 1
+         na_k = nact_k(kgl)
+         IF (na_k == 0) CYCLE
+         CALL ZGEMM('C','N', na_k, NA_, ngk_all(kgl),  cone, actA(1,1,ikl), npwx, &
+                    v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2), czero, projm, nact_max)
+         CALL ZGEMM('N','N', ngk_all(kgl), NA_, na_k, -cone, actA(1,1,ikl), npwx, &
+                    projm, nact_max, cone, v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2))
+      ENDDO
+    END SUBROUTINE project_PA
+
+    SUBROUTINE block_gram(u3, v3, G_)
+      !! G_ = u3^dag v3 summed over local channels + pools (npwx rows, zero-padded)
+      COMPLEX(dp), INTENT(IN)  :: u3(:,:,:), v3(:,:,:)
+      COMPLEX(dp), INTENT(OUT) :: G_(:,:)
+      INTEGER :: ikl
+      G_ = czero
+      DO ikl = 1, nks
+         CALL ZGEMM('C','N', NA_, NA_, npwx, cone, u3(1,ikl,1), SIZE(u3,1)*SIZE(u3,2), &
+                    v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2), cone, G_, NA_)
+      ENDDO
+      CALL mp_sum(G_, inter_pool_comm)
+    END SUBROUTINE block_gram
+
+    SUBROUTINE gemm_sub(w_, q_, m_, tr)
+      !! w_ <- w_ - q_ * op(m_),  op = 'N' or 'C' (conjg-transpose)
+      COMPLEX(dp), INTENT(INOUT) :: w_(:,:,:)
+      COMPLEX(dp), INTENT(IN)    :: q_(:,:,:), m_(:,:)
+      CHARACTER(LEN=1), INTENT(IN) :: tr
+      INTEGER :: ikl
+      DO ikl = 1, nks
+         CALL ZGEMM('N',tr, npwx, NA_, NA_, -cone, q_(1,ikl,1), SIZE(q_,1)*SIZE(q_,2), &
+                    m_, NA_, cone, w_(1,ikl,1), SIZE(w_,1)*SIZE(w_,2))
+      ENDDO
+    END SUBROUTINE gemm_sub
+
+    SUBROUTINE reorth_all(w_, jmax)
+      !! classical Gram-Schmidt of w_ against ALL stored blocks 0..jmax
+      !! (single strided ZGEMM: Qs columns (a,j) share a uniform stride)
+      COMPLEX(dp), INTENT(INOUT) :: w_(:,:,:)
+      INTEGER, INTENT(IN) :: jmax
+      INTEGER :: ikl, ncols
+      ncols = NA_*(jmax+1)
+      IF (.NOT. ALLOCATED(Cm)) ALLOCATE(Cm(NA_*(nstep+1), NA_))
+      Cm(1:ncols,:) = czero
+      DO ikl = 1, nks
+         CALL ZGEMM('C','N', ncols, NA_, npwx, cone, Qs(1,ikl,1,0), SIZE(Qs,1)*SIZE(Qs,2), &
+                    w_(1,ikl,1), SIZE(w_,1)*SIZE(w_,2), cone, Cm, SIZE(Cm,1))
+      ENDDO
+      CALL mp_sum(Cm(1:ncols,:), inter_pool_comm)
+      DO ikl = 1, nks
+         CALL ZGEMM('N','N', npwx, NA_, ncols, -cone, Qs(1,ikl,1,0), SIZE(Qs,1)*SIZE(Qs,2), &
+                    Cm, SIZE(Cm,1), cone, w_(1,ikl,1), SIZE(w_,1)*SIZE(w_,2))
+      ENDDO
+    END SUBROUTINE reorth_all
+
+    SUBROUTINE apply_trsm(w_, R_)
+      !! w_ <- w_ * R_^-1  (R_ upper triangular, from ZPOTRF 'U')
+      COMPLEX(dp), INTENT(INOUT) :: w_(:,:,:)
+      COMPLEX(dp), INTENT(IN)    :: R_(:,:)
+      INTEGER :: ikl
+      DO ikl = 1, nks
+         CALL ZTRSM('R','U','N','N', npwx, NA_, cone, R_, NA_, w_(1,ikl,1), SIZE(w_,1)*SIZE(w_,2))
+      ENDDO
+    END SUBROUTINE apply_trsm
+
+  END SUBROUTINE vtilde_block_lanczos
 
 END MODULE edt_twolevel
