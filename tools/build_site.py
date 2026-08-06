@@ -31,6 +31,7 @@ NOTE_LADDER = os.path.join(ROOT, "content", "note_sternheimer_ladder.md")
 NOTE_KOSTER = os.path.join(ROOT, "content", "note_koster_slater.md")
 NOTE_DEFLATED = os.path.join(ROOT, "content", "note_deflated_ladder.md")
 NOTE_TLRES = os.path.join(ROOT, "content", "note_twolevel_results.md")
+NOTE_METH = os.path.join(ROOT, "content", "note_methods.md")
 NOTE_FESH = os.path.join(ROOT, "content", "note_feshbach_plan.md")
 DOCS      = os.path.join(ROOT, "docs")
 PAGES_DIR = os.path.join(DOCS, "pages")
@@ -265,11 +266,12 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            '%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
                                       a("pages/sternheimer-ladder.html", "Rest-space ladder", "ladder"),
                                       a("pages/deflated-ladder.html", "Deflated ladder", "deflated"),
                                       a("pages/twolevel-results.html", "Two-level results", "tlres"),
+                                      a("pages/methods.html", "Method derivations", "methods"),
                                       a("pages/koster-slater.html", "Koster&ndash;Slater", "koster"),
                                       a("pages/feshbach-implementation.html", "Feshbach impl.", "fesh"),
                                       a("pages/plan.html", "Implementation Plan", "plan"),
@@ -433,6 +435,30 @@ def build_tlres():
         f.write(out)
     return r
 
+def build_methods():
+    with open(NOTE_METH, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=False)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">One page, all the formulas: the exact downfolding identity and each '
+              'method as one choice of the rest self-energy $\\Sigma$ &mdash; M-only, bare second order, '
+              'the two-level static ladder, the $\\omega$-resolved block-Lanczos continued fraction, and '
+              '$\\chi$ augmentation.</p>'
+              '<div class="meta"><span class="pill">Method</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">MathJax v3</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " — Method derivations",
+                     header, _topnav("methods", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "methods.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
 def build_koster():
     with open(NOTE_KOSTER, encoding="utf-8") as f:
         md = f.read()
@@ -509,6 +535,11 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
+    ("Method derivations: every $\\Sigma$ on one page", "Method", "2026-08-07", "ok", "Reference",
+     "The exact downfolding identity and each method as one choice of $\\Sigma$: M-only / bare 2nd order / "
+     "two-level static ladder (with its $\\rho(D_2W_{22})<1$ caveat) / $\\omega$-resolved block-Lanczos "
+     "continued fraction / $\\chi$ augmentation. Compact, formulas only.",
+     '<a href="pages/methods.html">Open derivations &rarr;</a>'),
     ("Two-level dressing RESULTS: Sdisp &amp; relaxed V$_S$ truth gates", "Result", "2026-08-06", "prod", "Headline",
      "ERRATUM + omega-resolved update: bare rows corrected (36x); MODE B's 6-rung ladder under-converges one "
      "collective rest mode (window numbers survive; the O$_S$ ghost-survival claim retracted &mdash; it was this "
@@ -746,6 +777,7 @@ def main():
     build_ladder()
     build_deflated()
     build_tlres()
+    build_methods()
     build_koster()
     build_feshplan()
     build_index()
