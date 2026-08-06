@@ -564,6 +564,7 @@ CONTAINS
       LOGICAL,     INTENT(IN)  :: project_T
       INTEGER :: ikl, kgc, kgs, aa, igl, ikb2
       COMPLEX(dp), ALLOCATABLE :: cd(:,:), cp(:,:), bd(:), bp(:), tmpd(:), tmpp(:)
+      COMPLEX(dp), ALLOCATABLE, SAVE :: Vfc(:,:)
 
       ! summed KB coefficients per source (home-k loop over local k, then global sum)
       ALLOCATE(cd(nkb_d,nsrc), cp(nkb_p,nsrc), bd(nkb_d), bp(nkb_p))
@@ -590,11 +591,18 @@ CONTAINS
       CALL mp_sum(cp, inter_pool_comm)
 
       vout = czero
+      IF (.NOT. ALLOCATED(Vfc)) ALLOCATE(Vfc(dffts%nnr, nkstot))
       DO ikl = 1, nks                       ! local channels
          kgc = ikl + iks - 1
          npw_kp = ngk_all(kgc)
          CALL get_betavkb(npw_kp, igk_all(1,kgc), xk(1,ikl), vkb_d, V_d%nat,V_d%ityp,V_d%tau, nkb_d)
          CALL get_betavkb(npw_kp, igk_all(1,kgc), xk(1,ikl), vkb_p, V_p%nat,V_p%ityp,V_p%tau, nkb_p)
+         ! folds depend on (source-k, channel) only: build the nkstot of them ONCE
+         ! per channel and reuse across all sources (they were being rebuilt per
+         ! source before -- a ~400x waste at 396 sources)
+         DO kgs = 1, nkstot
+            CALL build_V_folded(xkcr(:,kgs) - xkcr(:,kgc), Vfc(:,kgs))
+         ENDDO
          DO aa = 1, nsrc
             gbuf = czero
             DO kgs = 1, nkstot              ! source-k sum (fold)
@@ -604,8 +612,7 @@ CONTAINS
                   psic(dffts%nl(igk_all(igl,kgs))) = vin(igl,kgs,aa)
                ENDDO
                CALL invfft('Wave', psic, dffts)
-               CALL build_V_folded(xkcr(:,kgs) - xkcr(:,kgc), Vf)
-               gbuf = gbuf + Vf * psic
+               gbuf = gbuf + Vfc(:,kgs) * psic
             ENDDO
             CALL fwfft('Wave', gbuf, dffts)
             DO igl = 1, npw_kp
