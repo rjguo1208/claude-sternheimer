@@ -510,10 +510,11 @@ def build_results():
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
     ("Two-level dressing RESULTS: Sdisp &amp; relaxed V$_S$ truth gates", "Result", "2026-08-06", "prod", "Headline",
-     "Level-by-level vs the supercell: Sdisp CBM doublet +8.2/+8.5 vs +6.5 meV (clean gap; every partial "
-     "treatment fails visibly); relaxed V$_S$ gap $e$-doublet +1.183/+1.212 vs +1.1726 eV &mdash; "
-     "$+10/+39$ meV with NO $\\chi$, vs the historical $+217$ (truncated) / $+41$ (best multi-center $\\chi$). "
-     "Full chain 40 min/node.",
+     "Level-by-level vs the supercell: Sdisp CBM doublet +8.2/+8.5 vs +6.5 meV; relaxed V$_S$ $e$-doublet "
+     "$+10/+39$ meV with NO $\\chi$. Head-to-head on identical inputs: $\\chi$-augmented explicit gives $+31$ meV "
+     "(no-$\\chi$ $+179$) &mdash; equal-accuracy, zero basis engineering. Se$_S$: $+27$ meV common-mode, spacings "
+     "$\\le$2 meV. O$_S$: the O-2p push-up survives static dressing &mdash; new elements still need $\\chi$ "
+     "(complementarity confirmed).",
      '<a href="pages/twolevel-results.html">Open results &rarr;</a>'),
     ("Deflated ladder: explicit all-order rest ($\\le$150) + Sternheimer tail", "Method", "2026-08-05", "ok", "Derived &amp; certified",
      "Schur elimination locks the coherent low rest into an exact inverse $D_1$; only tail vertices "

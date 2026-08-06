@@ -64,7 +64,73 @@ motivated the whole program.
 | full V$_S$ chain (SCF $\to$ cubes $\to$ block $\to$ MODE B $\to$ gate) | 40 min (1 node) |
 | MODE B memory (v2: sliced channels + streamed $x$) | $\sim$5 GB/rank (was $\sim$30) |
 
-## 5. Residuals and next levers
+## 5. Head-to-head: the previous production method ($\chi$ augmentation) on the same system
+
+The pre-Sternheimer production recipe — full diagonalization of the explicit
+$\le$150-band $H_{\rm eff}$ with **multi-center $\chi$ augmentation** (the same
+10-center set that produced the historical $+217\to+41$ meV SOC calibration
+ladder: 3 Mo + 7 S cage, Gram-truncated) — rerun on the *identical* non-SOC
+6$\times$6 relaxed V$_S$ inputs (same cubes, same $\omega_0$), via EDI-direct +
+$\chi$ against a commensurate-grid twin of the same NSCF.
+
+![VS chi vs two-level](../assets/vschi_levels.png)
+
+| method | gap $e$-doublet (eV, rel. VBM) | error | basis engineering |
+|---|---|---|---|
+| truth | $+1.1726$ (2$\times$) | — | — |
+| explicit-150, no $\chi$ | $+1.3516$ (2$\times$) | $+179$ meV | none (the phantom) |
+| explicit-150 + $\chi$, keep=30 | $+1.2077$ (2$\times$) | $+35$ meV | 10-center $\chi$ set + keep |
+| explicit-150 + $\chi$, keep=38 | $+1.2038$ (2$\times$) | $+31$ meV (saturated) | 10-center $\chi$ set + keep |
+| **MODE B (two-level)** | $+1.183$ / $+1.212$ | $+10$ / $+39$ meV | **none** |
+
+Read: on the vacancy class the two cures are **equally accurate** (both land the
+doublet in the $\sim$30 meV static-$\omega_0$ band; centroids $+33$ vs $+25$ meV).
+The differences are structural: $\chi$ preserves the $e$-degeneracy exactly but
+needs a defect-specific orbital set and a truncation parameter scanned to
+saturation; the two-level ladder needs *no defect-specific input at all* — and it
+also fixes the VBM-edge window ($\chi$: uniform $\sim+30$ meV overshoot on all
+four edge states; the no-$\chi$ a$_1$ phantom $+0.296\to+0.089$/$+0.091$ under
+either cure vs truth $+0.060$). Non-SOC replication of the historical ladder:
+$+179 \to +31$ meV here vs $+217 \to +41$ with SOC.
+
+## 6. O$_S$ and Se$_S$: where the tail helps — and where it cannot
+
+Same MODE B chain (relaxed geometry, ghost 4-species NSCF for the foreign-element
+nonlocal channel), truth-gated. Se$_S$ (isovalent, host-like states):
+
+![SeS levels](../assets/ses_levels66.png)
+
+| Se$_S$ | VBM edge (eV) | CBM edge |
+|---|---|---|
+| truth | $-0.016$ (2$\times$) / $-0.011$ | $+1.660$ (2$\times$) |
+| MODE B | $+0.010$ (2$\times$) / $+0.017$ | $+1.688$ (2$\times$) |
+
+A uniform $+27$ meV common-mode; **internal spacings reproduced to $\le 2$ meV**,
+level ordering (doublet below single) restored where M-only inverts it, gap clean.
+
+O$_S$ (a new element — O-2p orbitals absent from the pristine Bloch basis):
+
+![OS levels](../assets/os_levels66.png)
+
+| O$_S$ | O-2p pair | a$_1$ | mid-gap | CBM edge |
+|---|---|---|---|---|
+| truth | $-0.002$ (2$\times$) | $+0.082$ | **empty** | $+1.653$ (2$\times$) |
+| M-only | $-0.006$ (2$\times$) | $+0.048$ | $+0.801$ (2$\times$) | $+1.659$ (2$\times$) |
+| MODE B | $-0.054$ (2$\times$) | — | $+0.807$ | $+1.609$ (2$\times$) |
+
+The $\approx+0.80$ eV mid-gap feature has **no truth counterpart** and appears in
+every truncated-active variant; rest dressing at frozen $\omega_0$ moves it by
+only $+6$ meV. This is the known O-2p **missing-weight push-up** (tiny weight
+$\times$ 100-eV tails) in downfolded form: the state is *rest-dominant*, so a
+static-$\omega_0$ self-energy — no matter how exactly the rest is inverted —
+cannot relocate its active-space shadow. The complementarity rule from the SOC
+campaign is thus reproduced inside one framework: **vacancy/displacement defects
+$\to$ the Sternheimer tail cures them with zero basis engineering; new-element
+defects $\to$ they need the foreign atom's $\chi$ in the diagonalized space (or an
+$\omega$-resolved $\Sigma$)**. The two methods are not competitors but the two
+halves of one toolbox.
+
+## 7. Residuals and next levers
 
 Remaining deviations are small and mechanistically assigned: the V$_S$ doublet
 splitting (29 meV where the truth is degenerate) and $\sim$40 meV valence-edge
