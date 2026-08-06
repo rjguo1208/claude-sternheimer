@@ -30,6 +30,7 @@ NOTE_RESULTS = os.path.join(ROOT, "content", "note_tmatrix_results.md")
 NOTE_LADDER = os.path.join(ROOT, "content", "note_sternheimer_ladder.md")
 NOTE_KOSTER = os.path.join(ROOT, "content", "note_koster_slater.md")
 NOTE_DEFLATED = os.path.join(ROOT, "content", "note_deflated_ladder.md")
+NOTE_TLRES = os.path.join(ROOT, "content", "note_twolevel_results.md")
 NOTE_FESH = os.path.join(ROOT, "content", "note_feshbach_plan.md")
 DOCS      = os.path.join(ROOT, "docs")
 PAGES_DIR = os.path.join(DOCS, "pages")
@@ -264,10 +265,11 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            '%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
                                       a("pages/sternheimer-ladder.html", "Rest-space ladder", "ladder"),
                                       a("pages/deflated-ladder.html", "Deflated ladder", "deflated"),
+                                      a("pages/twolevel-results.html", "Two-level results", "tlres"),
                                       a("pages/koster-slater.html", "Koster&ndash;Slater", "koster"),
                                       a("pages/feshbach-implementation.html", "Feshbach impl.", "fesh"),
                                       a("pages/plan.html", "Implementation Plan", "plan"),
@@ -407,6 +409,30 @@ def build_deflated():
         f.write(out)
     return r
 
+def build_tlres():
+    with open(NOTE_TLRES, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=False)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">Level-by-level truth gates for the two-level (deflated) dressing on the '
+              '6$\\times$6 grid: the Sdisp probe lands the CBM doublet at 2 meV, and the relaxed V$_S$ gap '
+              '$e$-doublet — historically $+217$ meV (truncated) / $+41$ meV (best $\\chi$) — comes out at '
+              '$+10/+39$ meV with no augmentation and no hyperparameters.</p>'
+              '<div class="meta"><span class="pill">Results</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">MathJax v3</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " — Two-level dressing results",
+                     header, _topnav("tlres", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "twolevel-results.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
 def build_koster():
     with open(NOTE_KOSTER, encoding="utf-8") as f:
         md = f.read()
@@ -483,6 +509,12 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
+    ("Two-level dressing RESULTS: Sdisp &amp; relaxed V$_S$ truth gates", "Result", "2026-08-06", "prod", "Headline",
+     "Level-by-level vs the supercell: Sdisp CBM doublet +8.2/+8.5 vs +6.5 meV (clean gap; every partial "
+     "treatment fails visibly); relaxed V$_S$ gap $e$-doublet +1.183/+1.212 vs +1.1726 eV &mdash; "
+     "$+10/+39$ meV with NO $\\chi$, vs the historical $+217$ (truncated) / $+41$ (best multi-center $\\chi$). "
+     "Full chain 40 min/node.",
+     '<a href="pages/twolevel-results.html">Open results &rarr;</a>'),
     ("Deflated ladder: explicit all-order rest ($\\le$150) + Sternheimer tail", "Method", "2026-08-05", "ok", "Derived &amp; certified",
      "Schur elimination locks the coherent low rest into an exact inverse $D_1$; only tail vertices "
      "$W_{22}=V_{22}+V_{21}D_1V_{12}$ iterate. Plain ladder diverges ($\\rho=1.215$, measured); deflated "
@@ -712,6 +744,7 @@ def main():
     build_results()
     build_ladder()
     build_deflated()
+    build_tlres()
     build_koster()
     build_feshplan()
     build_index()

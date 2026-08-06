@@ -1,0 +1,39 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sternheimer Electron-Defect T-matrix — Two-level dressing results</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head><body>
+<nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html" style="color:#fff;text-decoration:underline">Two-level results</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
+<header><div class="header-inner"><h1>Two-level dressing: results (Sdisp probe &amp; relaxed V$_S$, 6$\times$6)</h1><p class="subtitle">Level-by-level truth gates for the two-level (deflated) dressing on the 6$\times$6 grid: the Sdisp probe lands the CBM doublet at 2 meV, and the relaxed V$_S$ gap $e$-doublet — historically $+217$ meV (truncated) / $+41$ meV (best $\chi$) — comes out at $+10/+39$ meV with no augmentation and no hyperparameters.</p><div class="meta"><span class="pill">Results</span><span class="pill">5 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<main>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. What is compared</a><a href="#sec-2">2. S-displacement probe (weak, sharp perturbation)</a><a href="#sec-3">3. Relaxed V$_S$ (strong defect — the original nemesis)</a><a href="#sec-4">4. Engineering numbers</a><a href="#sec-5">5. Residuals and next levers</a></div></section>
+
+<section id="sec-1"><h2>1. What is compared</h2>
+<p>All methods diagonalize the same effective Hamiltonian $H_{\rm eff}=\mathrm{diag}(\varepsilon_A)+(M+\Sigma)\,R_y/N_k$ on the 6$\times$6 grid (the grid whose $H_{\rm eff}$ <em>is</em> the supercell-array problem, so its eigenvalues compare level-by-level with the supercell $\Gamma$ spectrum — the like-for-like "truth gate"). The methods differ only in the rest-space self-energy $\Sigma$:</p>
+<div class="table-wrap"><table><thead><tr><th>method</th><th>$\Sigma$</th></tr></thead><tbody><tr><td>M-only</td><td>none (pure 11-band explicit block)</td></tr><tr><td>bare 2nd order</td><td>$V_{AR}\,G^0_R\,V_{RA}$ over the explicit $\le$150 bands</td></tr><tr><td>MODE A</td><td>$R_1$ ($\le$150) dressed to all orders in $\Delta V$; no genuine $>$150 tail</td></tr><tr><td><strong>MODE B (two-level full)</strong></td><td>$R_1$ exact ($D_1$, zheevd) <strong>+ physical $>$150 tail via the Sternheimer ladder</strong> (Schur-partitioned; see the <em>Deflated ladder</em> page)</td></tr></tbody></table></div>
+<p>Setup: non-SOC, MoS$_2$ 6$\times$6, $\omega_0$ at the VBM, active = the 11-band $d$+$p$ manifold (396 states), $R_1$ = the other 139 NSCF bands (5004 states), ladder with 4–6 rungs (measured contraction 0.06–0.13 per rung).</p>
+</section>
+<section id="sec-2"><h2>2. S-displacement probe (weak, sharp perturbation)</h2>
+<p>One S displaced $+0.30$ Å along $z$. The exact gap is clean; the CBM doublet sits at $+6.5$ meV (2$\times$).</p>
+<p><img src="../assets/sdisp_levels66.png" alt="Sdisp level spectra" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<div class="table-wrap"><table><thead><tr><th>method</th><th>CBM doublet (meV)</th><th>gap</th></tr></thead><tbody><tr><td>truth</td><td>$+6.5$ / $+6.5$</td><td>clean</td></tr><tr><td>M-only</td><td>$+19.3$ / $+19.4$</td><td>stray state $+73$ meV</td></tr><tr><td>bare 2nd order</td><td>$+12.7$ / $+12.9$</td><td>valence states pushed $+69$ meV into the gap</td></tr><tr><td>MODE A (no tail)</td><td>$+16.8$ / $+17.0$</td><td><strong>spurious deep state at $-199$ meV</strong></td></tr><tr><td><strong>MODE B</strong></td><td><strong>$+8.2$ / $+8.5$</strong></td><td><strong>clean</strong></td></tr></tbody></table></div>
+</section>
+<section id="sec-3"><h2>3. Relaxed V$_S$ (strong defect — the original nemesis)</h2>
+<p>The sulfur vacancy with the relaxed C$_3$ shell, the system whose gap $e$-doublet historically read $+217$ meV too high with a truncated basis and $+41$ meV with the best multi-center $\chi$ augmentation.</p>
+<p><img src="../assets/vsrlx_levels.png" alt="relaxed VS level spectra" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<div class="table-wrap"><table><thead><tr><th>method</th><th>gap $e$-doublet (eV, rel. VBM)</th><th>error</th><th>gap</th></tr></thead><tbody><tr><td>truth</td><td>$+1.1726$ (2$\times$)</td><td>—</td><td>clean</td></tr><tr><td>M-only</td><td><em>missing entirely</em></td><td>$>$0.5 eV</td><td>—</td></tr><tr><td>bare 2nd order</td><td>$\sim$1.16 among spurious states at $+0.20\ldots+1.42$</td><td>—</td><td>flooded</td></tr><tr><td><strong>MODE B</strong></td><td><strong>$+1.183$ / $+1.212$</strong></td><td><strong>$+10$ / $+39$ meV</strong></td><td><strong>clean</strong></td></tr></tbody></table></div>
+<p>No augmentation orbitals, no tunable hyperparameters: the $+10/+39$ meV accuracy comes from first principles (exact $R_1$ inverse + the dressed physical tail), matching or beating the best hand-tuned $\chi$ result on the defect class that motivated the whole program.</p>
+</section>
+<section id="sec-4"><h2>4. Engineering numbers</h2>
+<div class="table-wrap"><table><thead><tr><th>item</th><th>value</th></tr></thead><tbody><tr><td>MODE A gate vs independent python Schur</td><td>$6.3\times10^{-16}$ Ry</td></tr><tr><td>ladder vs exact zgesv (model tail)</td><td>$2\times10^{-11}$ Ry</td></tr><tr><td>measured rung contraction (physical sources)</td><td>0.06–0.13 (worst-mode $\rho$: 0.15–0.32)</td></tr><tr><td>full V$_S$ chain (SCF $\to$ cubes $\to$ block $\to$ MODE B $\to$ gate)</td><td>40 min (1 node)</td></tr><tr><td>MODE B memory (v2: sliced channels + streamed $x$)</td><td>$\sim$5 GB/rank (was $\sim$30)</td></tr></tbody></table></div>
+</section>
+<section id="sec-5"><h2>5. Residuals and next levers</h2>
+<p>Remaining deviations are small and mechanistically assigned: the V$_S$ doublet splitting (29 meV where the truth is degenerate) and $\sim$40 meV valence-edge offsets, plus the Sdisp resonance region at $\sim$30–50 meV — all consistent with the frozen-$\omega_0$ (static) fold evaluated 1.2–1.9 eV away from the states in question. The designed fix is an $\omega$-resolved rest (Lanczos continued fraction over the same operators); second lever, raising the explicit boundary (NSCF bands 150 $\to$ 300) which lowers both the ladder contraction and the tail weight.</p>
+</section>
+</main>
+<footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
+Static HTML; equations rendered client-side with MathJax v3. No raw wavefunctions, cubes,
+binaries, or logs are published.</footer>
+</body></html>
