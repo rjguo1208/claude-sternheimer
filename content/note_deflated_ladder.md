@@ -133,3 +133,18 @@ could only get one side right per anchor).
    The multi-$k$ vectors are gathered in source batches.
 4. Convergence dial: raising the NSCF band count (150 $\to$ 300, $\sim$40 min) pushes the
    $R_1/R_2$ boundary up and lowers $\rho$ further.
+
+
+## Update (2026-08-06): the certificate did not transfer to the physical split
+
+The convergence certificates above were computed on **model splits** (tail =
+bands $N_1{+}1..150$). On the physical split (tail $>150$) the production runs
+later exposed an isolated **dressed rest state at $\omega_0 + 0.28$ eV** — the
+collective mode whose crossing the plain-ladder $\rho = 1.215$ had implied. In
+that channel the deflated ladder's contraction is $\rho \to 1$, invisible to
+the source-global 0.06–0.13 measurement, and the 6-rung ladder under-captures
+its contribution (gap-window levels stay within $\le 22$ meV for
+V$_S$/Sdisp/Se$_S$, but the deep-sector $\Sigma$ is incomplete and the O$_S$
+ghost survival reported earlier was this artifact). The robust production route
+is the $\omega$-resolved block-Lanczos chain (MODE C), which carries the mode
+exactly — see the *Two-level results* page, sections 6–7.

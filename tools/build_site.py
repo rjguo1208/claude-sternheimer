@@ -510,11 +510,11 @@ def build_results():
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
     ("Two-level dressing RESULTS: Sdisp &amp; relaxed V$_S$ truth gates", "Result", "2026-08-06", "prod", "Headline",
-     "Level-by-level vs the supercell: Sdisp CBM doublet +8.2/+8.5 vs +6.5 meV; relaxed V$_S$ $e$-doublet "
-     "$+10/+39$ meV with NO $\\chi$. Head-to-head on identical inputs: $\\chi$-augmented explicit gives $+31$ meV "
-     "(no-$\\chi$ $+179$) &mdash; equal-accuracy, zero basis engineering. Se$_S$: $+27$ meV common-mode, spacings "
-     "$\\le$2 meV. O$_S$: the O-2p push-up survives static dressing &mdash; new elements still need $\\chi$ "
-     "(complementarity confirmed).",
+     "ERRATUM + omega-resolved update: bare rows corrected (36x); MODE B's 6-rung ladder under-converges one "
+     "collective rest mode (window numbers survive; the O$_S$ ghost-survival claim retracted &mdash; it was this "
+     "artifact). NEW: MODE C $\\omega$-resolved block-Lanczos chains (operator unit-tested at 6e-15) &mdash; "
+     "O$_S$ mid-gap CLEAN at $-$50 meV uniform; V$_S$ doublet brackets truth, its 29 meV splitting is "
+     "matrix-element physics, not frequency.",
      '<a href="pages/twolevel-results.html">Open results &rarr;</a>'),
     ("Deflated ladder: explicit all-order rest ($\\le$150) + Sternheimer tail", "Method", "2026-08-05", "ok", "Derived &amp; certified",
      "Schur elimination locks the coherent low rest into an exact inverse $D_1$; only tail vertices "

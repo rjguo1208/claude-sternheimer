@@ -1,5 +1,22 @@
 # Two-level dressing: results (Sdisp probe & relaxed V$_S$, 6$\times$6)
 
+> **Erratum & major update (2026-08-06).** Three corrections against the first
+> version of this page. **(i)** Every "bare-150 (2nd order)" row was inflated by
+> a factor $N_k=36$ (a missing $1/N_k$ in the gate script, not in any production
+> code); all bare rows and figures below are corrected. **(ii)** The MODE B
+> 6-rung ladder was found to under-converge one *collective rest mode* that the
+> plain-ladder divergence ($\rho=1.215$) had always implied: a dressed rest
+> state sits only $0.28$ eV from $\omega_0$, and the deflated ladder's measured
+> 0.06–0.13 contraction is a source-global number that hides a $\rho\to 1$
+> channel. Its gap-window level errors stay $\le 22$ meV for V$_S$/Sdisp/Se$_S$
+> (those headline numbers stand), but MODE B's $\Sigma$ is **not** an exact rest
+> inversion, and for O$_S$ the deficiency is qualitative — see (iii).
+> **(iii)** Section 6's original claim that "the O-2p ghost survives static
+> dressing" was **an artifact of (ii)**: a correctly computed static
+> $\Sigma(\omega_0)$ (and even the corrected bare row) already relocates the
+> ghost. The $\chi$-augmentation is an *alternative*, not a necessity, for
+> O$_S$. The $\omega$-resolved results (new section 7) supersede that narrative.
+
 ## 1. What is compared
 
 All methods diagonalize the same effective Hamiltonian
@@ -30,7 +47,7 @@ at $+6.5$ meV (2$\times$).
 |---|---|---|
 | truth | $+6.5$ / $+6.5$ | clean |
 | M-only | $+19.3$ / $+19.4$ | stray state $+73$ meV |
-| bare 2nd order | $+12.7$ / $+12.9$ | valence states pushed $+69$ meV into the gap |
+| bare 2nd order (corrected) | $-3.6$ / $-3.5$ | clean; one stray edge state $+11.7$ meV |
 | MODE A (no tail) | $+16.8$ / $+17.0$ | **spurious deep state at $-199$ meV** |
 | **MODE B** | **$+8.2$ / $+8.5$** | **clean** |
 
@@ -46,7 +63,7 @@ best multi-center $\chi$ augmentation.
 |---|---|---|---|
 | truth | $+1.1726$ (2$\times$) | — | clean |
 | M-only | *missing entirely* | $>$0.5 eV | — |
-| bare 2nd order | $\sim$1.16 among spurious states at $+0.20\ldots+1.42$ | — | flooded |
+| bare 2nd order (corrected) | doublet **missed** ($+1.579/+1.611$) | $+0.41$ eV | clean but wrong |
 | **MODE B** | **$+1.183$ / $+1.212$** | **$+10$ / $+39$ meV** | **clean** |
 
 No augmentation orbitals, no tunable hyperparameters: the $+10/+39$ meV accuracy
@@ -93,22 +110,28 @@ four edge states; the no-$\chi$ a$_1$ phantom $+0.296\to+0.089$/$+0.091$ under
 either cure vs truth $+0.060$). Non-SOC replication of the historical ladder:
 $+179 \to +31$ meV here vs $+217 \to +41$ with SOC.
 
-## 6. O$_S$ and Se$_S$: where the tail helps — and where it cannot
+## 6. O$_S$ and Se$_S$ under MODE B — and what the O$_S$ "ghost" really was
 
-Same MODE B chain (relaxed geometry, ghost 4-species NSCF for the foreign-element
-nonlocal channel), truth-gated. Se$_S$ (isovalent, host-like states):
+Se$_S$ (isovalent, host-like states) is clean under every treatment:
 
 ![SeS levels](../assets/ses_levels66.png)
 
 | Se$_S$ | VBM edge (eV) | CBM edge |
 |---|---|---|
 | truth | $-0.016$ (2$\times$) / $-0.011$ | $+1.660$ (2$\times$) |
+| bare-150 (corrected) | $+0.015$ (2$\times$) / $+0.022$ | $+1.693$ (2$\times$) |
 | MODE B | $+0.010$ (2$\times$) / $+0.017$ | $+1.688$ (2$\times$) |
 
-A uniform $+27$ meV common-mode; **internal spacings reproduced to $\le 2$ meV**,
-level ordering (doublet below single) restored where M-only inverts it, gap clean.
+MODE B: a uniform $+27$ meV common-mode with internal spacings $\le 2$ meV.
 
-O$_S$ (a new element — O-2p orbitals absent from the pristine Bloch basis):
+O$_S$ is the cautionary tale. Truth: O-2p pair at $-0.002$ (2$\times$), a$_1$ at
+$+0.082$, mid-gap **empty**. The M-only block shows the famous O-2p push-up
+"ghost" at $+0.801$ (2$\times$) — and the **corrected** bare-150 row already
+relocates it ($+0.025$ (2$\times$) / $+0.035$, gap clean): the push-up is a
+first-order-in-$\Sigma$, missing-weight $\times$ huge-energy effect, repaired by
+any correctly computed rest correction. **MODE B alone keeps a ghost at
+$+0.807$** — that is the 6-rung under-convergence of section 7's collective
+mode, *not* physics:
 
 ![OS levels](../assets/os_levels66.png)
 
@@ -116,27 +139,55 @@ O$_S$ (a new element — O-2p orbitals absent from the pristine Bloch basis):
 |---|---|---|---|---|
 | truth | $-0.002$ (2$\times$) | $+0.082$ | **empty** | $+1.653$ (2$\times$) |
 | M-only | $-0.006$ (2$\times$) | $+0.048$ | $+0.801$ (2$\times$) | $+1.659$ (2$\times$) |
-| MODE B | $-0.054$ (2$\times$) | — | $+0.807$ | $+1.609$ (2$\times$) |
+| bare-150 (corrected) | $+0.025$ (2$\times$) | $+0.035$ | empty | $+1.654$ (2$\times$) |
+| MODE B (6-rung) | $-0.054$ (2$\times$) | — | $+0.807$ (artifact) | $+1.609$ (2$\times$) |
+| **MODE C $\omega$-resolved** | $-0.055$ (2$\times$) | $+0.038$ | **empty** | $+1.602$ (2$\times$) |
 
-The $\approx+0.80$ eV mid-gap feature has **no truth counterpart** and appears in
-every truncated-active variant; rest dressing at frozen $\omega_0$ moves it by
-only $+6$ meV. This is the known O-2p **missing-weight push-up** (tiny weight
-$\times$ 100-eV tails) in downfolded form: the state is *rest-dominant*, so a
-static-$\omega_0$ self-energy — no matter how exactly the rest is inverted —
-cannot relocate its active-space shadow. The complementarity rule from the SOC
-campaign is thus reproduced inside one framework: **vacancy/displacement defects
-$\to$ the Sternheimer tail cures them with zero basis engineering; new-element
-defects $\to$ they need the foreign atom's $\chi$ in the diagonalized space (or an
-$\omega$-resolved $\Sigma$)**. The two methods are not competitors but the two
-halves of one toolbox.
+## 7. $\omega$-resolved rest (MODE C): one Lanczos chain, every frequency
 
-## 7. Residuals and next levers
+The static bottleneck is structural, so the rest self-energy was made
+$\omega$-resolved: a **global block Lanczos** on the full rest operator
+$P_R H P_R$ (block = all 396 sources $\chi_a = P_R V|\psi_a\rangle$; folds
+cached once; KB coefficients as owner-pool ZGEMMs; CGS$\times$2 full
+re-orthogonalization as one strided ZGEMM; h_psi batched 396-wide). One chain
+serves every $\omega$ and $\eta$ through the block continued fraction
+$$\Sigma(\omega) = R_0^\dagger\,[\,\omega - T\,]^{-1}_{11}\,R_0/N_k,$$
+evaluated in python. Certification: an in-code **operator unit test** (apply the
+Lanczos $H$ to known band states, compare to the edmat columns) passes at
+$6\times10^{-15}$ Ry on both systems; chains converge by 18–24 block steps
+(24/36/48 gates bit-identical); $A_j$ hermiticity $\sim 10^{-15}$ every step;
+cost $\approx$ 50 s/step, full chain $\approx$ 40 min/node.
 
-Remaining deviations are small and mechanistically assigned: the V$_S$ doublet
-splitting (29 meV where the truth is degenerate) and $\sim$40 meV valence-edge
-offsets, plus the Sdisp resonance region at $\sim$30–50 meV — all consistent with
-the frozen-$\omega_0$ (static) fold evaluated 1.2–1.9 eV away from the states in
-question. The designed fix is an $\omega$-resolved rest (Lanczos continued
-fraction over the same operators); second lever, raising the explicit boundary
-(NSCF bands 150 $\to$ 300) which lowers both the ladder contraction and the tail
-weight.
+**V$_S$** ($\omega$-resolved vs static):
+
+![VS omega](../assets/vs_omega66.png)
+
+The $e$-doublet moves from $+6/+35$ meV (static, above truth) to $-41/-13$ meV
+(below); the $\sim$29 meV **splitting survives exact $\omega$** — it is *not* a
+static-$\omega_0$ artifact but lives in the matrix elements themselves
+(relaxed-geometry C$_3$ microbreaking / 6$\times$6 sampling). The chain also
+exposed an isolated **dressed rest state at $\omega_0+0.28$ eV** (the
+a$_1$-shadow collective mode) — precisely the eigenvalue crossing that the
+measured plain-ladder $\rho = 1.215$ had implied, the near-$1$ channel that the
+6-rung ladder under-converges, and the reason MODE B's deep-sector $\Sigma$ is
+incomplete while its gap-window numbers survive.
+
+**O$_S$ — the headline:**
+
+![OS omega](../assets/os_omega66.png)
+
+The $\omega$-resolved QP spectrum is $-0.055$ (2$\times$) / $+0.038$ /
+$+1.602$ (2$\times$): **the mid-gap is empty** — the ghost is gone with no
+$\chi$, no basis engineering, and the remaining error is a nearly uniform
+$-50$ meV. The active-channel spectral function (lower panel) shows weight only
+at the physical homes.
+
+## 8. Residuals and next levers
+
+With $\omega$-resolution in hand the residual ledger is rewritten: the V$_S$
+doublet **splitting** (29 meV) is now assigned to the matrix elements
+(geometry/sampling), not to frequency; the V$_S$ doublet **position** brackets
+truth ($+25$ meV static centroid vs $-27$ meV $\omega$-resolved); O$_S$ carries
+a nearly uniform $-50$ meV offset (alignment-convention class). Next levers: a
+24-rung MODE B scan (running) to quantify the collective-mode capture rate;
+NSCF bands 150 $\to$ 300; and the SOC/12$\times$12 production port of MODE C.

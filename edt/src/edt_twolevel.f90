@@ -840,13 +840,13 @@ CONTAINS
        FLUSH(stdout)
     ENDIF
 
-    ! ---- VAA from the all-band block file (ionode) ----
+    ! ---- VAA from the all-band block file (ionode); MU_ kept for the
+    !      operator unit test ----
     ALLOCATE(VAA(NA_,NA_))
     IF (ionode) THEN
        ALLOCATE(MU_(NU,NU)); MU_ = czero
        CALL edmat_fill_or_check(edmat_file, xkcr, uk, ub, NU, MU_, .FALSE.)
        VAA = MU_(selA(1:NA_), selA(1:NA_))
-       DEALLOCATE(MU_)
     ENDIF
 
     ! ---- replicate wavefunctions; igk tables; active-column buffers ----
@@ -896,6 +896,11 @@ CONTAINS
     ALLOCATE(Qs(npwx,nks,NA_,0:nstep), STAT=istat)
     IF (istat /= 0) CALL errore('vtilde_block_lanczos','Qs alloc failed (lower n_lancz)',1)
     ALLOCATE(W3(npwx,nks,NA_), xbuf(npwx,NA_), acc3(dffts%nnr,nks,NA_))
+
+    ! ---- OPERATOR UNIT TEST: apply_dV on known band states must reproduce
+    !      the edmat columns (assumption-free discriminator vs MODE A/B input) ----
+    CALL operator_unit_test()
+    IF (ionode) DEALLOCATE(MU_)
     ALLOCATE(Gm(NA_,NA_), Aj(NA_,NA_), Bj(NA_,NA_), prevB(NA_,NA_), R0(NA_,NA_))
     ALLOCATE(projm(nact_max,NA_))
     IF (ionode) THEN
@@ -1005,6 +1010,48 @@ CONTAINS
     ENDIF
 
   CONTAINS
+
+    SUBROUTINE operator_unit_test()
+      !! plant psi_(n,kt) for test bands, apply_dV (raw V, no projector),
+      !! project on ALL (m,kg): must equal the edmat columns M(m kg, n kt).
+      COMPLEX(dp), ALLOCATABLE :: tb(:,:,:), PRJ(:,:,:)
+      INTEGER, PARAMETER :: NTB = 4
+      INTEGER :: tbands(NTB), tt, kt, ikl, kgl, mrow
+      REAL(dp) :: dmax, vmax
+      ALLOCATE(tb(npwx,nks,NA_), PRJ(nbnd,nkstot,NTB))
+      tbands(1) = MIN(5,nbnd); tbands(2) = MIN(nbndskip_in+12, nbnd)
+      tbands(3) = MIN(60, nbnd); tbands(4) = nbnd
+      kt = MIN(29, nkstot)
+      tb = czero
+      DO tt = 1, NTB
+         IF (kowner(kt) == my_pool_id) tb(:, kt-iks+1, tt) = evc_all_l(:, tbands(tt), kt)
+      ENDDO
+      CALL apply_dV(tb, .FALSE.)
+      PRJ = czero
+      DO ikl = 1, nks
+         kgl = ikl + iks - 1
+         DO tt = 1, NTB
+            CALL ZGEMV('C', ngk_all(kgl), nbnd, cone, evc_all_l(1,1,kgl), npwx, &
+                       tb(1,ikl,tt), 1, czero, PRJ(1,kgl,tt), 1)
+         ENDDO
+      ENDDO
+      CALL mp_sum(PRJ, inter_pool_comm)
+      IF (ionode) THEN
+         dmax = 0.d0; vmax = 0.d0
+         DO tt = 1, NTB
+            DO kgl = 1, nkstot
+               DO mrow = 1, nbnd
+                  dmax = MAX(dmax, ABS(PRJ(mrow,kgl,tt) - MU_((kgl-1)*nbnd+mrow, (kt-1)*nbnd+tbands(tt))))
+                  vmax = MAX(vmax, ABS(MU_((kgl-1)*nbnd+mrow, (kt-1)*nbnd+tbands(tt))))
+               ENDDO
+            ENDDO
+         ENDDO
+         WRITE(stdout,'(5X,A,ES11.3,A,ES11.3,A,4I5)') 'OPERATOR UNIT TEST: max|proj - M| = ', dmax, &
+              '   max|M| = ', vmax, '   bands:', tbands
+         FLUSH(stdout)
+      ENDIF
+      DEALLOCATE(tb, PRJ)
+    END SUBROUTINE operator_unit_test
 
     FUNCTION xkc3_of(kg_) RESULT(xkc3)
       USE cell_base, ONLY : bg
