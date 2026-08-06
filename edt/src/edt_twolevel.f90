@@ -243,17 +243,16 @@ CONTAINS
   SUBROUTINE twolevel_physical(xkcr, omega0_ry, win_min_ry, win_max_ry, &
                                nbndskip_in, nrung, edmat_file, outfile)
     !-------------------------------------------------------------------------
-    ! MODE B: physical tail.  T = plane-wave complement of ALL nbnd explicit
-    ! bands.  Same two-level algebra as MODE A, but T-space objects live as
-    ! PW vectors: D2 = Sternheimer CG with the alpha-lift on all nbnd bands,
-    ! V applied via fold-multiply FFTs (+ KB nonlocal), P_T via wavefunction
-    ! projection.  v1 (6x6-sized): full evc replicated on every pool
-    ! (nbnd*nk*npwx complex), folds computed per (k,channel) on the fly,
-    ! D1 dense algebra centralized on ionode (only small coefficient vectors
-    ! cross ranks).  Multi-k vectors are replicated via mp_sum after each
-    ! pool-local update.
+    ! MODE B v2 (memory-lean): physical tail with local-channel slicing.
+    !   st/rhs/x live only on the pool's channels; x is streamed per source-k
+    !   (owner-pool bcast) during the fold sweeps; phi/xi are synthesized from
+    !   coefficients on the fly (never materialized); sources st are kept for
+    !   ALL sources locally (cheap when channel-sliced) so cross-batch Sigma
+    !   blocks are exact; the ladder runs in source batches of NBB.
+    ! Per rung two fold sweeps (beta -> gco -> xi dependency): sweep 1 gives
+    ! (V x) on local channels (term1 + beta rows), sweep 2 gives V xi.
     !-------------------------------------------------------------------------
-    USE io_global,        ONLY : ionode, stdout
+    USE io_global,        ONLY : ionode, ionode_id, stdout
     USE wvfct,            ONLY : nbnd, et, npwx
     USE klist,            ONLY : nkstot, nks, ngk, igk_k, xk
     USE fft_base,         ONLY : dffts
@@ -268,9 +267,8 @@ CONTAINS
     USE edt_source,       ONLY : build_V_folded, count_nkb, make_coeff
     USE edt_sternheimer,  ONLY : edmat_fill_or_check, hpsi_setup_k, solve_rest_cg
     USE mp,               ONLY : mp_sum, mp_bcast
-    USE mp_pools,         ONLY : inter_pool_comm
+    USE mp_pools,         ONLY : inter_pool_comm, my_pool_id, npool
     USE mp_world,         ONLY : world_comm
-    USE io_global,        ONLY : ionode_id
     USE becmod,           ONLY : becp, allocate_bec_type, deallocate_bec_type
     USE uspp,             ONLY : nkb
     IMPLICIT NONE
@@ -278,22 +276,22 @@ CONTAINS
     INTEGER,  INTENT(IN) :: nbndskip_in, nrung
     CHARACTER(LEN=*), INTENT(IN) :: edmat_file, outfile
 
-    INTEGER, PARAMETER :: NB = 400         ! v1: single batch (cross-batch Sigma
-                                           ! blocks require all sources resident)
+    INTEGER, PARAMETER :: NBB = 64
     INTEGER :: kg, ib, n, NU, NA_, NR1, iu, info, it, lwork, lrwork, liwork
-    INTEGER :: ik, kgl, iks, a, b, i, a0, na_b, ibatch, nbatch, npw_kp, iters
-    INTEGER :: nkb_d, nkb_p, ikb
-    REAL(dp) :: w0, eR, xnk, alpha_ry, resid, rnorm, dnrm
+    INTEGER :: ik, iks, a, b, i, a0, na_b, ibatch, nbatch, npw_kp, iters, kgs
+    INTEGER :: nkb_d, nkb_p, ikb, owner, sweep
+    REAL(dp) :: w0, eR, xnk, alpha_ry, resid
     INTEGER,  ALLOCATABLE :: uk(:), ub(:), selA(:), sel1(:), pos1(:), iwork(:)
-    INTEGER,  ALLOCATABLE :: igk_all(:,:), ngk_all(:)
+    INTEGER,  ALLOCATABLE :: igk_all(:,:), ngk_all(:), kowner(:)
     REAL(dp), ALLOCATABLE :: et_all(:,:), epsU(:), mu(:), rwork(:), gk_tmp(:)
     COMPLEX(dp), ALLOCATABLE :: MU_(:,:), H1(:,:), work(:), VAA(:,:), MA1(:,:), M1A(:,:)
-    COMPLEX(dp), ALLOCATABLE :: cco(:,:), SgR1(:,:), Sgt(:,:), Vout(:,:)
-    COMPLEX(dp), ALLOCATABLE :: evc_all(:,:,:), phi(:,:,:), stt(:,:,:), x(:,:,:), tv(:,:,:)
-    COMPLEX(dp), ALLOCATABLE :: beta1(:,:), gco(:,:), Vf(:), psic(:), gbuf(:), rhs(:), chi(:)
-    COMPLEX(dp), ALLOCATABLE :: vkb_d(:,:), vkb_p(:,:), becd(:,:), becp_(:,:)
-    COMPLEX(dp), ALLOCATABLE :: cofd(:,:), cofp(:,:), evtmp(:,:), proj(:)
-    COMPLEX(dp), ALLOCATABLE :: gam(:), tR(:,:), xi(:,:,:), tv2(:,:,:), sloc(:,:)
+    COMPLEX(dp), ALLOCATABLE :: cco(:,:), SgR1(:,:), Sgt(:,:), Vout(:,:), tR(:,:)
+    COMPLEX(dp), ALLOCATABLE :: evc_all(:,:,:), stt(:,:,:), x(:,:,:), rhs3(:,:,:)
+    COMPLEX(dp), ALLOCATABLE :: acc(:,:,:), xbuf(:,:)
+    COMPLEX(dp), ALLOCATABLE :: beta1(:,:), gco(:,:), Vfc(:,:), psic(:), rhs(:), chi(:)
+    COMPLEX(dp), ALLOCATABLE :: vkb_d(:,:), vkb_p(:,:), bd(:), bp(:), tmpd(:), tmpp(:)
+    COMPLEX(dp), ALLOCATABLE :: cdsum(:,:), cpsum(:,:), evtmp(:,:), proj(:), gam(:), sloc(:,:)
+    COMPLEX(dp), ALLOCATABLE :: kcd(:,:), kcp(:,:)
     REAL(dp) :: xk3(3)
     COMPLEX(dp) :: cone, czero, vij
     INTEGER, EXTERNAL :: global_kpoint_index
@@ -303,7 +301,7 @@ CONTAINS
     IF (npol /= 1) CALL errore('twolevel_physical','npol=1 only',1)
     iks = global_kpoint_index(nkstot, 1)
 
-    ! ---- eigenvalues, manifold ----
+    ! ---- eigenvalues, manifold, k ownership ----
     ALLOCATE(et_all(nbnd,nkstot))
     CALL poolcollect(nbnd, nks, et, nkstot, et_all)
     NU = nbnd*nkstot
@@ -324,16 +322,21 @@ CONTAINS
           NR1 = NR1+1; sel1(NR1) = n; pos1(n) = NR1
        ENDIF
     ENDDO
+    ALLOCATE(kowner(nkstot)); kowner = 0
+    DO ik = 1, nks
+       kowner(ik + iks - 1) = my_pool_id
+    ENDDO
+    CALL mp_sum(kowner, inter_pool_comm)
     alpha_ry = 2.0_dp*ABS(w0 - MINVAL(et_all)) + 1.0_dp
     IF (ionode) THEN
        WRITE(stdout,'(/,5X,A)') REPEAT('=',64)
-       WRITE(stdout,'(5X,A)') 'TWO-LEVEL rest dressing — MODE B (PHYSICAL tail, CG D2)'
+       WRITE(stdout,'(5X,A)') 'TWO-LEVEL rest dressing — MODE B v2 (physical tail, memory-lean)'
        WRITE(stdout,'(5X,A,2I8,A,I3,A,F8.3,A)') 'N_A, N_R1 = ', NA_, NR1, &
             '   rungs = ', nrung, '   alpha = ', alpha_ry*rytoev, ' eV'
        FLUSH(stdout)
     ENDIF
 
-    ! ---- explicit blocks + D1 (ionode) ----
+    ! ---- explicit blocks + D1 (ionode), bcast the source coefficients ----
     ALLOCATE(VAA(NA_,NA_), MA1(NA_,NR1), M1A(NR1,NA_), cco(NR1,NA_), SgR1(NA_,NA_))
     IF (ionode) THEN
        ALLOCATE(MU_(NU,NU)); MU_ = czero
@@ -354,7 +357,6 @@ CONTAINS
        IF (info /= 0) CALL errore('twolevel_physical','zheevd failed',ABS(info))
        DEALLOCATE(work, rwork, iwork)
        WRITE(stdout,'(5X,A,F8.3,A)') 'R1 dressed: min|w0-mu| = ', MINVAL(ABS(w0-mu))*rytoev, ' eV'
-       ! c = D1 M1A / N_k ;  SgR1_file = MA1 * c
        ALLOCATE(tR(NR1,NA_))
        CALL ZGEMM('C','N', NR1, NA_, NR1, cone, H1, NR1, M1A, NR1, czero, tR, NR1)
        DO n = 1, NR1
@@ -366,7 +368,7 @@ CONTAINS
     ENDIF
     CALL mp_bcast(cco, ionode_id, world_comm)
 
-    ! ---- replicate ALL wavefunctions + canonical igk (v1, 6x6-sized) ----
+    ! ---- replicate wavefunctions (v2 keeps this; v3 streams it too) ----
     ALLOCATE(evc_all(npwx,nbnd,nkstot)); evc_all = czero
     ALLOCATE(evtmp(npwx,nbnd))
     DO ik = 1, nks
@@ -386,53 +388,147 @@ CONTAINS
 
     CALL count_nkb(V_d%nat, V_d%ityp, V_d%ntyp, nkb_d)
     CALL count_nkb(V_p%nat, V_p%ityp, V_p%ntyp, nkb_p)
-    ALLOCATE(vkb_d(npwx,nkb_d), vkb_p(npwx,nkb_p))
-    ALLOCATE(Vf(dffts%nnr), psic(dffts%nnr), gbuf(dffts%nnr))
-    ALLOCATE(rhs(npwx), chi(npwx), proj(nbnd), gam(nbnd))
+    ALLOCATE(vkb_d(npwx,nkb_d), vkb_p(npwx,nkb_p), bd(nkb_d), bp(nkb_p))
+    ALLOCATE(tmpd(nkb_d), tmpp(nkb_p))
+    ALLOCATE(psic(dffts%nnr), rhs(npwx), chi(npwx), proj(nbnd), gam(nbnd))
+    ALLOCATE(Vfc(dffts%nnr, nks))
     ALLOCATE(Sgt(NA_,NA_)); Sgt = czero
 
-    nbatch = (NA_ + NB - 1) / NB
-    DO ibatch = 1, nbatch
-       a0 = (ibatch-1)*NB
-       na_b = MIN(NB, NA_ - a0)
+    ! ---- channel-local fold cache: Vfc(:,ik) for q = k_gs - k_ch is rebuilt per
+    !      kgs inside the sweeps; here we only allocate the per-channel slot ----
 
-       ! ---- phi coefficients on the explicit basis: gamma(b,k;a) ----
-       !  phi_a = psi_a + sum_{i in R1} c_i^a |i>
-       ALLOCATE(phi(npwx,nkstot,na_b)); phi = czero
-       DO a = 1, na_b
-          DO kg = 1, nkstot
+    ! ================= sources: st(:, local ch, ALL sources) =================
+    ALLOCATE(stt(npwx, nks, NA_)); stt = czero
+    ALLOCATE(cdsum(nkb_d,NA_), cpsum(nkb_p,NA_)); cdsum = czero; cpsum = czero
+    ALLOCATE(acc(dffts%nnr, nks, NBB))
+    nbatch = (NA_ + NBB - 1) / NBB
+    DO ibatch = 1, nbatch
+       a0 = (ibatch-1)*NBB; na_b = MIN(NBB, NA_ - a0)
+       acc(:,:,1:na_b) = czero
+       DO kgs = 1, nkstot
+          ! folds for this source-k against my channels
+          DO ik = 1, nks
+             CALL build_V_folded(xkcr(:,kgs) - xkcr(:,ik+iks-1), Vfc(:,ik))
+          ENDDO
+          ! synthesize phi^{kgs} per source; KB bec on the owner pool only
+          IF (kowner(kgs) == my_pool_id) THEN
+             CALL get_betavkb(ngk_all(kgs), igk_all(1,kgs), xk_dummy(kgs,xkcr), vkb_d, &
+                              V_d%nat,V_d%ityp,V_d%tau, nkb_d)
+             CALL get_betavkb(ngk_all(kgs), igk_all(1,kgs), xk_dummy(kgs,xkcr), vkb_p, &
+                              V_p%nat,V_p%ityp,V_p%tau, nkb_p)
+          ENDIF
+          DO a = 1, na_b
              gam = czero
              DO ib = 1, nbnd
-                n = (kg-1)*nbnd + ib
+                n = (kgs-1)*nbnd + ib
                 IF (pos1(n) > 0) gam(ib) = cco(pos1(n), a0+a)
              ENDDO
-             IF (uk(selA(a0+a)) == kg) gam(ub(selA(a0+a))) = gam(ub(selA(a0+a))) + cone
-             CALL ZGEMV('N', npwx, nbnd, cone, evc_all(1,1,kg), npwx, gam, 1, czero, phi(1,kg,a), 1)
+             IF (uk(selA(a0+a)) == kgs) gam(ub(selA(a0+a))) = gam(ub(selA(a0+a))) + cone
+             CALL ZGEMV('N', npwx, nbnd, cone, evc_all(1,1,kgs), npwx, gam, 1, czero, rhs, 1)
+             IF (kowner(kgs) == my_pool_id) THEN
+                DO ikb = 1, nkb_d
+                   bd(ikb) = SUM(CONJG(vkb_d(1:ngk_all(kgs),ikb))*rhs(1:ngk_all(kgs)))
+                ENDDO
+                DO ikb = 1, nkb_p
+                   bp(ikb) = SUM(CONJG(vkb_p(1:ngk_all(kgs),ikb))*rhs(1:ngk_all(kgs)))
+                ENDDO
+                CALL make_coeff(V_d%nat,V_d%ityp,V_d%ntyp,nkb_d,bd,tmpd)
+                CALL make_coeff(V_p%nat,V_p%ityp,V_p%ntyp,nkb_p,bp,tmpp)
+                cdsum(:,a0+a) = cdsum(:,a0+a) + tmpd
+                cpsum(:,a0+a) = cpsum(:,a0+a) + tmpp
+             ENDIF
+             psic = czero
+             DO n = 1, ngk_all(kgs)
+                psic(dffts%nl(igk_all(n,kgs))) = rhs(n)
+             ENDDO
+             CALL invfft('Wave', psic, dffts)
+             DO ik = 1, nks
+                acc(:,ik,a) = acc(:,ik,a) + Vfc(:,ik) * psic
+             ENDDO
           ENDDO
        ENDDO
+       ! close: fwfft per (channel, source), add KB, project P_T
+       DO ik = 1, nks
+          kg = ik + iks - 1
+          DO a = 1, na_b
+             psic = acc(:,ik,a)
+             CALL fwfft('Wave', psic, dffts)
+             DO n = 1, ngk_all(kg)
+                stt(n,ik,a0+a) = psic(dffts%nl(igk_all(n,kg)))
+             ENDDO
+          ENDDO
+       ENDDO
+    ENDDO
+    CALL mp_sum(cdsum, inter_pool_comm)
+    CALL mp_sum(cpsum, inter_pool_comm)
+    DO ik = 1, nks
+       kg = ik + iks - 1
+       CALL get_betavkb(ngk_all(kg), igk_all(1,kg), xk(1,ik), vkb_d, V_d%nat,V_d%ityp,V_d%tau, nkb_d)
+       CALL get_betavkb(ngk_all(kg), igk_all(1,kg), xk(1,ik), vkb_p, V_p%nat,V_p%ityp,V_p%tau, nkb_p)
+       CALL ZGEMM('N','N', ngk_all(kg), NA_, nkb_d,  cone, vkb_d, npwx, cdsum, nkb_d, cone, stt(1,ik,1), npwx*nks)
+       CALL ZGEMM('N','N', ngk_all(kg), NA_, nkb_p, -cone, vkb_p, npwx, cpsum, nkb_p, cone, stt(1,ik,1), npwx*nks)
+       DO a = 1, NA_
+          CALL ZGEMV('C', ngk_all(kg), nbnd, cone, evc_all(1,1,kg), npwx, stt(1,ik,a), 1, czero, proj, 1)
+          CALL ZGEMV('N', ngk_all(kg), nbnd, -cone, evc_all(1,1,kg), npwx, proj, 1, cone, stt(1,ik,a), 1)
+       ENDDO
+    ENDDO
+    DEALLOCATE(cdsum, cpsum)
+    IF (ionode) THEN
+       WRITE(stdout,'(5X,A)') 'sources built (local-channel slices).'
+       FLUSH(stdout)
+    ENDIF
 
-       ! ---- dressed sources st = P_T V phi  (pool-local channels) ----
-       ALLOCATE(stt(npwx,nkstot,na_b)); stt = czero
-       CALL apply_dV_multik(phi, na_b, stt, .TRUE.)
-       DEALLOCATE(phi)
-
-       ! ---- ladder ----
-       ALLOCATE(x(npwx,nkstot,na_b), tv(npwx,nkstot,na_b))
-       ALLOCATE(beta1(NR1,na_b), gco(NR1,na_b))
-       x = czero
-       CALL allocate_bec_type(nkb, 1, becp)
+    ! ================= ladder (batched sources) =================
+    ALLOCATE(x(npwx,nks,NBB), rhs3(npwx,nks,NBB), xbuf(npwx,NBB))
+    ALLOCATE(beta1(NR1,NBB), gco(NR1,NBB), sloc(NA_,NBB))
+    CALL allocate_bec_type(nkb, 1, becp)
+    DO ibatch = 1, nbatch
+       a0 = (ibatch-1)*NBB; na_b = MIN(NBB, NA_ - a0)
+       x(:,:,1:na_b) = czero
        DO it = 0, nrung
           IF (it == 0) THEN
-             tv = stt
+             rhs3(:,:,1:na_b) = stt(:,:,a0+1:a0+na_b)
           ELSE
-             ! t = V x ; term2 via R1 coefficients
-             CALL apply_dV_multik(x, na_b, tv, .FALSE.)
+             ! ---- sweep 1: (V x) on local channels -> term1 + beta rows ----
+             acc(:,:,1:na_b) = czero
+             DO kgs = 1, nkstot
+                owner = kowner(kgs)
+                IF (owner == my_pool_id) xbuf(:,1:na_b) = x(:, kgs-iks+1, 1:na_b)
+                CALL mp_bcast(xbuf(:,1:na_b), owner, inter_pool_comm)
+                DO ik = 1, nks
+                   CALL build_V_folded(xkcr(:,kgs) - xkcr(:,ik+iks-1), Vfc(:,ik))
+                ENDDO
+                DO a = 1, na_b
+                   psic = czero
+                   DO n = 1, ngk_all(kgs)
+                      psic(dffts%nl(igk_all(n,kgs))) = xbuf(n,a)
+                   ENDDO
+                   CALL invfft('Wave', psic, dffts)
+                   DO ik = 1, nks
+                      acc(:,ik,a) = acc(:,ik,a) + Vfc(:,ik) * psic
+                   ENDDO
+                ENDDO
+             ENDDO
+             ! KB for V x: accumulate coefficients like the source pass
+             ! (recomputed per rung; small)
+             CALL vx_kb_coeffs(x, na_b)
              beta1 = czero
+             rhs3(:,:,1:na_b) = czero
              DO ik = 1, nks
                 kg = ik + iks - 1
                 DO a = 1, na_b
-                   CALL ZGEMV('C', ngk_all(kg), nbnd, cone, evc_all(1,1,kg), npwx, &
-                              tv(1,kg,a), 1, czero, proj, 1)
+                   psic = acc(:,ik,a)
+                   CALL fwfft('Wave', psic, dffts)
+                   DO n = 1, ngk_all(kg)
+                      rhs3(n,ik,a) = psic(dffts%nl(igk_all(n,kg)))
+                   ENDDO
+                ENDDO
+             ENDDO
+             CALL add_kb_local(rhs3, na_b)
+             DO ik = 1, nks
+                kg = ik + iks - 1
+                DO a = 1, na_b
+                   CALL ZGEMV('C', ngk_all(kg), nbnd, cone, evc_all(1,1,kg), npwx, rhs3(1,ik,a), 1, czero, proj, 1)
                    DO ib = 1, nbnd
                       n = (kg-1)*nbnd + ib
                       IF (pos1(n) > 0) beta1(pos1(n),a) = proj(ib)
@@ -446,81 +542,51 @@ CONTAINS
                 DO n = 1, NR1
                    tR(n,:) = tR(n,:) / ((w0 - mu(n)) * xnk * xnk)
                 ENDDO
-                CALL ZGEMM('N','N', NR1, na_b, NR1, cone, H1, NR1, tR, NR1, czero, gco, NR1)
+                CALL ZGEMM('N','N', NR1, na_b, NR1, cone, H1, NR1, tR, NR1, czero, gco(:,1:na_b), NR1)
                 DEALLOCATE(tR)
              ENDIF
              CALL mp_bcast(gco, ionode_id, world_comm)
-             ! xi-states from gco, apply V, add (1/Nk)*t : rhs per channel below
-             ALLOCATE(xi(npwx,nkstot,na_b), tv2(npwx,nkstot,na_b))
-             xi = czero
-               DO a = 1, na_b
-                  DO kg = 1, nkstot
-                     gam = czero
-                     DO ib = 1, nbnd
-                        n = (kg-1)*nbnd + ib
-                        IF (pos1(n) > 0) gam(ib) = gco(pos1(n), a)
-                     ENDDO
-                     CALL ZGEMV('N', npwx, nbnd, cone, evc_all(1,1,kg), npwx, gam, 1, czero, xi(1,kg,a), 1)
-                  ENDDO
-               ENDDO
-             CALL apply_dV_multik(xi, na_b, tv2, .FALSE.)
-             tv = stt + tv/xnk + tv2            ! s~ + W22 x   (tv2 already carries 1/Nk^2 via gco)
-             DEALLOCATE(xi, tv2)
+             ! ---- sweep 2: V xi (xi synthesized from gco) ----
+             rhs3(:,:,1:na_b) = rhs3(:,:,1:na_b)/xnk + stt(:,:,a0+1:a0+na_b)
+             CALL sweep_synth(gco, na_b, rhs3)
              ! P_T projection of the rhs
              DO ik = 1, nks
                 kg = ik + iks - 1
                 DO a = 1, na_b
-                   CALL ZGEMV('C', ngk_all(kg), nbnd, cone, evc_all(1,1,kg), npwx, tv(1,kg,a), 1, czero, proj, 1)
-                   CALL ZGEMV('N', ngk_all(kg), nbnd, -cone, evc_all(1,1,kg), npwx, proj, 1, cone, tv(1,kg,a), 1)
+                   CALL ZGEMV('C', ngk_all(kg), nbnd, cone, evc_all(1,1,kg), npwx, rhs3(1,ik,a), 1, czero, proj, 1)
+                   CALL ZGEMV('N', ngk_all(kg), nbnd, -cone, evc_all(1,1,kg), npwx, proj, 1, cone, rhs3(1,ik,a), 1)
                 ENDDO
              ENDDO
           ENDIF
-          ! D2: pool-local CG solves;  x = -chi
-          x = czero
+          ! ---- D2: pool-local CG;  x = -chi ----
           DO ik = 1, nks
              kg = ik + iks - 1
              CALL hpsi_setup_k(ik)
              DO a = 1, na_b
-                rhs = czero; rhs(1:ngk_all(kg)) = tv(1:ngk_all(kg),kg,a)
+                rhs = czero; rhs(1:ngk_all(kg)) = rhs3(1:ngk_all(kg),ik,a)
                 CALL solve_rest_cg(ik, rhs, w0, alpha_ry, nbnd, evc_all(:,:,kg), 1.d-8, 500, chi, iters, resid)
-                x(1:ngk_all(kg),kg,a) = -chi(1:ngk_all(kg))
+                x(1:ngk_all(kg),ik,a) = -chi(1:ngk_all(kg))
              ENDDO
-          ENDDO
-          DO kg = 1, nkstot
-             CALL mp_sum(x(:,kg,:), inter_pool_comm)
           ENDDO
           IF (ionode) THEN
              WRITE(stdout,'(5X,A,I3,A,I3,A)') 'batch ', ibatch, '  rung ', it, ' done'
              FLUSH(stdout)
           ENDIF
        ENDDO
-       CALL deallocate_bec_type(becp)
-
-       ! ---- Sigma_tail contribution: (1/Nk) sum_k' <st_b|x_a> ----
-       ALLOCATE(sloc(NA_,na_b)); sloc = czero
-         DO ik = 1, nks
-            kg = ik + iks - 1
-            ! need st for ALL b at this channel: recompute? -> stored stt covers only batch
-            ! v1: accumulate batch-diagonal style requires all-b sources; instead compute
-            ! <st_b|x_a> with b restricted to the SAME batch and fill off-batch via
-            ! hermiticity after all batches (valid since Sigma is Hermitian at real w0).
-            CALL ZGEMM('C','N', na_b, na_b, ngk_all(kg), cone, stt(1,kg,1), npwx*nkstot, &
-                       x(1,kg,1), npwx*nkstot, cone, sloc(a0+1,1), NA_)
-         ENDDO
-       CALL mp_sum(sloc, inter_pool_comm)
-       IF (ionode) Sgt(:, a0+1:a0+na_b) = Sgt(:, a0+1:a0+na_b) + sloc/xnk
-       DEALLOCATE(sloc)
-       DEALLOCATE(stt, x, tv, beta1, gco)
+       ! ---- Sigma columns: <st_b | x_a>, all b, batch a ----
+       sloc(:,1:na_b) = czero
+       DO ik = 1, nks
+          kg = ik + iks - 1
+          CALL ZGEMM('C','N', NA_, na_b, ngk_all(kg), cone, stt(1,ik,1), npwx*nks, &
+                     x(1,ik,1), npwx*nks, cone, sloc, NA_)
+       ENDDO
+       CALL mp_sum(sloc(:,1:na_b), inter_pool_comm)
+       IF (ionode) Sgt(:, a0+1:a0+na_b) = sloc(:,1:na_b)/xnk
     ENDDO
+    CALL deallocate_bec_type(becp)
 
     ! ---- assemble + write (ionode) ----
     IF (ionode) THEN
-       ! fill cross-batch blocks by hermiticity
-       DO a = 1, NA_
-          DO b = 1, NA_
-             IF (ABS(Sgt(b,a)) == 0.0_dp .AND. ABS(Sgt(a,b)) > 0.0_dp) Sgt(b,a) = CONJG(Sgt(a,b))
-          ENDDO
-       ENDDO
        ALLOCATE(Vout(NA_,NA_))
        Vout = VAA + SgR1 + Sgt
        DO n = 1, NA_
@@ -539,14 +605,14 @@ CONTAINS
        WRITE(iu) SgR1 + Sgt
        WRITE(iu) Vout
        CLOSE(iu)
-       WRITE(stdout,'(5X,3A,I6,A)') 'wrote ', TRIM(outfile), '  (MODE B physical, N_A = ', NA_, ')'
+       WRITE(stdout,'(5X,3A,I6,A)') 'wrote ', TRIM(outfile), '  (MODE B v2, N_A = ', NA_, ')'
        WRITE(stdout,'(5X,A)') REPEAT('=',64)
+       FLUSH(stdout)
     ENDIF
 
   CONTAINS
 
     FUNCTION xk_dummy(kg_, xkcr_) RESULT(xkc3)
-      !! cartesian 2pi/alat k-vector reconstructed from crystal coords
       USE cell_base, ONLY : bg
       INTEGER,  INTENT(IN) :: kg_
       REAL(dp), INTENT(IN) :: xkcr_(3,nkstot)
@@ -554,87 +620,115 @@ CONTAINS
       xkc3 = MATMUL(bg, xkcr_(:,kg_))
     END FUNCTION xk_dummy
 
-    SUBROUTINE apply_dV_multik(vin, nsrc, vout, project_T)
-      !! vout^{k'} = [Delta-V vin]^{k'} for pool-local channels k' (zero elsewhere),
-      !! local part via fold-multiply FFTs, KB nonlocal via summed home-k becs.
-      !! project_T: subtract the nbnd explicit-band components at each channel.
-      COMPLEX(dp), INTENT(IN)  :: vin(:,:,:)
-      INTEGER,     INTENT(IN)  :: nsrc
-      COMPLEX(dp), INTENT(OUT) :: vout(:,:,:)
-      LOGICAL,     INTENT(IN)  :: project_T
-      INTEGER :: ikl, kgc, kgs, aa, igl, ikb2
-      COMPLEX(dp), ALLOCATABLE :: cd(:,:), cp(:,:), bd(:), bp(:), tmpd(:), tmpp(:)
-      COMPLEX(dp), ALLOCATABLE, SAVE :: Vfc(:,:)
-
-      ! summed KB coefficients per source (home-k loop over local k, then global sum)
-      ALLOCATE(cd(nkb_d,nsrc), cp(nkb_p,nsrc), bd(nkb_d), bp(nkb_p))
-      ALLOCATE(tmpd(nkb_d), tmpp(nkb_p))
-      cd = czero; cp = czero
+    SUBROUTINE vx_kb_coeffs(xin, nsrc)
+      !! KB coefficients of (V_NL x): bec at each local k of x, make_coeff, sum;
+      !! stored in module-batch arrays kcd/kcp for add_kb_local.
+      COMPLEX(dp), INTENT(IN) :: xin(:,:,:)
+      INTEGER, INTENT(IN) :: nsrc
+      INTEGER :: ikl, kgl, aa, ikb2
+      IF (.NOT. ALLOCATED(kcd)) ALLOCATE(kcd(nkb_d,NBB), kcp(nkb_p,NBB))
+      kcd = czero; kcp = czero
       DO ikl = 1, nks
-         kgs = ikl + iks - 1
-         CALL get_betavkb(ngk_all(kgs), igk_all(1,kgs), xk(1,ikl), vkb_d, V_d%nat,V_d%ityp,V_d%tau, nkb_d)
-         CALL get_betavkb(ngk_all(kgs), igk_all(1,kgs), xk(1,ikl), vkb_p, V_p%nat,V_p%ityp,V_p%tau, nkb_p)
+         kgl = ikl + iks - 1
+         CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xk(1,ikl), vkb_d, V_d%nat,V_d%ityp,V_d%tau, nkb_d)
+         CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xk(1,ikl), vkb_p, V_p%nat,V_p%ityp,V_p%tau, nkb_p)
          DO aa = 1, nsrc
             DO ikb2 = 1, nkb_d
-               bd(ikb2) = SUM(CONJG(vkb_d(1:ngk_all(kgs),ikb2))*vin(1:ngk_all(kgs),kgs,aa))
+               bd(ikb2) = SUM(CONJG(vkb_d(1:ngk_all(kgl),ikb2))*xin(1:ngk_all(kgl),ikl,aa))
             ENDDO
             DO ikb2 = 1, nkb_p
-               bp(ikb2) = SUM(CONJG(vkb_p(1:ngk_all(kgs),ikb2))*vin(1:ngk_all(kgs),kgs,aa))
+               bp(ikb2) = SUM(CONJG(vkb_p(1:ngk_all(kgl),ikb2))*xin(1:ngk_all(kgl),ikl,aa))
             ENDDO
             CALL make_coeff(V_d%nat,V_d%ityp,V_d%ntyp,nkb_d,bd,tmpd)
             CALL make_coeff(V_p%nat,V_p%ityp,V_p%ntyp,nkb_p,bp,tmpp)
-            cd(:,aa) = cd(:,aa) + tmpd
-            cp(:,aa) = cp(:,aa) + tmpp
+            kcd(:,aa) = kcd(:,aa) + tmpd
+            kcp(:,aa) = kcp(:,aa) + tmpp
          ENDDO
       ENDDO
-      CALL mp_sum(cd, inter_pool_comm)
-      CALL mp_sum(cp, inter_pool_comm)
+      CALL mp_sum(kcd, inter_pool_comm)
+      CALL mp_sum(kcp, inter_pool_comm)
+    END SUBROUTINE vx_kb_coeffs
 
-      vout = czero
-      IF (.NOT. ALLOCATED(Vfc)) ALLOCATE(Vfc(dffts%nnr, nkstot))
-      DO ikl = 1, nks                       ! local channels
-         kgc = ikl + iks - 1
-         npw_kp = ngk_all(kgc)
-         CALL get_betavkb(npw_kp, igk_all(1,kgc), xk(1,ikl), vkb_d, V_d%nat,V_d%ityp,V_d%tau, nkb_d)
-         CALL get_betavkb(npw_kp, igk_all(1,kgc), xk(1,ikl), vkb_p, V_p%nat,V_p%ityp,V_p%tau, nkb_p)
-         ! folds depend on (source-k, channel) only: build the nkstot of them ONCE
-         ! per channel and reuse across all sources (they were being rebuilt per
-         ! source before -- a ~400x waste at 396 sources)
-         DO kgs = 1, nkstot
-            CALL build_V_folded(xkcr(:,kgs) - xkcr(:,kgc), Vfc(:,kgs))
+    SUBROUTINE add_kb_local(v3, nsrc)
+      !! add the KB nonlocal part (coefficients kcd/kcp) at local channels
+      COMPLEX(dp), INTENT(INOUT) :: v3(:,:,:)
+      INTEGER, INTENT(IN) :: nsrc
+      INTEGER :: ikl, kgl
+      DO ikl = 1, nks
+         kgl = ikl + iks - 1
+         CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xk(1,ikl), vkb_d, V_d%nat,V_d%ityp,V_d%tau, nkb_d)
+         CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xk(1,ikl), vkb_p, V_p%nat,V_p%ityp,V_p%tau, nkb_p)
+         CALL ZGEMM('N','N', ngk_all(kgl), nsrc, nkb_d,  cone, vkb_d, npwx, kcd, nkb_d, cone, v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2))
+         CALL ZGEMM('N','N', ngk_all(kgl), nsrc, nkb_p, -cone, vkb_p, npwx, kcp, nkb_p, cone, v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2))
+      ENDDO
+    END SUBROUTINE add_kb_local
+
+    SUBROUTINE sweep_synth(gc, nsrc, v3out)
+      !! v3out += V xi at local channels, xi synthesized per (kgs,a) from gc
+      !! (KB part included via owner-pool becs, added locally afterwards).
+      COMPLEX(dp), INTENT(IN)    :: gc(:,:)
+      INTEGER,     INTENT(IN)    :: nsrc
+      COMPLEX(dp), INTENT(INOUT) :: v3out(:,:,:)
+      INTEGER :: kgs2, ikl, aa, ib2, n2, ikb2, kgl
+      acc(:,:,1:nsrc) = czero
+      IF (.NOT. ALLOCATED(kcd)) ALLOCATE(kcd(nkb_d,NBB), kcp(nkb_p,NBB))
+      kcd = czero; kcp = czero
+      DO kgs2 = 1, nkstot
+         DO ikl = 1, nks
+            CALL build_V_folded(xkcr(:,kgs2) - xkcr(:,ikl+iks-1), Vfc(:,ikl))
          ENDDO
+         IF (kowner(kgs2) == my_pool_id) THEN
+            CALL get_betavkb(ngk_all(kgs2), igk_all(1,kgs2), xk_dummy(kgs2,xkcr), vkb_d, &
+                             V_d%nat,V_d%ityp,V_d%tau, nkb_d)
+            CALL get_betavkb(ngk_all(kgs2), igk_all(1,kgs2), xk_dummy(kgs2,xkcr), vkb_p, &
+                             V_p%nat,V_p%ityp,V_p%tau, nkb_p)
+         ENDIF
          DO aa = 1, nsrc
-            gbuf = czero
-            DO kgs = 1, nkstot              ! source-k sum (fold)
-               IF (MAXVAL(ABS(vin(1:ngk_all(kgs),kgs,aa))) < 1.d-14) CYCLE
-               psic = czero
-               DO igl = 1, ngk_all(kgs)
-                  psic(dffts%nl(igk_all(igl,kgs))) = vin(igl,kgs,aa)
+            gam = czero
+            DO ib2 = 1, nbnd
+               n2 = (kgs2-1)*nbnd + ib2
+               IF (pos1(n2) > 0) gam(ib2) = gc(pos1(n2), aa)
+            ENDDO
+            CALL ZGEMV('N', npwx, nbnd, cone, evc_all(1,1,kgs2), npwx, gam, 1, czero, rhs, 1)
+            IF (kowner(kgs2) == my_pool_id) THEN
+               DO ikb2 = 1, nkb_d
+                  bd(ikb2) = SUM(CONJG(vkb_d(1:ngk_all(kgs2),ikb2))*rhs(1:ngk_all(kgs2)))
                ENDDO
-               CALL invfft('Wave', psic, dffts)
-               gbuf = gbuf + Vfc(:,kgs) * psic
-            ENDDO
-            CALL fwfft('Wave', gbuf, dffts)
-            DO igl = 1, npw_kp
-               vout(igl,kgc,aa) = gbuf(dffts%nl(igk_all(igl,kgc)))
-            ENDDO
-            DO ikb2 = 1, nkb_d
-               vout(1:npw_kp,kgc,aa) = vout(1:npw_kp,kgc,aa) + vkb_d(1:npw_kp,ikb2)*cd(ikb2,aa)
-            ENDDO
-            DO ikb2 = 1, nkb_p
-               vout(1:npw_kp,kgc,aa) = vout(1:npw_kp,kgc,aa) - vkb_p(1:npw_kp,ikb2)*cp(ikb2,aa)
-            ENDDO
-            IF (project_T) THEN
-               CALL ZGEMV('C', npw_kp, nbnd, cone, evc_all(1,1,kgc), npwx, vout(1,kgc,aa), 1, czero, proj, 1)
-               CALL ZGEMV('N', npw_kp, nbnd, -cone, evc_all(1,1,kgc), npwx, proj, 1, cone, vout(1,kgc,aa), 1)
+               DO ikb2 = 1, nkb_p
+                  bp(ikb2) = SUM(CONJG(vkb_p(1:ngk_all(kgs2),ikb2))*rhs(1:ngk_all(kgs2)))
+               ENDDO
+               CALL make_coeff(V_d%nat,V_d%ityp,V_d%ntyp,nkb_d,bd,tmpd)
+               CALL make_coeff(V_p%nat,V_p%ityp,V_p%ntyp,nkb_p,bp,tmpp)
+               kcd(:,aa) = kcd(:,aa) + tmpd
+               kcp(:,aa) = kcp(:,aa) + tmpp
             ENDIF
+            psic = czero
+            DO n2 = 1, ngk_all(kgs2)
+               psic(dffts%nl(igk_all(n2,kgs2))) = rhs(n2)
+            ENDDO
+            CALL invfft('Wave', psic, dffts)
+            DO ikl = 1, nks
+               acc(:,ikl,aa) = acc(:,ikl,aa) + Vfc(:,ikl) * psic
+            ENDDO
          ENDDO
       ENDDO
-      DO kgs = 1, nkstot
-         CALL mp_sum(vout(:,kgs,1:nsrc), inter_pool_comm)
+      CALL mp_sum(kcd, inter_pool_comm)
+      CALL mp_sum(kcp, inter_pool_comm)
+      DO ikl = 1, nks
+         kgl = ikl + iks - 1
+         DO aa = 1, nsrc
+            psic = acc(:,ikl,aa)
+            CALL fwfft('Wave', psic, dffts)
+            DO n2 = 1, ngk_all(kgl)
+               v3out(n2,ikl,aa) = v3out(n2,ikl,aa) + psic(dffts%nl(igk_all(n2,kgl)))
+            ENDDO
+         ENDDO
+         CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xk(1,ikl), vkb_d, V_d%nat,V_d%ityp,V_d%tau, nkb_d)
+         CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xk(1,ikl), vkb_p, V_p%nat,V_p%ityp,V_p%tau, nkb_p)
+         CALL ZGEMM('N','N', ngk_all(kgl), nsrc, nkb_d,  cone, vkb_d, npwx, kcd, nkb_d, cone, v3out(1,ikl,1), SIZE(v3out,1)*SIZE(v3out,2))
+         CALL ZGEMM('N','N', ngk_all(kgl), nsrc, nkb_p, -cone, vkb_p, npwx, kcp, nkb_p, cone, v3out(1,ikl,1), SIZE(v3out,1)*SIZE(v3out,2))
       ENDDO
-      DEALLOCATE(cd, cp, bd, bp, tmpd, tmpp)
-    END SUBROUTINE apply_dV_multik
+    END SUBROUTINE sweep_synth
 
   END SUBROUTINE twolevel_physical
 
