@@ -44,7 +44,7 @@ EDIOBJ = $(EDIROOT)/src/edic_mod.o $(EDIROOT)/src/delta_weights.o $(EDIROOT)/src
          $(EDIROOT)/src/get_betavkb.o $(EDIROOT)/src/get_vloc_onthefly.o \
          $(EDIROOT)/src/pw2wan_edi.o $(EDIROOT)/src/edi_pw2wan.o
 
-EDT_OBJ = edt_input.o edt_partition.o edt_wannier.o edt_source.o edt_sternheimer.o edt.o
+EDT_OBJ = edt_input.o edt_partition.o edt_wannier.o edt_source.o edt_sternheimer.o edt_twolevel.o edt.o
 
 # MKL (sequential, gfortran ABI) placed BEFORE QELIBS so BLAS/LAPACK/FFTW3
 # symbols bind to MKL (51.6 GFLOP/s zgemm) instead of QE's bundled netlib

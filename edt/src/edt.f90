@@ -24,12 +24,14 @@ PROGRAM edt
                                potfile_d, potfile_p, pot_align, defect_center, core_align_radius, &
                                range_sep_on => range_sep, rhofile_d, rhofile_p, coulomb_2d, alpha_gauss, sternheimer_thr, &
                                do_full_block, block_nk, block_single_band, block_single_ki, vtilde_outfile, &
-                               dump_wann, born_only, nbndskip_force
+                               dump_wann, born_only, nbndskip_force, dress_order, &
+                               tail_split_band, n_rung, edmat_infile
   USE edt_partition,    ONLY : build_active_set, print_partition_audit
   USE ed_coarse,        ONLY : load_pot_from_file, &
                                build_vcolin_aligned, build_vcolin_corealign, write_vcolin_cube
   USE edt_wannier,      ONLY : edt_read_filukk
   USE edt_source,       ONLY : test_source, explicit_rest_channel
+  USE edt_twolevel,     ONLY : vtilde_block_twolevel
   USE edt_sternheimer,  ONLY : edt_set_vrs, test_hpsi_eigen, rest_channel_compare, vtilde_diag_full, &
                                vtilde_block_mpi
   USE edi_read_hr,      ONLY : read_hr_file
@@ -237,9 +239,17 @@ PROGRAM edt
            IF (ionode) WRITE(stdout,'(5X,A,I3,A,I3)') 'nbndskip override: ', nbndskip, ' -> ', nbndskip_force
            nbndskip = nbndskip_force
         ENDIF
+        IF (dress_order > 0) THEN
+           ! ---- two-level (Schur-partitioned) dressed rest ----
+           IF (LEN_TRIM(edmat_infile) == 0) CALL errore('edt', &
+                'two-level mode (dress_order>0) requires edmat_infile (all-band block)', 1)
+           CALL vtilde_block_twolevel(xk_cryst, om0/rytoev, win_min/rytoev, win_max/rytoev, &
+                nbndskip, tail_split_band, n_rung, TRIM(edmat_infile), TRIM(vtilde_outfile))
+        ELSE
         CALL vtilde_block_mpi(xk_all, xk_cryst, om0/rytoev, win_min/rytoev, win_max/rytoev, &
              nbndskip, sternheimer_thr, block_nk, block_single_band, block_single_ki, &
              TRIM(vtilde_outfile), born_only)
+        ENDIF
      ELSE
         ! ---- P1 Stage B: Born-limit (T1) local check of the ΔV source ket ----
         CALL test_source(1, 2, xk_cryst(:,2) - xk_cryst(:,1), &

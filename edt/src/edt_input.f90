@@ -60,6 +60,9 @@ MODULE edt_input
   INTEGER  :: nbndskip_force   = -1                 ! >=0: override the filukk-derived semicore skip (0 = include semicores)
   CHARACTER(LEN=256) :: edmat_infile = ''           ! EDI edmat.bin to supply Mblk (same-save gauge REQUIRED)
   LOGICAL  :: edmat_check      = .FALSE.            ! compute M anyway and report |M_file - M_computed| (orientation gate)
+  INTEGER  :: tail_split_band  = 0                  ! two-level: 0 = physical tail (>nbnd, CG); >0 = MODEL tail
+                                                    ! (bands split+1..nbnd, explicit diagonal D2 - validation gate)
+  INTEGER  :: n_rung           = 4                  ! two-level: Neumann rungs for the tail ladder
 
   NAMELIST / edt_nml / &
        edi_prefix, edi_outdir, coarse_nk1, coarse_nk2, coarse_nk3, &
@@ -70,7 +73,7 @@ MODULE edt_input
        rest_nk1, rest_nk2, rest_nk3, sternheimer_thr, dress_order, dress_tol, &
        active_resum, resum_grid, rest_split, &
        do_full_block, block_nk, block_single_band, block_single_ki, vtilde_outfile, dump_wann, born_only, &
-       nbndskip_force, edmat_infile, edmat_check
+       nbndskip_force, edmat_infile, edmat_check, tail_split_band, n_rung
 
 CONTAINS
 
@@ -135,6 +138,8 @@ CONTAINS
     CALL mp_bcast(nbndskip_force,   ionode_id, world_comm)
     CALL mp_bcast(edmat_infile,     ionode_id, world_comm)
     CALL mp_bcast(edmat_check,      ionode_id, world_comm)
+    CALL mp_bcast(tail_split_band,  ionode_id, world_comm)
+    CALL mp_bcast(n_rung,           ionode_id, world_comm)
 
     IF (ionode) THEN
        WRITE(stdout,'(/,5X,A)') REPEAT('=',64)

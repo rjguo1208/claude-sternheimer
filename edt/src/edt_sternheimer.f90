@@ -17,7 +17,7 @@ MODULE edt_sternheimer
   IMPLICIT NONE
   PRIVATE
   PUBLIC :: edt_set_vrs, hpsi_setup_k, test_hpsi_eigen, solve_rest_cg, rest_channel_compare
-  PUBLIC :: vtilde_diag_full, vtilde_block_mpi
+  PUBLIC :: vtilde_diag_full, vtilde_block_mpi, edmat_fill_or_check
 
 CONTAINS
 

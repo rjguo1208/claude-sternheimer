@@ -41,7 +41,7 @@ EDIOBJ = $(EDIROOT)/src/edic_mod.o $(EDIROOT)/src/delta_weights.o $(EDIROOT)/src
 
 # range_sep_shim: v8d dropped range_sep.o/lr_matelem.o/tt_compress.o; the shim
 # supplies the (unused) range_sep interface, build_aug_wfc.o backs v8d ed_coarse.
-EDT_OBJ = edt_input.o edt_partition.o edt_wannier.o edt_source.o range_sep_shim.o edt_sternheimer.o edt.o
+EDT_OBJ = edt_input.o edt_partition.o edt_wannier.o edt_source.o range_sep_shim.o edt_sternheimer.o edt_twolevel.o edt.o
 
 .DEFAULT_GOAL := edt.x
 
