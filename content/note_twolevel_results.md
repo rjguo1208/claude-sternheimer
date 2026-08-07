@@ -211,12 +211,68 @@ V$_S$ 86.3/84.9/84.0, O$_S$ 83.4/87.5/86.6, Se$_S$ 86.6/84.9/84.2 states —
 MODE C slightly below truth where spectral weight transfers to the rest sector
 (quasiparticle $Z<1$), a physical feature of the $\omega$-resolved downfold.
 
+### The residual offsets are a potential-reference mismatch, not method error
+
+The three defects' residuals looked like rigid energy shifts, and they are: a
+constant $c$ added to $\Delta V$ shifts **every** $H_{\rm eff}$ level by exactly
+$c$ (since $M\to M+cN_k\mathbb{1}$). Two different references were being mixed:
+
+* **$H_{\rm eff}$ side** — the code builds
+  $\Delta V=(V_d-\mathrm{vac}_d)-(V_p-\mathrm{vac}_p)$, i.e. **vacuum-aligned**.
+  Consequently $H_{\rm eff}$ is the exact defect Hamiltonian displaced by the
+  constant $-(\mathrm{vac}_d-\mathrm{vac}_p)$.
+* **truth side** — the supercell spectrum aligned on the **mean of 80 Mo
+  semicore levels** (a core-level anchor), which is additionally *biased* because
+  the average includes the defect's own neighbours (O$_S$ outliers sit
+  $+237$, $+176$, $+161$ meV from the median).
+
+That gives a parameter-free prediction,
+$\;\Sigma_{\rm C}-\text{truth}=-(\mathrm{vac}_d-\mathrm{vac}_p)-\text{shift}_{\rm deep}$,
+with both terms measured independently (cube vacuum plateaus; the gate's own anchor):
+
+| defect | $-\Delta\mathrm{vac}$ | $-$shift$_{\rm deep}$ | predicted | observed | diff |
+|---|---|---|---|---|---|
+| V$_S$ | $+14.7$ | $+3.2$ | $+17.9$ | $+18.8$ | $+0.9$ |
+| O$_S$ | $-12.5$ | $-34.0$ | $-46.6$ | $-49.3$ | $-2.7$ |
+| Se$_S$ | $+17.0$ | $+15.5$ | $+32.4$ | $+25.8$ | $-6.6$ |
+
+(meV. The far-field plateau of $\Delta V$ inside the slab — $-21.9$ / $+28.6$ /
+$+16.2$ meV for O$_S$/Se$_S$/V$_S$, vacuum plateau $\le 1.4$ meV — fixes the
+*unbiased* core anchor, which then agrees with a robust valence-manifold anchor
+to $\sim$1 meV.)
+
+Put both sides on one reference and the offsets vanish **with no fitting**:
+
+![DOS alignment](../assets/dos_align66.png)
+
+| defect | per-feature deviation, vacuum-aligned (meV) | mean | RMS |
+|---|---|---|---|
+| O$_S$ | $-6.2$ / $+2.6$ / $-4.6$ | $-2.7$ | $3.8$ |
+| Se$_S$ | $-6.5$ / $-5.0$ / $-5.0$ | $-5.5$ | $0.7$ |
+| V$_S$ | 7 computed features vs 5 in truth | — | structural |
+
+So for O$_S$ and Se$_S$ the $\omega$-resolved downfold reproduces the supercell
+defect levels **in absolute terms to $\le 7$ meV, and in shape to 1–4 meV**, over
+a 1.65 eV window. Control: no rigid shift rescues M-only (relative DOS residual
+only $0.37\to0.29$ / $0.52\to0.21$) or MODE B on O$_S$ — the shift is not a free
+parameter hiding error, it is the one constant that separates two conventions.
+V$_S$ is the counter-example that proves the point: its best shift is
+window-dependent ($-19$ meV on the valence side, $+58$ meV at the CBM), so its
+$\sim$29 meV doublet splitting and missing $-0.07$ eV state are genuine.
+
+**Campaign-wide consequence:** the $\pm 30$–$50$ meV "common-mode" offsets quoted
+throughout this project are largely this convention mismatch. Quote either frame,
+but state which: the deep-band-anchored numbers in the tables above are the
+conservative ones; the vacuum-aligned frame is the like-for-like one.
+
 ## 8. Residuals and next levers
 
-With $\omega$-resolution in hand the residual ledger is rewritten: the V$_S$
-doublet **splitting** (29 meV) is now assigned to the matrix elements
-(geometry/sampling), not to frequency; the V$_S$ doublet **position** brackets
-truth ($+25$ meV static centroid vs $-27$ meV $\omega$-resolved); O$_S$ carries
-a nearly uniform $-50$ meV offset (alignment-convention class). Next levers: a
-24-rung MODE B scan (running) to quantify the collective-mode capture rate;
-NSCF bands 150 $\to$ 300; and the SOC/12$\times$12 production port of MODE C.
+The ledger is now closed for two of the three defects: O$_S$ and Se$_S$ have
+**no residual beyond the reference convention** ($\le 7$ meV absolute, 1–4 meV in
+shape). What remains is V$_S$: a 29 meV splitting of a degenerate doublet, an
+extra pair of features, and a missing $-0.07$ eV state — errors that survive
+exact $\omega$, exact rest inversion and any rigid shift, so they live in the
+matrix elements (relaxed-geometry C$_3$ microbreaking and/or 6$\times$6
+sampling). Next levers, in order: 12$\times$12 sampling for V$_S$ (the cheapest
+test of the sampling half), a symmetry audit of the relaxed cube, and the
+SOC/12$\times$12 production port of MODE C.
