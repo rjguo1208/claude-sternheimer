@@ -29,6 +29,7 @@ CONTAINS
     !-------------------------------------------------------------------------
     USE edic_mod,  ONLY : V_colin, V_d
     USE fft_base,  ONLY : dffts
+    USE cell_base, ONLY : at, alat
     USE io_global, ONLY : ionode, stdout
     IMPLICIT NONE
     REAL(dp),    INTENT(IN)  :: q_cryst(3)
@@ -42,14 +43,37 @@ CONTAINS
     !    (SAVEd), and the phase factorized 1D: exp(iq·r) = px(irx)py(iry)pz(irz)
     !    so COS/SIN is evaluated nr1+nr2+nr3 times instead of nr1*nr2*nr3.
     IF (.NOT. ALLOCATED(fold_map)) THEN
-       IF (ionode) THEN
-          WRITE(stdout,'(5X,A,3I5,A,3I5)') 'FOLD grids: primitive dffts =', &
-               dffts%nr1, dffts%nr2, dffts%nr3, '   cube =', V_d%nr1, V_d%nr2, V_d%nr3
-          IF (MOD(V_d%nr1,dffts%nr1)/=0 .OR. MOD(V_d%nr2,dffts%nr2)/=0 .OR. MOD(V_d%nr3,dffts%nr3)/=0) &
-               WRITE(stdout,'(5X,A)') '*** WARNING: cube grid is NOT an integer multiple of the '// &
-                                      'primitive grid — the real-space fold is INVALID ***'
-          FLUSH(stdout)
-       ENDIF
+       ! The modulo fold is correct ONLY if the cube grid divided by the primitive
+       ! grid equals the SUPERCELL MULTIPLICITY along each axis.  A merely integral
+       ! ratio is not enough: e.g. a 240-point cube of a 6x supercell folded onto a
+       ! 30-point primitive grid (ratio 8) silently mis-assigns every position.
+       BLOCK
+         REAL(dp) :: rsc(3), lp, lc
+         INTEGER  :: nsc(3), idir, nr_p(3), nr_c(3)
+         nr_p = (/ dffts%nr1, dffts%nr2, dffts%nr3 /)
+         nr_c = (/ V_d%nr1,   V_d%nr2,   V_d%nr3   /)
+         DO idir = 1, 3
+            lp = SQRT(SUM((at(:,idir)*alat)**2))
+            lc = SQRT(SUM((V_d%at(:,idir)*V_d%alat)**2))
+            rsc(idir) = lc/MAX(lp,1.d-12); nsc(idir) = NINT(rsc(idir))
+         ENDDO
+         IF (ionode) THEN
+            WRITE(stdout,'(5X,A,3I5,A,3I5,A,3I3)') 'FOLD grids: primitive dffts =', nr_p, &
+                 '   cube =', nr_c, '   supercell =', nsc
+            FLUSH(stdout)
+         ENDIF
+         DO idir = 1, 3
+            IF (ABS(rsc(idir)-DBLE(nsc(idir))) > 1.d-3) CALL errore('build_V_folded', &
+                 'cube cell is not an integer multiple of the primitive cell', idir)
+            IF (nr_c(idir) /= nsc(idir)*nr_p(idir)) THEN
+               IF (ionode) WRITE(stdout,'(5X,A,I1,A,I5,A,I2,A,I5,A)') &
+                  '*** FOLD GRID ERROR (axis ',idir,'): cube ',nr_c(idir), &
+                  ' /= supercell ',nsc(idir),' x primitive ',nr_p(idir),' ***'
+               CALL errore('build_V_folded', &
+                 'fold grid mismatch: need nr_cube = nsc * nr_primitive on every axis', idir)
+            ENDIF
+         ENDDO
+       END BLOCK
        ALLOCATE(fold_map(V_d%nr1 * V_d%nr2 * V_d%nr3))
        inr = 0
        DO irz = 0, V_d%nr3 - 1

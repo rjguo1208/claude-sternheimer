@@ -41,24 +41,27 @@ gate). Methods differ only in the rest self-energy $\Sigma$ — see the
 
 ## 2. Two setup systematics that govern every number
 
-**(a) The fold grid must be commensurate.** `build_V_folded` maps the supercell
-cube onto the primitive grid by real-space modulo indexing, so it is exact only
-if $n^{\rm cube}_i / n^{\rm prim}_i \in \mathbb{Z}$. A/B test (same code, same
-cubes, only the primitive save swapped):
+**(a) The fold grid must match the supercell multiplicity.** `build_V_folded`
+maps the supercell cube onto the primitive grid by real-space modulo indexing, so
+it is exact only if $n^{\rm cube}_i = N^{\rm sc}_i\,n^{\rm prim}_i$ — the ratio
+must *be* the multiplicity, not merely an integer. Three primitive grids against
+the same 240$\times$240$\times$300 cubes of a 6$\times$6 supercell:
 
-| primitive grid | cube/grid | M-only gap window (eV) | smallest spacings |
+| primitive grid | cube/grid | M-only gap window (eV) | verdict |
 |---|---|---|---|
-| 27$\times$27$\times$216 | 8.89 / 8.89 / 1.39 | +0.0370 +0.0442 +0.0570 +1.6859 +1.6962 | 7.2, 10.3, 12.8 meV |
-| **40$\times$40$\times$300** | **6 / 6 / 1** | +0.0395 **+0.0395** +0.0858 +1.6593 **+1.6593** | **0.0, 0.0 meV** |
+| 27$\times$27$\times$216 | 8.89 / 8.89 / 1.39 | +0.0370 +0.0442 +0.0570 +1.6859 +1.6962 | doublets split 7–13 meV |
+| 30$\times$30$\times$300 | 8 / 8 / 1 (integral, $\ne N^{\rm sc}$) | 15 states where there should be 5 | degeneracies destroyed |
+| **40$\times$40$\times$300** | **6 / 6 / 1** | +0.0395 **+0.0395** +0.0858 +1.6593 **+1.6593** | **exact (0.0 meV)** |
 
 The incommensurate fold aliases $\Delta V$, breaks C$_3$ (degenerate doublets
 split by 6–29 meV) and changes $\lVert\tilde V\rVert$ by 45%. Degeneracy
 splitting is therefore the cheap fingerprint: on the commensurate grids the
 C$_3$ pairs are degenerate to **0–4 $\mu$eV**. The cube itself is C$_3$-exact
 (rms $3\times10^{-7}$ Ry under an exact integer rotation), so geometry is not
-involved. EDT now prints `FOLD grids: ...` on the first call and warns when the
-ratio is not integral. A 6$\times$6 cube needs an explicit
-`nr1=nr2=40, nr3=300` primitive NSCF — the ecut-50 auto grid is unusable.
+involved. EDT now prints `FOLD grids: ... supercell = 6 6 1` on the first call and
+**aborts** when the multiplicity condition fails. A 6$\times$6 cube of
+240$\times$240$\times$300 needs exactly `nr1=nr2=40, nr3=300` — the ecut-50 auto
+grid (27$\times$27$\times$216) and any other divisor are unusable.
 
 **(b) The potential reference.** A constant $c$ in $\Delta V$ shifts every level
 by exactly $c$. The code builds $\Delta V=(V_d-\mathrm{vac}_d)-(V_p-\mathrm{vac}_p)$
