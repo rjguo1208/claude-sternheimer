@@ -187,9 +187,38 @@ peak-by-peak against the truth ($\eta$ = 25 meV):
 
 ![DOS omega](../assets/dos_omega66.png)
 
-For V$_S$ the $\omega$-resolved and static answers now differ by only tens of meV
-and both track the truth ([figure](../assets/vs_omega66.png)); the qualitative
-gain of $\omega$-resolution is O$_S$, where the ghost dissolves.
+### How much does $\omega$-resolution actually buy?
+
+The same chains answer this directly: evaluate the continued fraction at the
+single anchor $\omega_0$, freeze it, and diagonalize. That **exact static**
+$\Sigma(\omega_0)$ is not MODE B — it has no ladder truncation — so the
+comparison isolates the frozen-frequency approximation alone.
+
+![static vs omega-resolved DOS](../assets/dos_static66.png)
+
+| defect | static $\Sigma(\omega_0)$ | $\omega$-resolved | worst per-feature shift |
+|---|---|---|---|
+| V$_S$ | $+13.7 \pm 12.0$ | $+7.6 \pm 1.7$ | $-23$ meV (the $+1.20$ eV gap doublet) |
+| O$_S$ | $-0.0 \pm 4.6$ | $-2.7 \pm 3.8$ | $-6$ meV (CBM edge) |
+| Se$_S$ | $-5.3 \pm 0.9$ | $-5.5 \pm 0.7$ | $-0.7$ meV |
+
+(mean $\pm$ RMS in meV vs the vacuum-aligned truth.) Readings: **(i)** the
+frozen-$\omega_0$ approximation is already good — the *qualitative* physics,
+including the O$_S$ ghost removal, is present in the exact static $\Sigma$, so
+the ghost was never a frozen-frequency failure but a ladder-convergence one;
+**(ii)** $\omega$-resolution is a quantitative correction that matters for deep
+states far from the anchor with strong rest character — for V$_S$ it cuts the
+shape error from 12.0 to **1.7 meV**, moving the in-gap doublet by 23 meV onto
+the truth peak (visible in the top panel); **(iii)** the size of the correction
+tracks the state's rest weight $\times\,\partial\Sigma/\partial\omega$, not
+merely $|\omega-\omega_0|$: V$_S$'s CBM-edge feature sits 1.7 eV from the
+anchor yet moves only 3.7 meV, while its gap doublet at 1.2 eV moves 23 meV.
+Practical rule: use the single-point evaluation for edge states and for
+screening, the full scan when deep gap levels are the deliverable — both come
+from one chain, so the cost difference is only in the post-processing.
+
+For V$_S$ the two answers and the truth are compared level-by-level in a
+[separate figure](../assets/vs_omega66.png).
 
 ## 8. Residual ledger
 
