@@ -100,7 +100,27 @@ diagonalized in full. Cures missing-weight push-ups by supplying the
 directions themselves; requires a defect-specific orbital set (and a
 truncation rank scanned to saturation).
 
-## 7. Summary
+## 7. Practical requirement: the fold grid
+
+$M_{mn}=\langle\psi_m|\Delta V|\psi_n\rangle$ is evaluated by folding the
+supercell $\Delta V$ onto the primitive grid,
+
+$$V_q(\mathbf r)=\sum_{\mathbf R}\Delta V(\mathbf r+\mathbf R)\,
+e^{i\mathbf q\cdot(\mathbf r+\mathbf R)},$$
+
+implemented as a real-space modulo map $r^{\rm cube}_i \to r^{\rm cube}_i \bmod
+n^{\rm prim}_i$. It is exact **only** if $n^{\rm cube}_i/n^{\rm prim}_i$ is an
+integer in every direction. Otherwise the map mis-assigns positions: $\Delta V$
+is aliased, C$_3$ degeneracies split by tens of meV and $\lVert\tilde
+V\rVert$ can be off by tens of percent — with in-gap states still appearing at
+roughly the right energies, so the failure is silent. A 6$\times$6 cube of
+$240\times240\times300$ therefore needs a primitive NSCF with an explicit
+`nr1=nr2=40, nr3=300`; the ecut-50 automatic grid ($27\times27\times216$) is
+not usable. EDT prints the two grids on the first fold and warns when the ratio
+is not integral; degeneracy splitting of a symmetric defect is the cheap
+independent check.
+
+## 8. Summary
 
 | method | $\Sigma$ | order in $\Delta V$ | $\omega$ |
 |---|---|---|---|

@@ -538,14 +538,14 @@ CATALOG = [
     ("Method derivations: every $\\Sigma$ on one page", "Method", "2026-08-07", "ok", "Reference",
      "The exact downfolding identity and each method as one choice of $\\Sigma$: M-only / bare 2nd order / "
      "two-level static ladder (with its $\\rho(D_2W_{22})<1$ caveat) / $\\omega$-resolved block-Lanczos "
-     "continued fraction / $\\chi$ augmentation. Compact, formulas only.",
+     "continued fraction / $\\chi$ augmentation, plus the fold-grid commensurability requirement.",
      '<a href="pages/methods.html">Open derivations &rarr;</a>'),
-    ("Two-level dressing RESULTS: Sdisp &amp; relaxed V$_S$ truth gates", "Result", "2026-08-06", "prod", "Headline",
-     "ERRATUM + omega-resolved update: bare rows corrected (36x); MODE B's 6-rung ladder under-converges one "
-     "collective rest mode (window numbers survive; the O$_S$ ghost-survival claim retracted &mdash; it was this "
-     "artifact). NEW: MODE C $\\omega$-resolved block-Lanczos chains (operator unit-tested at 6e-15) &mdash; "
-     "O$_S$ mid-gap CLEAN at $-$50 meV uniform; V$_S$ doublet brackets truth, its 29 meV splitting is "
-     "matrix-element physics, not frequency.",
+    ("Downfolding RESULTS: Sdisp, V$_S$, O$_S$, Se$_S$ truth gates (rev 3)", "Result", "2026-08-07", "prod", "Headline",
+     "REVISION 3: a fold-grid commensurability bug invalidated the old V$_S$/Sdisp 6x6 numbers (recomputed; "
+     "O$_S$/Se$_S$/$\\chi$/12x12 unaffected), and the residual offsets are a potential-reference mismatch "
+     "predicted parameter-free. NET RESULT: $\\omega$-resolved MODE C matches the supercell truth on ALL "
+     "three defects to $\\le$8 meV absolute and 0.7&ndash;3.8 meV in shape, with no fitting and no basis "
+     "engineering. Nothing structural remains.",
      '<a href="pages/twolevel-results.html">Open results &rarr;</a>'),
     ("Deflated ladder: explicit all-order rest ($\\le$150) + Sternheimer tail", "Method", "2026-08-05", "ok", "Derived &amp; certified",
      "Schur elimination locks the coherent low rest into an exact inverse $D_1$; only tail vertices "

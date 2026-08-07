@@ -27,8 +27,9 @@ CONTAINS
     ! exp(i q·r), q crystal coords.  Mirrors ed_coarse_full_q V_folded_kf
     ! (exact q, no BZ wrap — the double_ft_bug fix).
     !-------------------------------------------------------------------------
-    USE edic_mod, ONLY : V_colin, V_d
-    USE fft_base, ONLY : dffts
+    USE edic_mod,  ONLY : V_colin, V_d
+    USE fft_base,  ONLY : dffts
+    USE io_global, ONLY : ionode, stdout
     IMPLICIT NONE
     REAL(dp),    INTENT(IN)  :: q_cryst(3)
     COMPLEX(dp), INTENT(OUT) :: Vf(:)
@@ -41,6 +42,14 @@ CONTAINS
     !    (SAVEd), and the phase factorized 1D: exp(iq·r) = px(irx)py(iry)pz(irz)
     !    so COS/SIN is evaluated nr1+nr2+nr3 times instead of nr1*nr2*nr3.
     IF (.NOT. ALLOCATED(fold_map)) THEN
+       IF (ionode) THEN
+          WRITE(stdout,'(5X,A,3I5,A,3I5)') 'FOLD grids: primitive dffts =', &
+               dffts%nr1, dffts%nr2, dffts%nr3, '   cube =', V_d%nr1, V_d%nr2, V_d%nr3
+          IF (MOD(V_d%nr1,dffts%nr1)/=0 .OR. MOD(V_d%nr2,dffts%nr2)/=0 .OR. MOD(V_d%nr3,dffts%nr3)/=0) &
+               WRITE(stdout,'(5X,A)') '*** WARNING: cube grid is NOT an integer multiple of the '// &
+                                      'primitive grid — the real-space fold is INVALID ***'
+          FLUSH(stdout)
+       ENDIF
        ALLOCATE(fold_map(V_d%nr1 * V_d%nr2 * V_d%nr3))
        inr = 0
        DO irz = 0, V_d%nr3 - 1

@@ -6,9 +6,9 @@
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head><body>
 <nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html">Two-level results</a><a href="../pages/methods.html" style="color:#fff;text-decoration:underline">Method derivations</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
-<header><div class="header-inner"><h1>Method derivations (compact)</h1><p class="subtitle">One page, all the formulas: the exact downfolding identity and each method as one choice of the rest self-energy $\Sigma$ &mdash; M-only, bare second order, the two-level static ladder, the $\omega$-resolved block-Lanczos continued fraction, and $\chi$ augmentation.</p><div class="meta"><span class="pill">Method</span><span class="pill">7 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<header><div class="header-inner"><h1>Method derivations (compact)</h1><p class="subtitle">One page, all the formulas: the exact downfolding identity and each method as one choice of the rest self-energy $\Sigma$ &mdash; M-only, bare second order, the two-level static ladder, the $\omega$-resolved block-Lanczos continued fraction, and $\chi$ augmentation.</p><div class="meta"><span class="pill">Method</span><span class="pill">8 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
 <main>
-<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. Exact downfolding identity</a><a href="#sec-2">2. M-only</a><a href="#sec-3">3. Bare second order (frozen $\omega_0$)</a><a href="#sec-4">4. Two-level static (MODE A/B)</a><a href="#sec-5">5. $\omega$-resolved block Lanczos (MODE C)</a><a href="#sec-6">6. $\chi$ augmentation (basis route)</a><a href="#sec-7">7. Summary</a></div></section>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. Exact downfolding identity</a><a href="#sec-2">2. M-only</a><a href="#sec-3">3. Bare second order (frozen $\omega_0$)</a><a href="#sec-4">4. Two-level static (MODE A/B)</a><a href="#sec-5">5. $\omega$-resolved block Lanczos (MODE C)</a><a href="#sec-6">6. $\chi$ augmentation (basis route)</a><a href="#sec-7">7. Practical requirement: the fold grid</a><a href="#sec-8">8. Summary</a></div></section>
 <p>All methods diagonalize the same active-space effective Hamiltonian and differ only in the rest self-energy $\Sigma$:</p>
 <div class="math">
 $$H_{\rm eff}(\omega)=\varepsilon_A+\frac{M_{AA}+\Sigma(\omega)}{N_k},$$
@@ -78,7 +78,15 @@ h'=\langle\tilde\chi|H^0_{\rm pristine}|\tilde\chi\rangle,$$
 </div>
 <p>diagonalized in full. Cures missing-weight push-ups by supplying the directions themselves; requires a defect-specific orbital set (and a truncation rank scanned to saturation).</p>
 </section>
-<section id="sec-7"><h2>7. Summary</h2>
+<section id="sec-7"><h2>7. Practical requirement: the fold grid</h2>
+<p>$M_{mn}=\langle\psi_m|\Delta V|\psi_n\rangle$ is evaluated by folding the supercell $\Delta V$ onto the primitive grid,</p>
+<div class="math">
+$$V_q(\mathbf r)=\sum_{\mathbf R}\Delta V(\mathbf r+\mathbf R)\,
+e^{i\mathbf q\cdot(\mathbf r+\mathbf R)},$$
+</div>
+<p>implemented as a real-space modulo map $r^{\rm cube}_i \to r^{\rm cube}_i \bmod n^{\rm prim}_i$. It is exact **only** if $n^{\rm cube}_i/n^{\rm prim}_i$ is an integer in every direction. Otherwise the map mis-assigns positions: $\Delta V$ is aliased, C$_3$ degeneracies split by tens of meV and $\lVert\tilde V\rVert$ can be off by tens of percent — with in-gap states still appearing at roughly the right energies, so the failure is silent. A 6$\times$6 cube of $240\times240\times300$ therefore needs a primitive NSCF with an explicit <code>nr1=nr2=40, nr3=300</code>; the ecut-50 automatic grid ($27\times27\times216$) is not usable. EDT prints the two grids on the first fold and warns when the ratio is not integral; degeneracy splitting of a symmetric defect is the cheap independent check.</p>
+</section>
+<section id="sec-8"><h2>8. Summary</h2>
 <div class="table-wrap"><table><thead><tr><th>method</th><th>$\Sigma$</th><th>order in $\Delta V$</th><th>$\omega$</th></tr></thead><tbody><tr><td>M-only</td><td>$0$</td><td>0</td><td>—</td></tr><tr><td>bare-150</td><td>one rest bounce</td><td>2</td><td>frozen $\omega_0$</td></tr><tr><td>MODE A/B</td><td>Schur two-level + ladder</td><td>all (per channel: rung-limited)</td><td>frozen $\omega_0$</td></tr><tr><td>MODE C static</td><td>block-Lanczos CF at $\omega_0$</td><td>all, exact</td><td>frozen $\omega_0$</td></tr><tr><td><strong>MODE C $\omega$-res</strong></td><td>block-Lanczos CF</td><td>all, exact</td><td><strong>resolved</strong></td></tr><tr><td>$\chi$ aug.</td><td>none (basis enlarged)</td><td>all within the enlarged basis</td><td>—</td></tr></tbody></table></div>
 <p>Numbers and gates: see the <a href="twolevel-results.html">Two-level results</a> page.</p>
 </section>

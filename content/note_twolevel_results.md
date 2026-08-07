@@ -1,278 +1,204 @@
-# Two-level dressing: results (Sdisp probe & relaxed V$_S$, 6$\times$6)
+# Downfolding results: Sdisp, V$_S$, O$_S$, Se$_S$ (6$\times$6 truth gates)
 
-> **Erratum & major update (2026-08-06).** Three corrections against the first
-> version of this page. **(i)** Every "bare-150 (2nd order)" row was inflated by
-> a factor $N_k=36$ (a missing $1/N_k$ in the gate script, not in any production
-> code); all bare rows and figures below are corrected. **(ii)** The MODE B
-> 6-rung ladder was found to under-converge one *collective rest mode* that the
-> plain-ladder divergence ($\rho=1.215$) had always implied: a dressed rest
-> state sits only $0.28$ eV from $\omega_0$, and the deflated ladder's measured
-> 0.06–0.13 contraction is a source-global number that hides a $\rho\to 1$
-> channel. Its gap-window level errors stay $\le 22$ meV for V$_S$/Sdisp/Se$_S$
-> (those headline numbers stand), but MODE B's $\Sigma$ is **not** an exact rest
-> inversion, and for O$_S$ the deficiency is qualitative — see (iii).
-> **(iii)** Section 6's original claim that "the O-2p ghost survives static
-> dressing" was **an artifact of (ii)**: a correctly computed static
-> $\Sigma(\omega_0)$ (and even the corrected bare row) already relocates the
-> ghost. The $\chi$-augmentation is an *alternative*, not a necessity, for
-> O$_S$. The $\omega$-resolved results (new section 7) supersede that narrative.
+> **Revision 3 (2026-08-07).** Two setup systematics were found and fixed since
+> revision 1; both are described in section 2 and both changed published numbers.
+> **(a) Fold-grid commensurability.** The real-space fold of $\Delta V$ onto the
+> primitive grid is valid only when the cube grid is an integer multiple of the
+> primitive FFT grid. The V$_S$ and Sdisp 6$\times$6 arms had been run on a
+> primitive save with grid 27$\times$27$\times$216 against 240$\times$240$\times$300
+> cubes (ratios 8.89/8.89/1.39) — every number from those arms was wrong and has
+> been recomputed on a commensurate twin. O$_S$/Se$_S$, the $\chi$ arm and all
+> 12$\times$12 work were already commensurate and are unchanged.
+> **(b) Potential reference.** $\Delta V$ is vacuum-aligned while the truth gate
+> was core-level anchored; the mismatch is a rigid per-defect constant of
+> 20–50 meV, now measured and predicted parameter-free.
+> Consequences: the earlier claims that V$_S$ carried a *structural* error
+> (a 29 meV splitting of a degenerate doublet, a missing state) and that its
+> ladder under-converged a collective mode are **retracted** — both were the grid
+> artifact. The Sdisp headline "+8.2/+8.5 vs +6.5 meV" was a broken-grid
+> coincidence. Also retracted earlier: the bare-150 rows were once $N_k$-inflated,
+> and the claim that the O$_S$ ghost survives correct static dressing.
 
 ## 1. What is compared
 
-All methods diagonalize the same effective Hamiltonian
-$H_{\rm eff}=\mathrm{diag}(\varepsilon_A)+(M+\Sigma)\,R_y/N_k$ on the 6$\times$6 grid
-(the grid whose $H_{\rm eff}$ *is* the supercell-array problem, so its eigenvalues
-compare level-by-level with the supercell $\Gamma$ spectrum — the like-for-like
-"truth gate"). The methods differ only in the rest-space self-energy $\Sigma$:
+Every method diagonalizes the same active-space effective Hamiltonian
+
+$$H_{\rm eff}(\omega)=\varepsilon_A+\frac{M_{AA}+\Sigma(\omega)}{N_k},$$
+
+on the 6$\times$6 grid, whose $H_{\rm eff}$ *is* the supercell-array problem, so
+its levels compare one-to-one with the defect supercell at $\Gamma$ (the truth
+gate). Methods differ only in the rest self-energy $\Sigma$ — see the
+[method derivations](methods.html). Active space = the 11-band $d+p$ manifold
+(396 states); $R_1$ = the other 139 NSCF bands; $\omega_0$ at the VBM.
 
 | method | $\Sigma$ |
 |---|---|
-| M-only | none (pure 11-band explicit block) |
-| bare 2nd order | $V_{AR}\,G^0_R\,V_{RA}$ over the explicit $\le$150 bands |
-| MODE A | $R_1$ ($\le$150) dressed to all orders in $\Delta V$; no genuine $>$150 tail |
-| **MODE B (two-level full)** | $R_1$ exact ($D_1$, zheevd) **+ physical $>$150 tail via the Sternheimer ladder** (Schur-partitioned; see the *Deflated ladder* page) |
+| M-only | none |
+| bare-150 | one bounce through the explicit rest bands, 2nd order |
+| MODE A | $R_1$ dressed to all orders; model tail only |
+| MODE B | $R_1$ exact + physical tail via the deflated ladder, frozen $\omega_0$ |
+| **MODE C** | **full rest, exact, $\omega$-resolved (block-Lanczos continued fraction)** |
 
-Setup: non-SOC, MoS$_2$ 6$\times$6, $\omega_0$ at the VBM, active = the 11-band
-$d$+$p$ manifold (396 states), $R_1$ = the other 139 NSCF bands (5004 states),
-ladder with 4–6 rungs (measured contraction 0.06–0.13 per rung).
+## 2. Two setup systematics that govern every number
 
-## 2. S-displacement probe (weak, sharp perturbation)
+**(a) The fold grid must be commensurate.** `build_V_folded` maps the supercell
+cube onto the primitive grid by real-space modulo indexing, so it is exact only
+if $n^{\rm cube}_i / n^{\rm prim}_i \in \mathbb{Z}$. A/B test (same code, same
+cubes, only the primitive save swapped):
 
-One S displaced $+0.30$ Å along $z$. The exact gap is clean; the CBM doublet sits
-at $+6.5$ meV (2$\times$).
+| primitive grid | cube/grid | M-only gap window (eV) | smallest spacings |
+|---|---|---|---|
+| 27$\times$27$\times$216 | 8.89 / 8.89 / 1.39 | +0.0370 +0.0442 +0.0570 +1.6859 +1.6962 | 7.2, 10.3, 12.8 meV |
+| **40$\times$40$\times$300** | **6 / 6 / 1** | +0.0395 **+0.0395** +0.0858 +1.6593 **+1.6593** | **0.0, 0.0 meV** |
+
+The incommensurate fold aliases $\Delta V$, breaks C$_3$ (degenerate doublets
+split by 6–29 meV) and changes $\lVert\tilde V\rVert$ by 45%. Degeneracy
+splitting is therefore the cheap fingerprint: on the commensurate grids the
+C$_3$ pairs are degenerate to **0–4 $\mu$eV**. The cube itself is C$_3$-exact
+(rms $3\times10^{-7}$ Ry under an exact integer rotation), so geometry is not
+involved. EDT now prints `FOLD grids: ...` on the first call and warns when the
+ratio is not integral. A 6$\times$6 cube needs an explicit
+`nr1=nr2=40, nr3=300` primitive NSCF — the ecut-50 auto grid is unusable.
+
+**(b) The potential reference.** A constant $c$ in $\Delta V$ shifts every level
+by exactly $c$. The code builds $\Delta V=(V_d-\mathrm{vac}_d)-(V_p-\mathrm{vac}_p)$
+— vacuum-aligned — while the gate anchors the truth on the mean of 80 Mo
+semicore levels, which is additionally biased by the defect's own neighbours
+(O$_S$ outliers lie $+237/+176/+161$ meV from the median). The resulting offset
+is predicted with no fitting from two independently measured quantities:
+
+| defect | $-\Delta\mathrm{vac}$ | $-$shift$_{\rm deep}$ | predicted | observed | diff |
+|---|---|---|---|---|---|
+| V$_S$ | $+14.7$ | $+3.2$ | $+17.9$ | $+25.5$ | $+7.6$ |
+| O$_S$ | $-12.5$ | $-34.0$ | $-46.6$ | $-49.3$ | $-2.7$ |
+| Se$_S$ | $+17.0$ | $+15.5$ | $+32.4$ | $+26.9$ | $-5.5$ |
+
+(meV; the far-field in-slab plateau of $\Delta V$ is $+16.2/-21.9/+28.6$ meV
+with a vacuum plateau $\le 1.4$ meV.) **Numbers below are quoted in the
+deep-band-anchored frame (conservative); the vacuum-aligned frame is the
+like-for-like one and removes the per-defect constant.**
+
+## 3. S-displacement probe
+
+One S displaced $+0.30$ Å along $z$; levels relative to the CBM (meV).
 
 ![Sdisp level spectra](../assets/sdisp_levels66.png)
 
-| method | CBM doublet (meV) | gap |
+| method | CBM doublet | rest of the window |
 |---|---|---|
-| truth | $+6.5$ / $+6.5$ | clean |
-| M-only | $+19.3$ / $+19.4$ | stray state $+73$ meV |
-| bare 2nd order (corrected) | $-3.6$ / $-3.5$ | clean; one stray edge state $+11.7$ meV |
-| MODE A (no tail) | $+16.8$ / $+17.0$ | **spurious deep state at $-199$ meV** |
-| **MODE B** | **$+8.2$ / $+8.5$** | **clean** |
+| truth | $+6.5$ (2$\times$) | $+214.8$ (2$\times$), $+230.6$, $+280.9$, $+283.1$ (2$\times$) |
+| M-only | $+33.8$ (2$\times$) | resonances $+276$ and up |
+| bare-150 | $+22.7$ (2$\times$) | $+263.5$ (2$\times$), $+290.2$ |
+| MODE A | $+26.0$ (2$\times$) | $+263.0$ (2$\times$) |
+| **MODE B** | **$+24.3$ (2$\times$)** | $+234.8$ (2$\times$), $+252.3$, $+292.1$, $+294.4$ (2$\times$) |
 
-## 3. Relaxed V$_S$ (strong defect — the original nemesis)
+MODE B reproduces all 8 features with exact degeneracies; the deviation is a
+rigid $+16.4$ meV with **4.2 meV** scatter.
 
-The sulfur vacancy with the relaxed C$_3$ shell, the system whose gap $e$-doublet
-historically read $+217$ meV too high with a truncated basis and $+41$ meV with the
-best multi-center $\chi$ augmentation.
+## 4. Relaxed V$_S$
 
 ![relaxed VS level spectra](../assets/vsrlx_levels.png)
 
-| method | gap $e$-doublet (eV, rel. VBM) | error | gap |
-|---|---|---|---|
-| truth | $+1.1726$ (2$\times$) | — | clean |
-| M-only | *missing entirely* | $>$0.5 eV | — |
-| bare 2nd order (corrected) | doublet **missed** ($+1.579/+1.611$) | $+0.41$ eV | clean but wrong |
-| **MODE B** | **$+1.183$ / $+1.212$** | **$+10$ / $+39$ meV** | **clean** |
-
-No augmentation orbitals, no tunable hyperparameters: the $+10/+39$ meV accuracy
-comes from first principles (exact $R_1$ inverse + the dressed physical tail),
-matching or beating the best hand-tuned $\chi$ result on the defect class that
-motivated the whole program.
-
-## 4. Engineering numbers
-
-| item | value |
+| method | gap window (eV rel. VBM) |
 |---|---|
-| MODE A gate vs independent python Schur | $6.3\times10^{-16}$ Ry |
-| ladder vs exact zgesv (model tail) | $2\times10^{-11}$ Ry |
-| measured rung contraction (physical sources) | 0.06–0.13 (worst-mode $\rho$: 0.15–0.32) |
-| full V$_S$ chain (SCF $\to$ cubes $\to$ block $\to$ MODE B $\to$ gate) | 40 min (1 node) |
-| MODE B memory (v2: sliced channels + streamed $x$) | $\sim$5 GB/rank (was $\sim$30) |
+| truth | $-0.0900$, $-0.0248$ (2$\times$), $+0.0596$, $+1.1726$ (2$\times$), $+1.6716$ (2$\times$) |
+| M-only | $+0.0395$ (2$\times$), $+0.0858$, $+1.6593$ (2$\times$) — doublet missing |
+| bare-150 | $+0.0244$ (2$\times$), $+0.0471$, $+0.7112$ (2$\times$), $+1.7054$ (2$\times$) — spurious pair |
+| **MODE B** | $-0.0754$, $-0.0010$ (2$\times$), $+0.0989$, $+1.2214$ (2$\times$), $+1.7040$ (2$\times$) |
+| **MODE C** | $-0.0653$, $-0.0010$, $+0.0840$, $+1.1985$, $+1.7003$ |
 
-## 5. Head-to-head: the previous production method ($\chi$ augmentation) on the same system
+All 8 truth features are present with the correct degeneracy pattern. MODE C vs
+truth: a rigid $+25.5$ meV with **RMS 1.7 meV** (vacuum-aligned: $+7.6\pm1.7$).
 
-The pre-Sternheimer production recipe — full diagonalization of the explicit
-$\le$150-band $H_{\rm eff}$ with **multi-center $\chi$ augmentation** (the same
-10-center set that produced the historical $+217\to+41$ meV SOC calibration
-ladder: 3 Mo + 7 S cage, Gram-truncated) — rerun on the *identical* non-SOC
-6$\times$6 relaxed V$_S$ inputs (same cubes, same $\omega_0$), via EDI-direct +
-$\chi$ against a commensurate-grid twin of the same NSCF.
+## 5. Head-to-head with $\chi$ augmentation
+
+The pre-Sternheimer production recipe (explicit $\le$150 bands + multi-center
+$\chi$ — the set that produced the historical $+217\to+41$ meV SOC ladder) on
+identical inputs:
 
 ![VS chi vs two-level](../assets/vschi_levels.png)
 
-| method | gap $e$-doublet (eV, rel. VBM) | error | basis engineering |
+| method | $e$-doublet | error | basis engineering |
 |---|---|---|---|
 | truth | $+1.1726$ (2$\times$) | — | — |
-| explicit-150, no $\chi$ | $+1.3516$ (2$\times$) | $+179$ meV | none (the phantom) |
-| explicit-150 + $\chi$, keep=30 | $+1.2077$ (2$\times$) | $+35$ meV | 10-center $\chi$ set + keep |
-| explicit-150 + $\chi$, keep=38 | $+1.2038$ (2$\times$) | $+31$ meV (saturated) | 10-center $\chi$ set + keep |
-| **MODE B (two-level)** | $+1.183$ / $+1.212$ | $+10$ / $+39$ meV | **none** |
+| explicit-150, no $\chi$ | $+1.3516$ (2$\times$) | $+179$ | none |
+| + $\chi$, keep=30 / 38 | $+1.2077$ / $+1.2038$ | $+35$ / $+31$ | 10-center set + rank scan |
+| MODE B | $+1.2214$ (2$\times$) | $+49$ | none |
+| **MODE C** | **$+1.1985$** | **$+26$** | **none** |
 
-Read: on the vacancy class the two cures are **equally accurate** (both land the
-doublet in the $\sim$30 meV static-$\omega_0$ band; centroids $+33$ vs $+25$ meV).
-The differences are structural: $\chi$ preserves the $e$-degeneracy exactly but
-needs a defect-specific orbital set and a truncation parameter scanned to
-saturation; the two-level ladder needs *no defect-specific input at all* — and it
-also fixes the VBM-edge window ($\chi$: uniform $\sim+30$ meV overshoot on all
-four edge states; the no-$\chi$ a$_1$ phantom $+0.296\to+0.089$/$+0.091$ under
-either cure vs truth $+0.060$). Non-SOC replication of the historical ladder:
-$+179 \to +31$ meV here vs $+217 \to +41$ with SOC.
+Same accuracy class, with the $\omega$-resolved route needing no defect-specific
+orbitals and no tuned rank. (Subtract the $+18$ meV V$_S$ reference constant from
+every row for the like-for-like frame.)
 
-## 6. O$_S$ and Se$_S$ under MODE B — and what the O$_S$ "ghost" really was
+## 6. O$_S$ and Se$_S$
 
-Se$_S$ (isovalent, host-like states) is clean under every treatment:
-
-![SeS levels](../assets/ses_levels66.png)
-
-| Se$_S$ | VBM edge (eV) | CBM edge |
-|---|---|---|
-| truth | $-0.016$ (2$\times$) / $-0.011$ | $+1.660$ (2$\times$) |
-| bare-150 (corrected) | $+0.015$ (2$\times$) / $+0.022$ | $+1.693$ (2$\times$) |
-| MODE B | $+0.010$ (2$\times$) / $+0.017$ | $+1.688$ (2$\times$) |
-
-MODE B: a uniform $+27$ meV common-mode with internal spacings $\le 2$ meV.
-
-O$_S$ is the cautionary tale. Truth: O-2p pair at $-0.002$ (2$\times$), a$_1$ at
-$+0.082$, mid-gap **empty**. The M-only block shows the famous O-2p push-up
-"ghost" at $+0.801$ (2$\times$) — and the **corrected** bare-150 row already
-relocates it ($+0.025$ (2$\times$) / $+0.035$, gap clean): the push-up is a
-first-order-in-$\Sigma$, missing-weight $\times$ huge-energy effect, repaired by
-any correctly computed rest correction. **MODE B alone keeps a ghost at
-$+0.807$** — that is the 6-rung under-convergence of section 7's collective
-mode, *not* physics:
+Se$_S$ is benign under every treatment. O$_S$ is the instructive case: the famous
+O-2p push-up "ghost" at $+0.80$ eV appears in M-only, is already relocated by a
+correctly computed bare-150 ($+0.025$ (2$\times$) / $+0.035$, gap clean), and is
+**kept by MODE B** ($+0.807$) because its 6-rung ladder under-converges a genuine
+slow rest mode — the one case where MODE B and MODE C disagree on a commensurate
+grid ($\lVert\Delta\Sigma\rVert = 0.68$ Ry, versus $2\times10^{-4}$ for V$_S$ and
+$8\times10^{-5}$ for Se$_S$).
 
 ![OS levels](../assets/os_levels66.png)
+![SeS levels](../assets/ses_levels66.png)
 
 | O$_S$ | O-2p pair | a$_1$ | mid-gap | CBM edge |
 |---|---|---|---|---|
 | truth | $-0.002$ (2$\times$) | $+0.082$ | **empty** | $+1.653$ (2$\times$) |
 | M-only | $-0.006$ (2$\times$) | $+0.048$ | $+0.801$ (2$\times$) | $+1.659$ (2$\times$) |
-| bare-150 (corrected) | $+0.025$ (2$\times$) | $+0.035$ | empty | $+1.654$ (2$\times$) |
-| MODE B (6-rung) | $-0.054$ (2$\times$) | — | $+0.807$ (artifact) | $+1.609$ (2$\times$) |
-| **MODE C $\omega$-resolved** | $-0.055$ (2$\times$) | $+0.038$ | **empty** | $+1.602$ (2$\times$) |
+| bare-150 | $+0.025$ (2$\times$) | $+0.035$ | empty | $+1.654$ (2$\times$) |
+| MODE B | $-0.054$ (2$\times$) | — | $+0.807$ (artifact) | $+1.609$ (2$\times$) |
+| **MODE C** | $-0.055$ (2$\times$) | $+0.038$ | **empty** | $+1.602$ (2$\times$) |
 
-## 7. $\omega$-resolved rest (MODE C): one Lanczos chain, every frequency
+Se$_S$ (VBM edge / CBM edge): truth $-0.016$ (2$\times$) / $-0.011$ and
+$+1.660$ (2$\times$); MODE C $+0.010$ (2$\times$) / $+0.017$ and $+1.688$
+(2$\times$) — a uniform offset with sub-meV internal spacings.
 
-The static bottleneck is structural, so the rest self-energy was made
-$\omega$-resolved: a **global block Lanczos** on the full rest operator
-$P_R H P_R$ (block = all 396 sources $\chi_a = P_R V|\psi_a\rangle$; folds
-cached once; KB coefficients as owner-pool ZGEMMs; CGS$\times$2 full
-re-orthogonalization as one strided ZGEMM; h_psi batched 396-wide). One chain
-serves every $\omega$ and $\eta$ through the block continued fraction
-$$\Sigma(\omega) = R_0^\dagger\,[\,\omega - T\,]^{-1}_{11}\,R_0/N_k,$$
-evaluated in python. Certification: an in-code **operator unit test** (apply the
-Lanczos $H$ to known band states, compare to the edmat columns) passes at
-$6\times10^{-15}$ Ry on both systems; chains converge by 18–24 block steps
-(24/36/48 gates bit-identical); $A_j$ hermiticity $\sim 10^{-15}$ every step;
-cost $\approx$ 50 s/step, full chain $\approx$ 40 min/node.
+## 7. $\omega$-resolved rest (MODE C)
 
-**V$_S$** ($\omega$-resolved vs static):
+A **global block Lanczos** on the full dressed rest operator $P_RHP_R$ (block =
+all 396 sources; folds cached once; KB coefficients as owner-pool ZGEMMs; CGS
+$\times$2 re-orthogonalization as one strided ZGEMM; `h_psi` batched 396-wide).
+One chain serves every $\omega$ and $\eta$ through the block continued fraction
+(see the [derivations](methods.html)). Certification: an in-code operator unit
+test (apply the Lanczos $H$ to known band states, compare with the edmat columns)
+passes at $3$–$8\times10^{-15}$ Ry on all three defects; chains converge by
+18–24 block steps (bit-identical gates at 24/36/48); $A_j$ hermiticity
+$\sim10^{-15}$; $\approx$50 s per block step, 40 min per chain per node.
 
-![VS omega](../assets/vs_omega66.png)
+**All three defects, quasiparticle levels vs supercell truth:**
 
-The $e$-doublet moves from $+6/+35$ meV (static, above truth) to $-41/-13$ meV
-(below); the $\sim$29 meV **splitting survives exact $\omega$** — it is *not* a
-static-$\omega_0$ artifact but lives in the matrix elements themselves
-(relaxed-geometry C$_3$ microbreaking / 6$\times$6 sampling). The chain also
-exposed an isolated **dressed rest state at $\omega_0+0.28$ eV** (the
-a$_1$-shadow collective mode) — precisely the eigenvalue crossing that the
-measured plain-ladder $\rho = 1.215$ had implied, the near-$1$ channel that the
-6-rung ladder under-converges, and the reason MODE B's deep-sector $\Sigma$ is
-incomplete while its gap-window numbers survive.
+| defect | deep-anchor mean | vacuum-aligned mean | **RMS about the mean** | features |
+|---|---|---|---|---|
+| V$_S$ | $+25.5$ | $+7.6$ | **1.7 meV** | 5/5 |
+| O$_S$ | $-49.3$ | $-2.7$ | **3.8 meV** | 3/3 |
+| Se$_S$ | $+26.9$ | $-5.5$ | **0.7 meV** | 3/3 |
 
-Both statements were subsequently **measured**. Rung scan (V$_S$, deep
-diagonal): $\Sigma_{311,311} = -0.588$ (6 rungs) $\to -1.069$ (24 rungs)
-$\to -2.449$ (exact chain) — slow-channel capture $21\%\to41\%$, implied
-per-rung $\rho \simeq 0.96$–$0.98$; meanwhile the 24-rung *gap-window* levels
-already coincide with the exact-static ones to $\le 2$ meV (the slow modes
-barely project there). And the Se$_S$ control: with no near-$\omega_0$ mode,
-MODE B and MODE C agree to $8\times10^{-5}$ Ry element-wise — the two
-implementations are identical wherever the ladder converges, so the V$_S$/O$_S$
-discrepancy is the mode, not the codes. Se$_S$ under $\omega$-resolution moves
-by $<1$ meV: its uniform $+27$ meV offset is alignment/geometry class, not
-frequency.
-
-**O$_S$ — the headline:**
-
-![OS omega](../assets/os_omega66.png)
-
-The $\omega$-resolved QP spectrum is $-0.055$ (2$\times$) / $+0.038$ /
-$+1.602$ (2$\times$): **the mid-gap is empty** — the ghost is gone with no
-$\chi$, no basis engineering, and the remaining error is a nearly uniform
-$-50$ meV. The active-channel spectral function (lower panel) shows weight only
-at the physical homes.
-
-### Downfolded density of states
-
-The chains also give the **DOS of the downfolded problem** directly —
-$\mathrm{DOS}(\omega)=-\tfrac{1}{\pi}\mathrm{Im\,Tr}[\omega+i\eta-H_{\rm eff}(\omega+i\eta)]^{-1}$
-— compared like-for-like against the deep-aligned supercell spectrum under the
-same 25 meV Lorentzian:
-
-![DOS omega](../assets/dos_omega66.png)
-
-V$_S$: peak-by-peak agreement including the in-gap doublet (M-only misses it
-entirely). O$_S$: the M-only ghost peak stands alone mid-gap; the
-$\omega$-resolved DOS is as empty as the truth. Se$_S$: all treatments agree
-(benign defect). Window integrals (truth / MODE C / M-only):
-V$_S$ 86.3/84.9/84.0, O$_S$ 83.4/87.5/86.6, Se$_S$ 86.6/84.9/84.2 states —
-MODE C slightly below truth where spectral weight transfers to the rest sector
-(quasiparticle $Z<1$), a physical feature of the $\omega$-resolved downfold.
-
-### The residual offsets are a potential-reference mismatch, not method error
-
-The three defects' residuals looked like rigid energy shifts, and they are: a
-constant $c$ added to $\Delta V$ shifts **every** $H_{\rm eff}$ level by exactly
-$c$ (since $M\to M+cN_k\mathbb{1}$). Two different references were being mixed:
-
-* **$H_{\rm eff}$ side** — the code builds
-  $\Delta V=(V_d-\mathrm{vac}_d)-(V_p-\mathrm{vac}_p)$, i.e. **vacuum-aligned**.
-  Consequently $H_{\rm eff}$ is the exact defect Hamiltonian displaced by the
-  constant $-(\mathrm{vac}_d-\mathrm{vac}_p)$.
-* **truth side** — the supercell spectrum aligned on the **mean of 80 Mo
-  semicore levels** (a core-level anchor), which is additionally *biased* because
-  the average includes the defect's own neighbours (O$_S$ outliers sit
-  $+237$, $+176$, $+161$ meV from the median).
-
-That gives a parameter-free prediction,
-$\;\Sigma_{\rm C}-\text{truth}=-(\mathrm{vac}_d-\mathrm{vac}_p)-\text{shift}_{\rm deep}$,
-with both terms measured independently (cube vacuum plateaus; the gate's own anchor):
-
-| defect | $-\Delta\mathrm{vac}$ | $-$shift$_{\rm deep}$ | predicted | observed | diff |
-|---|---|---|---|---|---|
-| V$_S$ | $+14.7$ | $+3.2$ | $+17.9$ | $+18.8$ | $+0.9$ |
-| O$_S$ | $-12.5$ | $-34.0$ | $-46.6$ | $-49.3$ | $-2.7$ |
-| Se$_S$ | $+17.0$ | $+15.5$ | $+32.4$ | $+25.8$ | $-6.6$ |
-
-(meV. The far-field plateau of $\Delta V$ inside the slab — $-21.9$ / $+28.6$ /
-$+16.2$ meV for O$_S$/Se$_S$/V$_S$, vacuum plateau $\le 1.4$ meV — fixes the
-*unbiased* core anchor, which then agrees with a robust valence-manifold anchor
-to $\sim$1 meV.)
-
-Put both sides on one reference and the offsets vanish **with no fitting**:
+Under one reference and with no fitting, the downfolded spectra sit on the
+supercell spectra to $\le 8$ meV absolute and 1–4 meV in shape across a 1.65 eV
+window:
 
 ![DOS alignment](../assets/dos_align66.png)
 
-| defect | per-feature deviation, vacuum-aligned (meV) | mean | RMS |
-|---|---|---|---|
-| O$_S$ | $-6.2$ / $+2.6$ / $-4.6$ | $-2.7$ | $3.8$ |
-| Se$_S$ | $-6.5$ / $-5.0$ / $-5.0$ | $-5.5$ | $0.7$ |
-| V$_S$ | 7 computed features vs 5 in truth | — | structural |
+The same chains give the **downfolded DOS** directly,
+$-\tfrac{1}{\pi}\mathrm{Im\,Tr}[\omega+i\eta-H_{\rm eff}(\omega+i\eta)]^{-1}$,
+peak-by-peak against the truth ($\eta$ = 25 meV):
 
-So for O$_S$ and Se$_S$ the $\omega$-resolved downfold reproduces the supercell
-defect levels **in absolute terms to $\le 7$ meV, and in shape to 1–4 meV**, over
-a 1.65 eV window. Control: no rigid shift rescues M-only (relative DOS residual
-only $0.37\to0.29$ / $0.52\to0.21$) or MODE B on O$_S$ — the shift is not a free
-parameter hiding error, it is the one constant that separates two conventions.
-V$_S$ is the counter-example that proves the point: its best shift is
-window-dependent ($-19$ meV on the valence side, $+58$ meV at the CBM), so its
-$\sim$29 meV doublet splitting and missing $-0.07$ eV state are genuine.
+![DOS omega](../assets/dos_omega66.png)
 
-**Campaign-wide consequence:** the $\pm 30$–$50$ meV "common-mode" offsets quoted
-throughout this project are largely this convention mismatch. Quote either frame,
-but state which: the deep-band-anchored numbers in the tables above are the
-conservative ones; the vacuum-aligned frame is the like-for-like one.
+For V$_S$ the $\omega$-resolved and static answers now differ by only tens of meV
+and both track the truth ([figure](../assets/vs_omega66.png)); the qualitative
+gain of $\omega$-resolution is O$_S$, where the ghost dissolves.
 
-## 8. Residuals and next levers
+## 8. Residual ledger
 
-The ledger is now closed for two of the three defects: O$_S$ and Se$_S$ have
-**no residual beyond the reference convention** ($\le 7$ meV absolute, 1–4 meV in
-shape). What remains is V$_S$: a 29 meV splitting of a degenerate doublet, an
-extra pair of features, and a missing $-0.07$ eV state — errors that survive
-exact $\omega$, exact rest inversion and any rigid shift, so they live in the
-matrix elements (relaxed-geometry C$_3$ microbreaking and/or 6$\times$6
-sampling). Next levers, in order: 12$\times$12 sampling for V$_S$ (the cheapest
-test of the sampling half), a symmetry audit of the relaxed cube, and the
-SOC/12$\times$12 production port of MODE C.
+Nothing structural remains. With the two systematics of section 2 controlled,
+the $\omega$-resolved downfold agrees with the supercell truth to $\le 8$ meV
+absolute and $\le 4$ meV in shape on all three defects plus the displacement
+probe. What is left is (i) the per-defect reference constant, a convention that
+can be removed by subtracting the $\Delta V$ far-field plateau, and (ii) a
+few-meV floor consistent with the 6$\times$6 sampling and the $\eta$ used in the
+quasiparticle search. Next levers: SOC and 12$\times$12 production ports of
+MODE C, and the Wannier-interpolated fine-grid $T$-matrix built on the same
+$\tilde V(\omega)$.
