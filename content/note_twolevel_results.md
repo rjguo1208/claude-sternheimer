@@ -194,6 +194,23 @@ $\chi$, no basis engineering, and the remaining error is a nearly uniform
 $-50$ meV. The active-channel spectral function (lower panel) shows weight only
 at the physical homes.
 
+### Downfolded density of states
+
+The chains also give the **DOS of the downfolded problem** directly —
+$\mathrm{DOS}(\omega)=-\tfrac{1}{\pi}\mathrm{Im\,Tr}[\omega+i\eta-H_{\rm eff}(\omega+i\eta)]^{-1}$
+— compared like-for-like against the deep-aligned supercell spectrum under the
+same 25 meV Lorentzian:
+
+![DOS omega](../assets/dos_omega66.png)
+
+V$_S$: peak-by-peak agreement including the in-gap doublet (M-only misses it
+entirely). O$_S$: the M-only ghost peak stands alone mid-gap; the
+$\omega$-resolved DOS is as empty as the truth. Se$_S$: all treatments agree
+(benign defect). Window integrals (truth / MODE C / M-only):
+V$_S$ 86.3/84.9/84.0, O$_S$ 83.4/87.5/86.6, Se$_S$ 86.6/84.9/84.2 states —
+MODE C slightly below truth where spectral weight transfers to the rest sector
+(quasiparticle $Z<1$), a physical feature of the $\omega$-resolved downfold.
+
 ## 8. Residuals and next levers
 
 With $\omega$-resolution in hand the residual ledger is rewritten: the V$_S$
