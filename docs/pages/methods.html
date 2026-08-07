@@ -6,9 +6,9 @@
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head><body>
 <nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html">Two-level results</a><a href="../pages/methods.html" style="color:#fff;text-decoration:underline">Method derivations</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
-<header><div class="header-inner"><h1>Method derivations (compact)</h1><p class="subtitle">One page, all the formulas: the exact downfolding identity and each method as one choice of the rest self-energy $\Sigma$ &mdash; M-only, bare second order, the two-level static ladder, the $\omega$-resolved block-Lanczos continued fraction, and $\chi$ augmentation.</p><div class="meta"><span class="pill">Method</span><span class="pill">8 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<header><div class="header-inner"><h1>Method derivations (compact)</h1><p class="subtitle">One page, all the formulas: the exact downfolding identity and each method as one choice of the rest self-energy $\Sigma$ &mdash; M-only, bare second order, the two-level static ladder, the $\omega$-resolved block-Lanczos continued fraction, and $\chi$ augmentation.</p><div class="meta"><span class="pill">Method</span><span class="pill">9 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
 <main>
-<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. Exact downfolding identity</a><a href="#sec-2">2. M-only</a><a href="#sec-3">3. Bare second order (frozen $\omega_0$)</a><a href="#sec-4">4. Two-level static (MODE A/B)</a><a href="#sec-5">5. $\omega$-resolved block Lanczos (MODE C)</a><a href="#sec-6">6. $\chi$ augmentation (basis route)</a><a href="#sec-7">7. Practical requirement: the fold grid</a><a href="#sec-8">8. Summary</a></div></section>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. Exact downfolding identity</a><a href="#sec-2">2. M-only</a><a href="#sec-3">3. Bare second order (frozen $\omega_0$)</a><a href="#sec-4">4. Two-level static (MODE A/B)</a><a href="#sec-5">5. $\omega$-resolved block Lanczos (MODE C)</a><a href="#sec-6">6. $\chi$ augmentation (basis route)</a><a href="#sec-7">7. Practical requirement: the fold grid</a><a href="#sec-8">8. From the downfold to the $T$-matrix and the electron–defect self-energy</a><a href="#sec-9">9. Summary</a></div></section>
 <p>All methods diagonalize the same active-space effective Hamiltonian and differ only in the rest self-energy $\Sigma$:</p>
 <div class="math">
 $$H_{\rm eff}(\omega)=\varepsilon_A+\frac{M_{AA}+\Sigma(\omega)}{N_k},$$
@@ -86,7 +86,40 @@ e^{i\mathbf q\cdot(\mathbf r+\mathbf R)},$$
 </div>
 <p>implemented as a real-space modulo map $r^{\rm cube}_i \to r^{\rm cube}_i \bmod n^{\rm prim}_i$. It is exact **only** if $n^{\rm cube}_i/n^{\rm prim}_i$ is an integer in every direction. Otherwise the map mis-assigns positions: $\Delta V$ is aliased, C$_3$ degeneracies split by tens of meV and $\lVert\tilde V\rVert$ can be off by tens of percent — with in-gap states still appearing at roughly the right energies, so the failure is silent. A 6$\times$6 cube of $240\times240\times300$ therefore needs a primitive NSCF with an explicit <code>nr1=nr2=40, nr3=300</code>; the ecut-50 automatic grid ($27\times27\times216$) is not usable. EDT prints the two grids on the first fold and warns when the ratio is not integral; degeneracy splitting of a symmetric defect is the cheap independent check.</p>
 </section>
-<section id="sec-8"><h2>8. Summary</h2>
+<section id="sec-8"><h2>8. From the downfold to the $T$-matrix and the electron–defect self-energy</h2>
+<p>The downfold output is the <strong>partially scattered vertex</strong> — rest space summed to all orders, active space not yet iterated:</p>
+<div class="math">
+$$\tilde V(\omega)=\frac{M_{AA}+\Sigma(\omega)}{N_k},\qquad
+H_{\rm eff}(\omega)=\varepsilon_A+\tilde V(\omega).$$
+</div>
+<p>With the free active propagator $G^0(\omega)=\big[\omega+i\eta-\varepsilon_A\big]^{-1}$ (diagonal), the active-space multiple scattering is resummed by the Lippmann–Schwinger equation</p>
+<div class="math">
+$$T(\omega)=\tilde V(\omega)+\tilde V(\omega)\,G^0(\omega)\,T(\omega)
+\;\;\Longrightarrow\;\;
+\boxed{\,T(\omega)=\big[\,1-\tilde V(\omega)G^0(\omega)\,\big]^{-1}\tilde V(\omega)\,}$$
+</div>
+<p>so that the dressed propagator and the spectral function are</p>
+<div class="math">
+$$G(\omega)=G^0+G^0TG^0=\big[\,\omega+i\eta-\varepsilon_A-\tilde V(\omega)\,\big]^{-1},
+\qquad A(\omega)=-\frac{1}{\pi}\,\mathrm{Im}\,\mathrm{Tr}\,G(\omega).$$
+</div>
+<p>The last identity is the bookkeeping check: $T$ is a repackaging of the same $H_{\rm eff}$, so levels, DOS and $T$-matrix poles are one object. Division of labour: rest scattering lives in $\Sigma$, active scattering in the $[1-\tilde VG^0]^{-1}$ resummation — never both (no double counting).</p>
+<p><strong>Electron–defect self-energy.</strong> In the dilute single-site limit at defect density $n_d$ (defects per primitive cell) the disorder-averaged self-energy of a Bloch state is the diagonal $T$-matrix element,</p>
+<div class="math">
+$$\Sigma^{\rm ed}_{n\mathbf k}(\omega)=n_d\,T_{n\mathbf k,\,n\mathbf k}(\omega),$$
+</div>
+<p>and its imaginary part gives the quasiparticle linewidth, equivalently (optical theorem) a golden rule with $T$ in place of the bare matrix element:</p>
+<div class="math">
+$$\frac{1}{\tau_{n\mathbf k}}=-\frac{2}{\hbar}\,\mathrm{Im}\,
+\Sigma^{\rm ed}_{n\mathbf k}(\varepsilon_{n\mathbf k})
+=\frac{2\pi}{\hbar}\,n_d\!\!\sum_{m\mathbf k'}\!
+\big|T_{n\mathbf k,\,m\mathbf k'}(\varepsilon_{n\mathbf k})\big|^{2}\,
+\delta(\varepsilon_{n\mathbf k}-\varepsilon_{m\mathbf k'}),$$
+</div>
+<p>with the momentum-relaxing (transport) rate obtained by inserting the usual $\big(1-\mathbf v_{n\mathbf k}\!\cdot\!\mathbf v_{m\mathbf k'}/|\mathbf v_{n\mathbf k}|^{2}\big)$ weight. Setting $T\to\tilde V\to M_{AA}/N_k$ recovers the standard Born-level electron–defect matrix elements — the $T$-matrix is their all-order completion.</p>
+<p>Two practical notes. <strong>(i)</strong> As computed on an $N_k$ grid the construction describes exactly one defect per $N_k$ cells, $n_d = 1/N_k$; a different dilute density means re-solving $T$ on a finer grid (the vertex itself is density-independent). <strong>(ii)</strong> $\tilde V(\omega)$ is smooth in $\mathbf k$ (defect-localized, hence short-ranged in $\mathbf R,\mathbf R'$) and is the object to Wannier-interpolate; $T$ is <em>not</em> smooth — its bound-state poles and resonances must be generated by solving $[1-\tilde VG^0]^{-1}$ on the fine grid. With MODE C the vertex carries its true frequency dependence, so $T(\omega)$ has the correct analytic structure; static vertices pinned at $\omega_0$ displace features by tens of meV once $|\omega-\omega_0|\sim 1$ eV.</p>
+</section>
+<section id="sec-9"><h2>9. Summary</h2>
 <div class="table-wrap"><table><thead><tr><th>method</th><th>$\Sigma$</th><th>order in $\Delta V$</th><th>$\omega$</th></tr></thead><tbody><tr><td>M-only</td><td>$0$</td><td>0</td><td>—</td></tr><tr><td>bare-150</td><td>one rest bounce</td><td>2</td><td>frozen $\omega_0$</td></tr><tr><td>MODE A/B</td><td>Schur two-level + ladder</td><td>all (per channel: rung-limited)</td><td>frozen $\omega_0$</td></tr><tr><td>MODE C static</td><td>block-Lanczos CF at $\omega_0$</td><td>all, exact</td><td>frozen $\omega_0$</td></tr><tr><td><strong>MODE C $\omega$-res</strong></td><td>block-Lanczos CF</td><td>all, exact</td><td><strong>resolved</strong></td></tr><tr><td>$\chi$ aug.</td><td>none (basis enlarged)</td><td>all within the enlarged basis</td><td>—</td></tr></tbody></table></div>
 <p>Numbers and gates: see the <a href="twolevel-results.html">Two-level results</a> page.</p>
 </section>

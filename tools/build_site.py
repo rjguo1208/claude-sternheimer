@@ -535,10 +535,11 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
-    ("Method derivations: every $\\Sigma$ on one page", "Method", "2026-08-07", "ok", "Reference",
+    ("Method derivations: $\\Sigma$, the $T$-matrix, the e&ndash;d self-energy", "Method", "2026-08-07", "ok", "Reference",
      "The exact downfolding identity and each method as one choice of $\\Sigma$: M-only / bare 2nd order / "
      "two-level static ladder (with its $\\rho(D_2W_{22})<1$ caveat) / $\\omega$-resolved block-Lanczos "
-     "continued fraction / $\\chi$ augmentation, plus the fold-grid commensurability requirement.",
+     "continued fraction / $\\chi$ augmentation; plus the fold-grid requirement and the route from the "
+     "downfolded vertex to the $T$-matrix, the spectral function and the electron&ndash;defect self-energy.",
      '<a href="pages/methods.html">Open derivations &rarr;</a>'),
     ("Downfolding RESULTS: Sdisp, V$_S$, O$_S$, Se$_S$ truth gates (rev 3)", "Result", "2026-08-07", "prod", "Headline",
      "REVISION 3: a fold-grid commensurability bug invalidated the old V$_S$/Sdisp 6x6 numbers (recomputed; "
