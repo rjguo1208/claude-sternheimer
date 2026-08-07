@@ -172,6 +172,18 @@ measured plain-ladder $\rho = 1.215$ had implied, the near-$1$ channel that the
 6-rung ladder under-converges, and the reason MODE B's deep-sector $\Sigma$ is
 incomplete while its gap-window numbers survive.
 
+Both statements were subsequently **measured**. Rung scan (V$_S$, deep
+diagonal): $\Sigma_{311,311} = -0.588$ (6 rungs) $\to -1.069$ (24 rungs)
+$\to -2.449$ (exact chain) — slow-channel capture $21\%\to41\%$, implied
+per-rung $\rho \simeq 0.96$–$0.98$; meanwhile the 24-rung *gap-window* levels
+already coincide with the exact-static ones to $\le 2$ meV (the slow modes
+barely project there). And the Se$_S$ control: with no near-$\omega_0$ mode,
+MODE B and MODE C agree to $8\times10^{-5}$ Ry element-wise — the two
+implementations are identical wherever the ladder converges, so the V$_S$/O$_S$
+discrepancy is the mode, not the codes. Se$_S$ under $\omega$-resolution moves
+by $<1$ meV: its uniform $+27$ meV offset is alignment/geometry class, not
+frequency.
+
 **O$_S$ — the headline:**
 
 ![OS omega](../assets/os_omega66.png)
