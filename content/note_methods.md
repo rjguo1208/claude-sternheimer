@@ -379,6 +379,106 @@ carries an extra exponentially decaying resolvent whose range is set by the
 distance from $\omega$ to the rest spectrum — but that is an argument, and the
 same leave-one-out is the measurement.
 
+### 9c. The $\omega$-dependent vertex: sample it, do not freeze it
+
+$\omega_0=-0.019$ eV sits *below* the gap (the pristine edges are $+0.0058$ and
+$+1.6679$), so freezing $\Sigma^R$ there is exact at $\omega_0$ and degrades
+linearly away from it — which is where the defect levels are:
+
+| level | static $\Sigma(\omega_0)$ | $\omega$-resolved | cost of freezing |
+|---|---|---|---|
+| valence-edge resonances | $-0.0081$, $-0.0080$ | $-0.0081$, $-0.0080$ | $0$ meV |
+| $a_1$ in gap | $+0.0917$ | $+0.0735$ | **$18.2$ meV** |
+| degenerate pair | $+1.2258$ | $+1.2023$ | **$23.5$ meV** |
+| conduction-edge resonance | $+1.6763$ | $+1.6756$ | $0.7$ meV |
+
+That is larger than the $+7.6$ meV downfold residual, the $4$&ndash;$11$ meV
+image error and the $0.74$ meV interpolation error — adopting it would make it
+the leading error in the chain.
+
+It is also unnecessary. Every pole of $\Sigma^R$ lies outside the active
+manifold, so across the gap the nearest singularity is more than $3$ eV away and
+$\Sigma^R(\omega)$ is analytic there. Sample it at 7 Chebyshev nodes on
+$[0.05,1.62]$ eV, fit each element with a 4th-order Chebyshev polynomial, hold
+one node out. Three acceptance tests:
+
+- **(a) held-out node** ($0.835$ eV): $\max|\Delta\Sigma|=2.8\times10^{-4}$ on
+  $\lVert\Sigma\rVert=0.60$, i.e. $\mathbf{0.026}$ **meV**.
+- **(b) quasiparticle fixed points** recomputed from the fit: of the levels
+  inside the window, $\max|{\rm fit}-{\rm direct}| = \mathbf{0.201}$ **meV**
+  ($+0.0735\to+0.0733$; the $+1.2023$ pair to $0.01$ meV). Extrapolated levels
+  outside the window stay within $1.4$ meV.
+- **(c) leave-one-out on $\tilde V(\omega)$**, the half section 9b could not
+  test. It passes at every $\omega$ and the degradation across the gap is mild.
+
+![Vtilde across the gap](../assets/vtilde_omega.png)
+
+| $\omega$ (eV above VBM) | $+0.07$ | $+0.49$ | $+1.18$ | $+1.60$ |
+|---|---|---|---|---|
+| leave-one-out median | $0.610$ | $0.638$ | $0.730$ | $0.884$ meV |
+| on-site $\lVert\tilde{\mathcal V}\rVert$ | $0.974$ | $0.966$ | $0.950$ | $0.940$ |
+| at $6a$ | $1.76\times10^{-5}$ | $1.76$ | $1.77$ | $1.81\times10^{-5}$ |
+
+The dressed vertex interpolates *better* than the bare one at the bottom of the
+gap ($0.61$ vs $0.74$ meV) — the extra decaying resolvent makes it more local,
+as argued — and only $45\%$ worse at the top. Panel (a) shows the mechanism:
+$\tilde{\mathcal V}$ is slightly *longer*-ranged than $M_{AA}$ at $1$&ndash;$2a$
+but joins the same tail beyond $4a$, and the seven $\omega$ curves lie almost on
+top of each other.
+
+**One transform, not one per $\omega$.** The pair-Wannier transform is linear, so
+writing $\tilde V(\omega)=\sum_i f_i(\omega)C_i$ puts the whole $\omega$
+dependence on scalar coefficients: the 5 fit matrices are transformed once and
+$\tilde{\mathcal V}(R_e,R_p;\omega)$ is a 5-term weighted sum thereafter. (A
+pole representation would work too, and cheaply — $W_n$ is rank one, so
+$\mathcal W_n(R_e,R_p)=\tilde u_n(R_e)\otimes\tilde u_n^*(R_p)$ factorizes into
+single-index transforms.) In any case the transform is seconds while the
+continued fraction is $6$ s per $\omega$, so the quantity to economize is
+continued-fraction calls, not transforms. The whole of section 9c cost $7.4$
+minutes on one node.
+
+*(An earlier note here quoted $105$ s per continued fraction. That measurement
+came from a thread-starved run — the $N_A=396$ chain took $89$ s in the same job,
+which is not compute-bound. Properly threaded it is $6$ s.)*
+
+### 9d. How small can the active space be?
+
+MoS$_2$ bands $13$&ndash;$17$ — the highest valence band and the four lowest
+conduction bands — are an isolated group (gaps $+0.018$ eV below and $+0.565$ eV
+above), so a 5-band Wannier model needs no disentanglement. It would shrink
+$N_A$ from $1584$ to $720$: the fold scales as $n_b$ and reorthogonalization as
+$n_b^2$, so $2.2\times$ and $4.8\times$ cheaper. Restricting $M_{AA}$ to those
+bands and repeating the leave-one-out measures what it costs:
+
+| Wannier space | projections | spread / WF | l-o-o median | p90 |
+|---|---|---|---|---|
+| **11 band** | Mo:$d$ + S:$p$ | $\mathbf{1.71}$ &Aring;$^2$ | $\mathbf{0.744}$ meV | $\mathbf{1.03}$ |
+| 5 band | Mo:$d$ | $4.88$ | $3.296$ | $8.62$ |
+| 5 band | Mo:$d_{z^2},d_{x^2-y^2},d_{xy}$ + S:$s$ | $4.87$ | $3.323$ | $8.79$ |
+| 5 band | Mo:$p$ + S:$s$ | $6.25$ | $3.970$ | $7.82$ |
+
+The kernel envelope says why. Eleven bands: $1.46\to0.119\to1.3\times10^{-2}
+\to\cdots\to2.1\times10^{-4}$, four decades by $6a$. Five bands (Mo:$d$):
+$0.225\to0.287\to3.1\times10^{-2}\to\cdots\to1.1\times10^{-3}$, only $2.3$
+decades — and the on-site term is *smaller* than the $|R|=1$ one, so the kernel
+is not even peaked at the defect. The Wannier functions are too spread for the
+defect's weight to stay on its own cell.
+
+This is not a gauge that needs more optimization. All three 5-band choices give
+the **same** $\Omega_I=21.810$ &Aring;$^2$ — it is gauge-invariant, fixed by the
+manifold — against $17.704$ for eleven bands, i.e. $4.36$ versus $1.61$
+&Aring;$^2$ of invariant spread per Wannier function. Excluding the S $p$ bands
+that hybridize with the manifold costs localization that no minimization can
+recover.
+
+**Verdict: keep eleven bands on the interpolation route.** A $p90$ of $8.6$ meV
+would put interpolation alongside the downfold residual and the image error as a
+leading term, in exchange for a factor of a few in a step that is no longer the
+bottleneck. Five bands remain attractive for coarse-grid levels alone, where
+$\Omega_I$ does not enter; there Mo:$d$ is the right projection — Mo:$p$+S:$s$
+is the worst of the three tested, as the $d$-dominated character of the manifold
+would suggest.
+
 ## 10. Summary
 
 | method | $\Sigma$ | order in $\Delta V$ | $\omega$ |

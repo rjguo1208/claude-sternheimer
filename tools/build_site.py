@@ -541,6 +541,16 @@ CATALOG = [
      "continued fraction / $\\chi$ augmentation; plus the fold-grid requirement and the route from the "
      "downfolded vertex to the $T$-matrix, the spectral function and the electron&ndash;defect self-energy.",
      '<a href="pages/methods.html">Open derivations &rarr;</a>'),
+    ("$\\omega$-dependent vertex + active-space size: three acceptance tests", "Method", "2026-08-08", "ok", "Passed",
+     "$\\omega_0$ sits BELOW the gap, so freezing $\\Sigma^R$ there costs 18&ndash;24 meV on the in-gap levels "
+     "&mdash; more than every other error in the chain. Unnecessary: $\\Sigma^R$ is analytic across the gap "
+     "(nearest pole &gt;3 eV), so 7 Chebyshev nodes + a 4th-order fit give 0.026 meV on a held-out node and "
+     "0.201 meV on the quasiparticle fixed points. Leave-one-out on $\\tilde V(\\omega)$ passes at every "
+     "$\\omega$ (0.61&ndash;0.88 meV). And the transform is LINEAR, so the $\\omega$ dependence rides on 5 "
+     "scalar coefficients &mdash; one set of transforms, not one per $\\omega$. Separately: a 5-band Wannier "
+     "space is 4.4x worse at interpolation ($\\Omega_I$ per WF 4.36 vs 1.61 &Aring;$^2$, gauge-invariant), so "
+     "keep 11 bands on this route.",
+     '<a href="pages/methods.html#sec-9">Open the tests &rarr;</a>'),
     ("Wannier interpolation of the defect vertex: leave-one-out gate", "Method", "2026-08-08", "ok", "Passed",
      "The $N_k^3$ wall is escapable only if the pair kernel $\\mathcal M(R_e,R_p)$ is local. Measured: it falls "
      "from 1.46 on site to $2\\times10^{-4}$ at $6a$, and a kernel built from the $\\Gamma$ coset alone (6.2% "
