@@ -913,14 +913,20 @@ CONTAINS
        IF (nloc > 64) CALL errore('vtilde_block_lanczos','fold_col: nloc>64 (raise the accb bound)',1)
        ALLOCATE(psia(dffts%nnr,nkstot,nloc), STAT=istat)
        IF (istat /= 0) CALL errore('vtilde_block_lanczos','psia alloc failed',1)
-       IF (ionode) WRITE(stdout,'(5X,A,I4,A,I5,A)') &
-            'fold_col ON: ', nloc, ' columns/rank, all ', nkstot, ' channels local (FFTs done once)'
+       IF (ionode) WRITE(stdout,'(5X,A,I4,A,I5,A,F7.2,A)') &
+            'fold_col ON: ', nloc, ' columns/rank, all ', nkstot, ' channels local; fold buffers ', &
+            2.d0*DBLE(dffts%nnr)*DBLE(nkstot)*DBLE(nloc)*16.d0/1.d9, ' GB/rank'
     ENDIF
 
     ! ---- Krylov storage ----
     ALLOCATE(Qs(npwx,nks,NA_,0:nstep), STAT=istat)
     IF (istat /= 0) CALL errore('vtilde_block_lanczos','Qs alloc failed (lower n_lancz)',1)
-    ALLOCATE(W3(npwx,nks,NA_), xbuf(npwx,NA_), acc3(dffts%nnr,nks,NA_))
+    ALLOCATE(W3(npwx,nks,NA_), xbuf(npwx,NA_))
+    IF (.NOT.use_col) THEN
+       ALLOCATE(acc3(dffts%nnr,nks,NA_))          ! k-layout accumulator (3 GB here)
+    ELSE
+       ALLOCATE(acc3(1,1,1))                      ! unused in the column layout
+    ENDIF
 
     ! ---- OPERATOR UNIT TEST: apply_dV on known band states must reproduce
     !      the edmat columns (assumption-free discriminator vs MODE A/B input) ----
