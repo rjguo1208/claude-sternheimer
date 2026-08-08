@@ -287,23 +287,49 @@ U^\dagger(\mathbf k)\,M(\mathbf k,\mathbf k')\,U(\mathbf k') ,$$
 and read it back at any $\mathbf k$. That is only legitimate if $\mathcal M$
 decays in **both** arguments, so the question has to be measured, not assumed.
 
-### 9a. The Wigner&ndash;Seitz origin is not a detail
+### 9a. Both indices are electron positions; the defect is the origin
 
-$\mathcal M$ is built on Born&ndash;von-K&aacute;rm&aacute;n representatives, and
-images differ by $N^{\rm sc}\mathbf a$. On the coarse grid $e^{i\mathbf k\cdot
-N^{\rm sc}\mathbf a}=1$, so the choice is invisible — the transform inverts
-exactly whatever you pick. On a *finer* grid it is not $1$, and a bad choice
-aliases. The S vacancy sits at the supercell centre, $\mathbf R_{\rm
-def}=(3,3)$ in primitive lattice units, so representatives chosen about the
-origin pile the kernel onto the cell boundary: measured, that turns a $1$ meV
-prediction into a $300$ meV one.
+$\mathcal M(\mathbf R_e,\mathbf R_p)=\langle w_{\mathbf R_e}|\Delta V|w_{\mathbf
+R_p}\rangle$ — **both** labels are Wannier lattice vectors of the *electron*.
+The defect is not a third index. It is where $\Delta V$ lives, hence the point
+the kernel decays about, and in EDI's own supercells it sits at the origin so it
+never appears explicitly. Ours sits at the cell centre, $\mathbf R_{\rm
+def}=(3,3)$ in primitive lattice units, which is why it does. The conventional
+way to remove it is a translation,
 
-Two traps follow. First, $\mathbf R_{\rm def}$ must come from the **structure**
-(the S present in the pristine cube and absent from the defect cube), never from
-the peak of the kernel — an aliased kernel peaks in the wrong place, so fitting
-the centre to it is circular. Second, $(3,3)\equiv(-3,-3)$ only modulo $6$: the
-same "empirical centre" is right for a $6\times6$ lattice and wrong for a
-$12\times12$ one.
+$$\Delta V(\mathbf r+\mathbf R_{\rm def})\;\Longleftrightarrow\;
+M(\mathbf k,\mathbf k')\to e^{i(\mathbf k-\mathbf k')\cdot\mathbf R_{\rm def}}M(\mathbf k,\mathbf k') ,$$
+
+after which the ordinary origin-centred Wigner&ndash;Seitz construction applies.
+Choosing the WS representatives about $\mathbf R_{\rm def}$ instead, as done
+here, is the same thing.
+
+Three implementations agree on this, up to a change of variables. EDI's code
+transforms the two indices separately — `edbloch2wane` over the electron $k$ at
+fixed $q$, `edbloch2wanr` over $q$ — the electron&ndash;phonon parametrization,
+and it already writes a `decay.M` file carrying exactly the envelope diagnostic
+plotted below. The repository's `ft_convention.md` records the symmetric
+Lu&ndash;Bernardi double transform, which is the form used here, and this
+project's earlier `tmatrix_p6_wannier.py` uses that form with a defect-centred
+truncation. The two parametrizations are a shear,
+$\mathbf R_e^{\rm EDI}=\mathbf R_p-\mathbf R_e$ and $\mathbf R_p^{\rm EDI}=\mathbf R_p$:
+EDI's first index is the *separation* of the two Wannier functions, ours is each
+one's distance from the defect.
+
+**Why the origin matters.** $\mathcal M$ is built on Born&ndash;von-K&aacute;rm&aacute;n
+representatives, and images differ by $N^{\rm sc}\mathbf a$. On the coarse grid
+$e^{i\mathbf k\cdot N^{\rm sc}\mathbf a}=1$, so the choice is invisible — the
+transform inverts exactly whatever you pick. On a *finer* grid it is not $1$, and
+a wrong representative aliases: measured, that turns a $1$ meV prediction into a
+$300$ meV one. Note the asymmetry — truncating a coarse-grid kernel (what
+`tmatrix_p6_wannier.py` does) is insensitive to this; only interpolation is.
+
+$\mathbf R_{\rm def}$ is read from the structure — the S present in the pristine
+cube and absent from the defect cube. Taking it from the peak of the kernel
+diagonal also works, but returns a representative valid **only on the lattice it
+was found on**: $(3,3)\equiv(-3,-3)$ modulo 6 but not modulo 12, so the same
+"empirical centre" is right for a $6\times6$ R-lattice and wrong for a
+$12\times12$ one. That is the mistake that produced the $300$ meV run here.
 
 ### 9b. Leave-one-out on the vertex
 
@@ -316,6 +342,15 @@ Build the kernel from the $\Gamma$ coset alone — a complete $6\times6$ dataset
 $6.2\%$ of the pairs — and predict the rest.
 
 ![Wannier interpolation of the defect vertex](../assets/wannier_decay.png)
+
+Panel (a) is every one of the $2\,982\,529$ matrix elements against the radius at
+which a spherical truncation would drop it; the envelope falls from $1.46$ on
+site to $2\times10^{-4}$ at $6a$ and the median element is four decades below it
+throughout. Panel (b) is the diagonal $\mathcal M_{mm}(\mathbf R,\mathbf R)$ of
+each Wannier orbital, which shows what the defect actually couples to: the three
+S $p$ orbitals on the vacancy sublattice start at $1.43$&ndash;$1.46$, the five
+Mo $d$ at $0.05$&ndash;$0.10$, and the far S $p$ at $0.003$ — and all of them are
+below $10^{-6}$ by $6a$.
 
 | pairs | count | median | p90 | max |
 |---|---|---|---|---|

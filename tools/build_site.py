@@ -545,8 +545,10 @@ CATALOG = [
      "The $N_k^3$ wall is escapable only if the pair kernel $\\mathcal M(R_e,R_p)$ is local. Measured: it falls "
      "from 1.46 on site to $2\\times10^{-4}$ at $6a$, and a kernel built from the $\\Gamma$ coset alone (6.2% "
      "of pairs) predicts the other 93.8% to a MEDIAN 0.74 meV &mdash; below both the 7.6 meV downfold residual "
-     "and the 4&ndash;11 meV image error of the reference. Trap found: the Wigner&ndash;Seitz origin must be the "
-     "DEFECT (from the structure, never fitted to the kernel), or the same test reads 300 meV.",
+     "and the 4&ndash;11 meV image error of the reference. Both $R$ indices are ELECTRON Wannier positions "
+     "(EDI, ft_convention.md and this project&#39;s earlier tmatrix_p6_wannier.py agree, up to a shear); the "
+     "defect is only the origin they decay about, and getting that origin wrong on a finer lattice reads "
+     "300 meV instead of 1.",
      '<a href="pages/methods.html#sec-9">Open the test &rarr;</a>'),
     ("Downfolding RESULTS: Sdisp, V$_S$, O$_S$, Se$_S$ truth gates (rev 4)", "Result", "2026-08-08", "prod", "Headline",
      "REVISION 4 adds a second, independent gate: splitting a 12x12 $k$-grid into its four cosets gives "
