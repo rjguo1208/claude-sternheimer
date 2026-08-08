@@ -31,6 +31,7 @@ CONTAINS
     USE fft_base,  ONLY : dffts
     USE cell_base, ONLY : at, alat
     USE io_global, ONLY : ionode, stdout
+    USE edt_input, ONLY : coarse_nk1, coarse_nk2, coarse_nk3
     IMPLICIT NONE
     REAL(dp),    INTENT(IN)  :: q_cryst(3)
     COMPLEX(dp), INTENT(OUT) :: Vf(:)
@@ -49,9 +50,10 @@ CONTAINS
        ! 30-point primitive grid (ratio 8) silently mis-assigns every position.
        BLOCK
          REAL(dp) :: rsc(3), lp, lc
-         INTEGER  :: nsc(3), idir, nr_p(3), nr_c(3)
+         INTEGER  :: nsc(3), idir, nr_p(3), nr_c(3), nkg(3)
          nr_p = (/ dffts%nr1, dffts%nr2, dffts%nr3 /)
          nr_c = (/ V_d%nr1,   V_d%nr2,   V_d%nr3   /)
+         nkg  = (/ coarse_nk1, coarse_nk2, coarse_nk3 /)
          DO idir = 1, 3
             lp = SQRT(SUM((at(:,idir)*alat)**2))
             lc = SQRT(SUM((V_d%at(:,idir)*V_d%alat)**2))
@@ -71,6 +73,19 @@ CONTAINS
                   ' /= supercell ',nsc(idir),' x primitive ',nr_p(idir),' ***'
                CALL errore('build_V_folded', &
                  'fold grid mismatch: need nr_cube = nsc * nr_primitive on every axis', idir)
+            ENDIF
+            ! DeltaV only has Fourier weight at supercell G-vectors, so the fold
+            ! channel set is the supercell reciprocal lattice.  A k-grid finer than
+            ! the supercell has pairs with k-k' outside that set; the modulo channel
+            ! lookup would alias them onto a real channel and invent a matrix element
+            ! that must vanish.  Sample the finer grid as separate shifted runs, one
+            ! per coset of the supercell reciprocal lattice, instead.
+            IF (nkg(idir) > 0 .AND. nkg(idir) /= nsc(idir)) THEN
+               IF (ionode) WRITE(stdout,'(5X,A,I1,A,I4,A,I3,A)') &
+                  '*** FOLD CHANNEL ERROR (axis ',idir,'): k-grid ',nkg(idir), &
+                  ' /= supercell ',nsc(idir),' -- use one shifted run per coset ***'
+               CALL errore('build_V_folded', &
+                 'k-grid must equal the supercell multiplicity on every axis', 10+idir)
             ENDIF
          ENDDO
        END BLOCK

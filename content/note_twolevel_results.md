@@ -223,14 +223,64 @@ from one chain, so the cost difference is only in the post-processing.
 For V$_S$ the two answers and the truth are compared level-by-level in a
 [separate figure](../assets/vs_omega66.png).
 
-## 8. Residual ledger
+## 8. $12\times12$ by coset decomposition — a second, independent gate
+
+Everything above lives at one supercell $k$-point ($\Gamma$), because a
+$6\times6$ $k$-grid on a $6\times6$ cube folds there. Section 7b of the methods
+note shows the finer grid is reachable exactly rather than approximately: $\Delta
+V$ cannot connect $k$-points differing by anything but a supercell $\mathbf
+G$, so a $12\times12$ grid is **four uncoupled shifted $6\times6$ runs**, one per
+coset, sampling the supercell BZ at $\Gamma$ and the three $M$ points.
+
+That turns the sampling upgrade into a validation. The three $M$ cosets are
+symmetry-equivalent, and the downfold does not know it: run separately they
+return quasiparticle levels agreeing to every printed digit
+($-0.0758$, $-0.0226$, $+0.0703$, $+1.2002$, $+1.2073$ eV), matching the exact
+degeneracy of the three $M$ points in the supercell truth. A dedicated
+107-atom NSCF at $\mathbf k_{sc}=(\tfrac12,0),(0,\tfrac12),(\tfrac12,\tfrac12)$
+supplies a truth that no part of the downfold has seen.
+
+| $\mathbf k_{sc}$ | features | raw offset (meV) | RMS | after the $+17.9$ meV reference |
+|---|---|---|---|---|
+| $\Gamma$ | 5/5 | $+25.5$ | $1.7$ | $+7.6\pm1.7$ |
+| $M$ | 5/5 | $+25.0$ | $0.8$ | $+7.1\pm0.8$ |
+
+The two raw offsets agree to $0.5$ meV. That is the point: the reference
+constant is a property of $\Delta V$, not of $k$, so the constant calibrated at
+$\Gamma$ transfers unchanged to a $k$-point the calibration never saw, and what
+is left there is a $0.8$ meV scatter about $+7.1$ meV.
+
+![12x12 coset decomposition](../assets/coset12_VS.png)
+
+Panel (a) is the density of states of the downfolded active manifold with the
+same constant removed. The $6\times6$ curve carries the spikes of a 36-point
+sample; the four-coset average collapses onto the supercell truth across the
+valence edge, the gap and the conduction edge alike. The defect levels sit in
+the gap where the host has no weight, which is why they can be read off at all.
+
+**Cost.** Two changes made the finer sampling routine rather than heroic.
+Batching the fold over columns (`col_chunk`) bounds the working set instead of
+scaling it with $N_A/n_{\rm pool}$ — and, by fitting the batch in cache, it also
+cut $V\!\cdot\!\psi$ from $9.8$ to $5.0$ s; the chain matrices are bit-identical
+($\max|\Delta A|=\max|\Delta B|=0$). Band-limiting the cube to
+$162\times162\times216$ took the fold to $5.6$ s per step. Together the MODE C
+chain runs in $5.1$ min against $74.3$ min for the first working version, a
+$14\times$ speedup with quasiparticle levels moved by $\le 0.1$ meV; the whole
+$12\times12$ result is four such runs.
+
+**Chain length.** With the chain free to be long, it is worth knowing how long it
+must be. Truncating the same $\Gamma$ chain: $N_S=8$ is nonsense, $10$ is
+$21$ meV off, $12$ is $7$ meV off, $16$ is within $0.8$ meV and $24$ is
+converged. The production runs use $24$.
+
+## 9. Residual ledger
 
 Nothing structural remains. With the two systematics of section 2 controlled,
 the $\omega$-resolved downfold agrees with the supercell truth to $\le 8$ meV
 absolute and $\le 4$ meV in shape on all three defects plus the displacement
 probe. What is left is (i) the per-defect reference constant, a convention that
 can be removed by subtracting the $\Delta V$ far-field plateau, and (ii) a
-few-meV floor consistent with the 6$\times$6 sampling and the $\eta$ used in the
-quasiparticle search. Next levers: SOC and 12$\times$12 production ports of
-MODE C, and the Wannier-interpolated fine-grid $T$-matrix built on the same
-$\tilde V(\omega)$.
+few-meV floor consistent with the $\eta$ used in the quasiparticle search — a
+floor that section 8 shows is not a sampling artefact, since going from one
+supercell $k$-point to four leaves it at $0.8$ meV. Next levers: SOC, and the
+Wannier-interpolated fine-grid $T$-matrix built on the same $\tilde V(\omega)$.

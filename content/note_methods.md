@@ -122,10 +122,40 @@ is aliased, C$_3$ degeneracies split by tens of meV and $\lVert\tilde
 V\rVert$ can be off by tens of percent — with in-gap states still appearing at
 roughly the right energies, so the failure is silent. A 6$\times$6 cube of
 $240\times240\times300$ therefore needs a primitive NSCF with an explicit
-`nr1=nr2=40, nr3=300`; the ecut-50 automatic grid ($27\times27\times216$) is
-not usable. EDT prints the two grids and the detected multiplicity on the first fold and
+`nr1=nr2=40, nr3=300`. EDT prints the two grids and the detected multiplicity on the first fold and
 **aborts** unless $n^{\rm cube}=N^{\rm sc}n^{\rm prim}$ holds on all three axes;
 degeneracy splitting of a symmetric defect is the cheap independent check.
+
+The pair may equally be satisfied from the other side, and more cheaply: band-limit
+the cube onto $162\times162\times216$ by G-space truncation and pair it with the
+natural ecut-50 grid $27\times27\times216$. Truncation is exact for every Fourier
+component the coarse grid holds — here it discards $4\times10^{-8}$ of the weight —
+while the fold cost falls as $n^{\rm cube}$: $5.6$ s per Lanczos step instead of
+$15.6$, with quasiparticle levels moved by $\le 0.1$ meV.
+
+### 7b. The fold channel set: $k$-grid $=$ supercell multiplicity
+
+$\Delta V$ is periodic on the supercell, so it has Fourier weight **only** on
+supercell reciprocal vectors and
+
+$$\langle\psi_{\mathbf k}|\Delta V|\psi_{\mathbf k'}\rangle = 0
+\quad\text{unless}\quad \mathbf k-\mathbf k' \in \{\mathbf G_{\rm sc}\}.$$
+
+A $k$-grid finer than $N^{\rm sc}$ therefore contains pairs with no channel at
+all, and the modulo channel lookup aliases them onto a real channel — inventing a
+matrix element that must vanish. Run directly, a $12\times12$ grid against a
+$6\times6$ cube gives cross-coset blocks as large as the diagonal ones
+(ratio $0.98$), silently. EDT now aborts unless `coarse_nk` equals $N^{\rm sc}$
+on every axis.
+
+The finer grid is still reachable, exactly: since $\Delta V$ cannot connect them,
+the $N_k$ points split into $(N_k/N^{\rm sc})^2$ cosets of the supercell
+reciprocal lattice, each of which is an *independent* problem of exactly the
+designed size. A $12\times12$ grid on a $6\times6$ cube is four shifted
+$6\times6$ runs at $\mathbf k_0 \in \{0,\tfrac12\mathbf b_1^{\rm sc}\}\times
+\{0,\tfrac12\mathbf b_2^{\rm sc}\}$ — the same cost per run, no new memory, and
+each shift is one supercell $k$-point at which the answer can be checked against
+an independent supercell NSCF.
 
 ## 8. From the downfold to the $T$-matrix and the electron–defect self-energy
 

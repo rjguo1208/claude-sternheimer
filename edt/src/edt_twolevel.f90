@@ -772,7 +772,7 @@ CONTAINS
     USE becmod,           ONLY : becp, allocate_bec_type, deallocate_bec_type
     USE uspp,             ONLY : nkb
     USE constants,        ONLY : tpi
-    USE edt_input,        ONLY : fold_col
+    USE edt_input,        ONLY : fold_col, col_chunk
     IMPLICIT NONE
     REAL(dp), INTENT(IN) :: xkcr(3,nkstot), omega0_ry, win_min_ry, win_max_ry
     INTEGER,  INTENT(IN) :: nbndskip_in, nstep
@@ -794,9 +794,9 @@ CONTAINS
     ! ---- column-distributed fold (fold_col): each rank owns nloc columns and
     !      ALL k-channels, so every FFT is done once instead of npool times ----
     COMPLEX(dp), ALLOCATABLE :: Vq(:,:), phw(:,:), xcol(:,:,:), acol(:,:,:)
-    COMPLEX(dp), ALLOCATABLE :: sbuf(:,:,:), rbuf(:,:,:), psia(:,:,:)
+    COMPLEX(dp), ALLOCATABLE :: sbuf(:,:,:), rbuf(:,:,:), psia(:,:,:), xcol_out(:,:,:)
     INTEGER,     ALLOCATABLE :: map_iq(:,:), map_ip(:,:)
-    INTEGER :: nloc, col0, iq_, ip_, ia, ga
+    INTEGER :: nloc, col0, iq_, ip_, ia, ga, ncol, ib0c, nbc
     LOGICAL :: use_col
     REAL(dp) :: xk3(3)
     COMPLEX(dp) :: cone, czero
@@ -893,9 +893,9 @@ CONTAINS
     ALLOCATE(psic(dffts%nnr))
 
     ! ---- fold cache: ALL (source-k, local channel) folds built once ----
-    use_col = fold_col .AND. (nks == 1) .AND. (npool == nkstot) .AND. (MOD(NA_,npool) == 0)
+    use_col = fold_col .AND. (nks*npool == nkstot) .AND. (MOD(NA_,npool) == 0)
     IF (fold_col .AND. .NOT.use_col .AND. ionode) WRITE(stdout,'(5X,A)') &
-         'fold_col requested but layout unsuitable (need npool = nkstot and NA_ divisible) — using the k-layout'
+         'fold_col requested but layout unsuitable (need nks*npool = nkstot and NA_ divisible by npool) — using the k-layout'
     IF (.NOT.use_col) THEN
        ALLOCATE(Vfa(dffts%nnr, nks, nkstot), STAT=istat)
        IF (istat /= 0) CALL errore('vtilde_block_lanczos','fold cache alloc failed (reduce npool?)',1)
@@ -907,15 +907,18 @@ CONTAINS
     ELSE
        CALL build_qcanon()
        nloc = NA_/npool; col0 = my_pool_id*nloc
-       ALLOCATE(xcol(npwx,nloc,nkstot), acol(dffts%nnr,nkstot,nloc), STAT=istat)
+       ALLOCATE(xcol(npwx,nloc,nkstot), STAT=istat)
        IF (istat /= 0) CALL errore('vtilde_block_lanczos','column-layout alloc failed',1)
-       ALLOCATE(sbuf(npwx,nloc,npool), rbuf(npwx,nloc,npool))
-       IF (nloc > 64) CALL errore('vtilde_block_lanczos','fold_col: nloc>64 (raise the accb bound)',1)
-       ALLOCATE(psia(dffts%nnr,nkstot,nloc), STAT=istat)
-       IF (istat /= 0) CALL errore('vtilde_block_lanczos','psia alloc failed',1)
-       IF (ionode) WRITE(stdout,'(5X,A,I4,A,I5,A,F7.2,A)') &
-            'fold_col ON: ', nloc, ' columns/rank, all ', nkstot, ' channels local; fold buffers ', &
-            2.d0*DBLE(dffts%nnr)*DBLE(nkstot)*DBLE(nloc)*16.d0/1.d9, ' GB/rank'
+       ALLOCATE(sbuf(npwx*nks,nloc,npool), rbuf(npwx*nks,nloc,npool), xcol_out(npwx,nloc,nkstot))
+       ncol = nloc
+       IF (col_chunk > 0) ncol = MIN(col_chunk, nloc)
+       IF (ncol > 64) CALL errore('vtilde_block_lanczos','fold_col: col_chunk>64 (raise the accb bound)',1)
+       ALLOCATE(psia(dffts%nnr,nkstot,ncol), acol(dffts%nnr,nkstot,ncol), STAT=istat)
+       IF (istat /= 0) CALL errore('vtilde_block_lanczos','psia/acol alloc failed',1)
+       IF (ionode) WRITE(stdout,'(5X,A,I4,A,I4,A,I5,A,F7.2,A)') &
+            'fold_col ON: ', nloc, ' columns/rank (chunk ', ncol, '), all ', nkstot, &
+            ' channels local; fold buffers ', &
+            2.d0*DBLE(dffts%nnr)*DBLE(nkstot)*DBLE(ncol)*16.d0/1.d9, ' GB/rank'
     ENDIF
 
     ! ---- Krylov storage ----
@@ -1267,25 +1270,52 @@ CONTAINS
     END SUBROUTINE build_qcanon
 
     SUBROUTINE k2col(xk_, xc_)
+      !! (npwx, nks, NA_) [my channels, all columns] -> (npwx, nloc, nkstot)
+      !! [my columns, all channels].  Pool p owns the contiguous channel block
+      !! (p-1)*nks+1 .. p*nks, so the alltoall slot index carries the channel.
       COMPLEX(dp), INTENT(IN)  :: xk_(:,:,:)
       COMPLEX(dp), INTENT(OUT) :: xc_(:,:,:)
-      INTEGER :: p
+      INTEGER :: p, il, ic, o
       DO p = 1, npool
-         sbuf(:,:,p) = xk_(:,1,(p-1)*nloc+1:p*nloc)
+         DO il = 1, nks
+            o = (il-1)*npwx
+            DO ic = 1, nloc
+               sbuf(o+1:o+npwx, ic, p) = xk_(:, il, (p-1)*nloc+ic)
+            ENDDO
+         ENDDO
       ENDDO
       CALL mp_alltoall(sbuf, rbuf, inter_pool_comm)
-      xc_ = rbuf
+      DO p = 1, npool
+         DO il = 1, nks
+            o = (il-1)*npwx
+            DO ic = 1, nloc
+               xc_(:, ic, (p-1)*nks+il) = rbuf(o+1:o+npwx, ic, p)
+            ENDDO
+         ENDDO
+      ENDDO
     END SUBROUTINE k2col
 
     SUBROUTINE col2k(xc_, xk_)
       COMPLEX(dp), INTENT(IN)  :: xc_(:,:,:)
       COMPLEX(dp), INTENT(OUT) :: xk_(:,:,:)
-      INTEGER :: p
-      sbuf = xc_
+      INTEGER :: p, il, ic, o
+      DO p = 1, npool
+         DO il = 1, nks
+            o = (il-1)*npwx
+            DO ic = 1, nloc
+               sbuf(o+1:o+npwx, ic, p) = xc_(:, ic, (p-1)*nks+il)
+            ENDDO
+         ENDDO
+      ENDDO
       CALL mp_alltoall(sbuf, rbuf, inter_pool_comm)
       xk_ = czero
       DO p = 1, npool
-         xk_(:,1,(p-1)*nloc+1:p*nloc) = rbuf(:,:,p)
+         DO il = 1, nks
+            o = (il-1)*npwx
+            DO ic = 1, nloc
+               xk_(:, il, (p-1)*nloc+ic) = rbuf(o+1:o+npwx, ic, p)
+            ENDDO
+         ENDDO
       ENDDO
     END SUBROUTINE col2k
 
@@ -1297,66 +1327,71 @@ CONTAINS
       INTEGER :: kgs2, ik2, n2, iq2, ip2, ig, c0, ce
       COMPLEX(dp) :: accb(CBLK, 64), vlo(CBLK)
       REAL(dp) :: tz2
-      ! (a) FFT every (source, my column) ONCE into psia
-      psia = czero
-      DO kgs2 = 1, nkstot
-         DO ia = 1, nloc
-            ga = col0 + ia
-            IF (src_pass .AND. uk(selA(ga)) /= kgs2) CYCLE
-            tz2 = wtime()
+      ! Column batches: psia/acol hold only `ncol` columns at a time, which is what
+      ! makes large k-grids fit (the buffers are 2*nnr*nkstot*ncol complex).
+      xcol_out = czero
+      DO ib0c = 1, nloc, ncol
+         nbc = MIN(ncol, nloc-ib0c+1)
+         ! (a) FFT every (source, column-in-batch) ONCE into psia
+         psia = czero
+         DO kgs2 = 1, nkstot
+            DO ia = 1, nbc
+               ga = col0 + ib0c + ia - 1
+               IF (src_pass .AND. uk(selA(ga)) /= kgs2) CYCLE
+               tz2 = wtime()
 !$omp parallel do simd schedule(static)
-            DO ig = 1, dffts%nnr
-               psic(ig) = czero
-            ENDDO
-!$omp end parallel do simd
-            DO n2 = 1, ngk_all(kgs2)
-               psic(dffts%nl(igk_all(n2,kgs2))) = xcol(n2,ia,kgs2)
-            ENDDO
-            tsc_ = tsc_ + (wtime()-tz2); tz2 = wtime()
-            CALL invfft('Wave', psic, dffts)
-            psia(:,kgs2,ia) = psic
-            tft_ = tft_ + (wtime()-tz2)
-         ENDDO
-      ENDDO
-      ! (b) grid-blocked contraction: for each chunk of real-space points the whole
-      !     (channel x source x column) contraction runs out of cache, so psia, the
-      !     folded potentials and the accumulator are each streamed exactly once.
-      tz2 = wtime()
-!$omp parallel do private(c0,ce,ik2,kgs2,ia,iq2,ip2,ig,accb,vlo) schedule(static)
-      DO c0 = 1, dffts%nnr, CBLK
-         ce = MIN(CBLK, dffts%nnr-c0+1)
-         DO ik2 = 1, nkstot
-            accb(1:ce,1:nloc) = czero
-            DO kgs2 = 1, nkstot
-               iq2 = map_iq(ik2,kgs2); ip2 = map_ip(ik2,kgs2)
-               DO ig = 1, ce
-                  vlo(ig) = phw(c0+ig-1,ip2)*Vq(c0+ig-1,iq2)
+               DO ig = 1, dffts%nnr
+                  psic(ig) = czero
                ENDDO
-               DO ia = 1, nloc
+!$omp end parallel do simd
+               DO n2 = 1, ngk_all(kgs2)
+                  psic(dffts%nl(igk_all(n2,kgs2))) = xcol(n2,ib0c+ia-1,kgs2)
+               ENDDO
+               tsc_ = tsc_ + (wtime()-tz2); tz2 = wtime()
+               CALL invfft('Wave', psic, dffts)
+               psia(:,kgs2,ia) = psic
+               tft_ = tft_ + (wtime()-tz2)
+            ENDDO
+         ENDDO
+         ! (b) grid-blocked contraction (everything for this batch stays in cache)
+         tz2 = wtime()
+!$omp parallel do private(c0,ce,ik2,kgs2,ia,iq2,ip2,ig,accb,vlo) schedule(static)
+         DO c0 = 1, dffts%nnr, CBLK
+            ce = MIN(CBLK, dffts%nnr-c0+1)
+            DO ik2 = 1, nkstot
+               accb(1:ce,1:nbc) = czero
+               DO kgs2 = 1, nkstot
+                  iq2 = map_iq(ik2,kgs2); ip2 = map_ip(ik2,kgs2)
                   DO ig = 1, ce
-                     accb(ig,ia) = accb(ig,ia) + vlo(ig)*psia(c0+ig-1,kgs2,ia)
+                     vlo(ig) = phw(c0+ig-1,ip2)*Vq(c0+ig-1,iq2)
+                  ENDDO
+                  DO ia = 1, nbc
+                     DO ig = 1, ce
+                        accb(ig,ia) = accb(ig,ia) + vlo(ig)*psia(c0+ig-1,kgs2,ia)
+                     ENDDO
+                  ENDDO
+               ENDDO
+               DO ia = 1, nbc
+                  DO ig = 1, ce
+                     acol(c0+ig-1,ik2,ia) = accb(ig,ia)
                   ENDDO
                ENDDO
             ENDDO
-            DO ia = 1, nloc
-               DO ig = 1, ce
-                  acol(c0+ig-1,ik2,ia) = accb(ig,ia)
+         ENDDO
+!$omp end parallel do
+         tml_ = tml_ + (wtime()-tz2)
+         ! (c) back to G space for this batch
+         DO ik2 = 1, nkstot
+            DO ia = 1, nbc
+               psic = acol(:,ik2,ia)
+               CALL fwfft('Wave', psic, dffts)
+               DO n2 = 1, ngk_all(ik2)
+                  xcol_out(n2,ib0c+ia-1,ik2) = psic(dffts%nl(igk_all(n2,ik2)))
                ENDDO
             ENDDO
          ENDDO
       ENDDO
-!$omp end parallel do
-      tml_ = tml_ + (wtime()-tz2)
-      xcol = czero
-      DO ik2 = 1, nkstot
-         DO ia = 1, nloc
-            psic = acol(:,ik2,ia)
-            CALL fwfft('Wave', psic, dffts)
-            DO n2 = 1, ngk_all(ik2)
-               xcol(n2,ia,ik2) = psic(dffts%nl(igk_all(n2,ik2)))
-            ENDDO
-         ENDDO
-      ENDDO
+      xcol = xcol_out
     END SUBROUTINE do_fold_col
 
     SUBROUTINE project_PA(v3)

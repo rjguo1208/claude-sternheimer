@@ -541,12 +541,13 @@ CATALOG = [
      "continued fraction / $\\chi$ augmentation; plus the fold-grid requirement and the route from the "
      "downfolded vertex to the $T$-matrix, the spectral function and the electron&ndash;defect self-energy.",
      '<a href="pages/methods.html">Open derivations &rarr;</a>'),
-    ("Downfolding RESULTS: Sdisp, V$_S$, O$_S$, Se$_S$ truth gates (rev 3)", "Result", "2026-08-07", "prod", "Headline",
-     "REVISION 3: a fold-grid commensurability bug invalidated the old V$_S$/Sdisp 6x6 numbers (recomputed; "
-     "O$_S$/Se$_S$/$\\chi$/12x12 unaffected), and the residual offsets are a potential-reference mismatch "
-     "predicted parameter-free. NET RESULT: $\\omega$-resolved MODE C matches the supercell truth on ALL "
-     "three defects to $\\le$8 meV absolute and 0.7&ndash;3.8 meV in shape, with no fitting and no basis "
-     "engineering. Nothing structural remains.",
+    ("Downfolding RESULTS: Sdisp, V$_S$, O$_S$, Se$_S$ truth gates (rev 4)", "Result", "2026-08-08", "prod", "Headline",
+     "REVISION 4 adds a second, independent gate: a 12x12 $k$-grid is four uncoupled shifted 6x6 runs "
+     "(cosets of the supercell reciprocal lattice), so the downfold can be tested at the supercell $M$ "
+     "point against a dedicated 107-atom NSCF it has never seen. Raw offset $+25.0\\pm0.8$ meV at $M$ vs "
+     "$+25.5\\pm1.7$ at $\\Gamma$ &mdash; the reference constant is a property of $\\Delta V$, not of $k$. "
+     "NET RESULT: $\\omega$-resolved MODE C matches the supercell truth on ALL three defects to $\\le$8 meV "
+     "absolute and 0.7&ndash;3.8 meV in shape, with no fitting and no basis engineering.",
      '<a href="pages/twolevel-results.html">Open results &rarr;</a>'),
     ("Deflated ladder: explicit all-order rest ($\\le$150) + Sternheimer tail", "Method", "2026-08-05", "ok", "Derived &amp; certified",
      "Schur elimination locks the coherent low rest into an exact inverse $D_1$; only tail vertices "
