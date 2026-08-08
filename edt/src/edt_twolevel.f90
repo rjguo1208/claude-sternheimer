@@ -1073,42 +1073,70 @@ CONTAINS
       COMPLEX(dp), INTENT(INOUT) :: v3(:,:,:)
       LOGICAL, INTENT(IN) :: src_pass
       INTEGER :: kgs, ikl, kgl, aa, n2, ig
+      REAL(dp) :: tsc, tft, tml, tcl, tz, tzr, tbc, tkb
+      INTEGER, SAVE :: ndv = 0
+      tsc = 0.d0; tft = 0.d0; tml = 0.d0; tcl = 0.d0; tbc = 0.d0; tkb = 0.d0
+      tz = wtime()
       acc3 = czero
       kcd = czero; kcp = czero
+      tzr = wtime()-tz
+      ! ---- KB coefficients: every rank does its OWN sources, in parallel, BEFORE
+      !      the broadcast loop.  (Leaving this inside the loop serialised the
+      !      whole sweep: 35 ranks idled at each bcast while one owner worked.)
+      tz = wtime()
+      DO ikl = 1, nks
+         kgl = ikl + iks - 1
+         CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xkc3_of(kgl), vkb_d, &
+                          V_d%nat,V_d%ityp,V_d%tau, nkb_d)
+         CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xkc3_of(kgl), vkb_p, &
+                          V_p%nat,V_p%ityp,V_p%tau, nkb_p)
+         CALL ZGEMM('C','N', nkb_d, NA_, ngk_all(kgl), cone, vkb_d, npwx, &
+                    v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2), czero, BDl, nkb_d)
+         CALL ZGEMM('C','N', nkb_p, NA_, ngk_all(kgl), cone, vkb_p, npwx, &
+                    v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2), czero, BPl, nkb_p)
+         DO aa = 1, NA_
+            IF (src_pass .AND. uk(selA(aa)) /= kgl) CYCLE
+            CALL make_coeff(V_d%nat,V_d%ityp,V_d%ntyp,nkb_d,BDl(:,aa),tmpd)
+            CALL make_coeff(V_p%nat,V_p%ityp,V_p%ntyp,nkb_p,BPl(:,aa),tmpp)
+            kcd(:,aa) = kcd(:,aa) + tmpd
+            kcp(:,aa) = kcp(:,aa) + tmpp
+         ENDDO
+      ENDDO
+      tkb = wtime()-tz
+      CALL mp_sum(kcd, inter_pool_comm)
+      CALL mp_sum(kcp, inter_pool_comm)
+
       DO kgs = 1, nkstot
          owner = kowner(kgs)
+         tz = wtime()
          IF (owner == my_pool_id) xbuf(:,1:NA_) = v3(:, kgs-iks+1, 1:NA_)
          CALL mp_bcast(xbuf(:,1:NA_), owner, inter_pool_comm)
-         ! KB bec at this source-k (ZGEMM), OWNER POOL ONLY (mp_sum'd below)
-         IF (owner == my_pool_id) THEN
-            CALL get_betavkb(ngk_all(kgs), igk_all(1,kgs), xkc3_of(kgs), vkb_d, &
-                             V_d%nat,V_d%ityp,V_d%tau, nkb_d)
-            CALL get_betavkb(ngk_all(kgs), igk_all(1,kgs), xkc3_of(kgs), vkb_p, &
-                             V_p%nat,V_p%ityp,V_p%tau, nkb_p)
-            CALL ZGEMM('C','N', nkb_d, NA_, ngk_all(kgs), cone, vkb_d, npwx, xbuf, npwx, czero, BDl, nkb_d)
-            CALL ZGEMM('C','N', nkb_p, NA_, ngk_all(kgs), cone, vkb_p, npwx, xbuf, npwx, czero, BPl, nkb_p)
-            DO aa = 1, NA_
-               IF (src_pass .AND. uk(selA(aa)) /= kgs) CYCLE
-               CALL make_coeff(V_d%nat,V_d%ityp,V_d%ntyp,nkb_d,BDl(:,aa),tmpd)
-               CALL make_coeff(V_p%nat,V_p%ityp,V_p%ntyp,nkb_p,BPl(:,aa),tmpp)
-               kcd(:,aa) = kcd(:,aa) + tmpd
-               kcp(:,aa) = kcp(:,aa) + tmpp
-            ENDDO
-         ENDIF
+         tbc = tbc + (wtime()-tz)
          DO aa = 1, NA_
             IF (src_pass .AND. uk(selA(aa)) /= kgs) CYCLE
-            psic = czero
+            tz = wtime()
+!$omp parallel do simd schedule(static)
+            DO ig = 1, dffts%nnr
+               psic(ig) = czero
+            ENDDO
+!$omp end parallel do simd
             DO n2 = 1, ngk_all(kgs)
                psic(dffts%nl(igk_all(n2,kgs))) = xbuf(n2,aa)
             ENDDO
+            tsc = tsc + (wtime()-tz); tz = wtime()
             CALL invfft('Wave', psic, dffts)
+            tft = tft + (wtime()-tz); tz = wtime()
             DO ikl = 1, nks
-               acc3(:,ikl,aa) = acc3(:,ikl,aa) + Vfa(:,ikl,kgs) * psic
+!$omp parallel do simd schedule(static)
+               DO ig = 1, dffts%nnr
+                  acc3(ig,ikl,aa) = acc3(ig,ikl,aa) + Vfa(ig,ikl,kgs) * psic(ig)
+               ENDDO
+!$omp end parallel do simd
             ENDDO
+            tml = tml + (wtime()-tz)
          ENDDO
       ENDDO
-      CALL mp_sum(kcd, inter_pool_comm)
-      CALL mp_sum(kcp, inter_pool_comm)
+      tz = wtime()
       v3 = czero
       DO ikl = 1, nks
          kgl = ikl + iks - 1
@@ -1124,6 +1152,14 @@ CONTAINS
          CALL ZGEMM('N','N', ngk_all(kgl), NA_, nkb_d,  cone, vkb_d, npwx, kcd, nkb_d, cone, v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2))
          CALL ZGEMM('N','N', ngk_all(kgl), NA_, nkb_p, -cone, vkb_p, npwx, kcp, nkb_p, cone, v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2))
       ENDDO
+      tcl = wtime()-tz
+      ndv = ndv + 1
+      IF (ionode .AND. ndv <= 3) THEN
+         WRITE(stdout,'(5X,A,I2,A,7(A,F6.1))') 'apply_dV #',ndv,' [s]:', &
+              ' acc3zero ', tzr, ' bcast ', tbc, ' KBown ', tkb, ' scatter ', tsc, &
+              ' invfft ', tft, ' V*psi ', tml, ' close ', tcl
+         FLUSH(stdout)
+      ENDIF
     END SUBROUTINE apply_dV
 
     SUBROUTINE project_PA(v3)
