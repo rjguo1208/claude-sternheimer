@@ -31,7 +31,6 @@ CONTAINS
     USE fft_base,  ONLY : dffts
     USE cell_base, ONLY : at, alat
     USE io_global, ONLY : ionode, stdout
-    USE edt_input, ONLY : coarse_nk1, coarse_nk2, coarse_nk3
     IMPLICIT NONE
     REAL(dp),    INTENT(IN)  :: q_cryst(3)
     COMPLEX(dp), INTENT(OUT) :: Vf(:)
@@ -44,17 +43,20 @@ CONTAINS
     !    (SAVEd), and the phase factorized 1D: exp(iq·r) = px(irx)py(iry)pz(irz)
     !    so COS/SIN is evaluated nr1+nr2+nr3 times instead of nr1*nr2*nr3.
     IF (.NOT. ALLOCATED(fold_map)) THEN
-       ! The modulo fold is correct ONLY if the cube grid divided by the primitive
-       ! grid equals the SUPERCELL MULTIPLICITY along each axis.  A merely integral
+       ! The cube holds ONE isolated defect; the phase exp(i q.r) below runs over
+       ! the whole cube, so V_q is the finite-box transform of a localized DeltaV
+       ! and is defined for ARBITRARY q -- the k-grid is free and need not match
+       ! the supercell (this is EDI's ed_coarse_full_q convention: exact q, no BZ
+       ! wrap).  What the modulo map does require is that cube grid points land on
+       ! primitive grid points, i.e. the ratio equals the SUPERCELL MULTIPLICITY.  A merely integral
        ! ratio is not enough: e.g. a 240-point cube of a 6x supercell folded onto a
        ! 30-point primitive grid (ratio 8) silently mis-assigns every position.
        BLOCK
          REAL(dp) :: rsc(3), lp, lc
-         INTEGER  :: nsc(3), idir, nr_p(3), nr_c(3), nkg(3)
+         INTEGER  :: nsc(3), idir, nr_p(3), nr_c(3)
          CHARACTER(LEN=160) :: msg
          nr_p = (/ dffts%nr1, dffts%nr2, dffts%nr3 /)
          nr_c = (/ V_d%nr1,   V_d%nr2,   V_d%nr3   /)
-         nkg  = (/ coarse_nk1, coarse_nk2, coarse_nk3 /)
          DO idir = 1, 3
             lp = SQRT(SUM((at(:,idir)*alat)**2))
             lc = SQRT(SUM((V_d%at(:,idir)*V_d%alat)**2))
@@ -75,18 +77,6 @@ CONTAINS
                     ': cube ', nr_c(idir), ' /= supercell ', nsc(idir), &
                     ' x primitive ', nr_p(idir), ' (need nr_cube = nsc * nr_prim)'
                CALL errore('build_V_folded', TRIM(msg), idir)
-            ENDIF
-            ! DeltaV only has Fourier weight at supercell G-vectors, so the fold
-            ! channel set is the supercell reciprocal lattice.  A k-grid finer than
-            ! the supercell has pairs with k-k' outside that set; the modulo channel
-            ! lookup would alias them onto a real channel and invent a matrix element
-            ! that must vanish.  Sample the finer grid as separate shifted runs, one
-            ! per coset of the supercell reciprocal lattice, instead.
-            IF (nkg(idir) > 0 .AND. nkg(idir) /= nsc(idir)) THEN
-               WRITE(msg,'(A,I1,A,I4,A,I3,A)') 'fold channel set on axis ', idir, &
-                    ': k-grid ', nkg(idir), ' /= supercell ', nsc(idir), &
-                    ' (run one shifted job per coset instead)'
-               CALL errore('build_V_folded', TRIM(msg), 10+idir)
             ENDIF
          ENDDO
        END BLOCK

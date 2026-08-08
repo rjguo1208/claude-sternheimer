@@ -772,7 +772,7 @@ CONTAINS
     USE becmod,           ONLY : becp, allocate_bec_type, deallocate_bec_type
     USE uspp,             ONLY : nkb
     USE constants,        ONLY : tpi
-    USE edt_input,        ONLY : fold_col, col_chunk
+    USE edt_input,        ONLY : fold_col, col_chunk, zslab_tol
     IMPLICIT NONE
     REAL(dp), INTENT(IN) :: xkcr(3,nkstot), omega0_ry, win_min_ry, win_max_ry
     INTEGER,  INTENT(IN) :: nbndskip_in, nstep
@@ -798,6 +798,12 @@ CONTAINS
     INTEGER,     ALLOCATABLE :: map_iq(:,:), map_ip(:,:)
     INTEGER :: nloc, col0, iq_, ip_, ia, ga, ncol, ib0c, nbc
     LOGICAL :: use_col
+    ! ---- 2D slab: the vacuum carries no wavefunction, so the r-space contraction
+    !      can skip those z-slices entirely (the FFTs still need the full grid) ----
+    INTEGER, PARAMETER :: CBLKZ = 1024
+    INTEGER, ALLOCATABLE :: blk_lo(:), blk_ce(:)
+    INTEGER :: nblk, nxy_, nzkeep, nzseg, zseg(2,2)
+    REAL(dp) :: zdrop
     REAL(dp) :: xk3(3)
     COMPLEX(dp) :: cone, czero
     INTEGER, EXTERNAL :: global_kpoint_index
@@ -919,6 +925,7 @@ CONTAINS
             'fold_col ON: ', nloc, ' columns/rank (chunk ', ncol, '), all ', nkstot, &
             ' channels local; fold buffers ', &
             2.d0*DBLE(dffts%nnr)*DBLE(nkstot)*DBLE(ncol)*16.d0/1.d9, ' GB/rank'
+       CALL pick_zslab()
     ENDIF
 
     ! ---- Krylov storage ----
@@ -1319,13 +1326,95 @@ CONTAINS
       ENDDO
     END SUBROUTINE col2k
 
+    SUBROUTINE pick_zslab()
+      !! 2D systems: most of the cell is vacuum, where the wavefunctions have no
+      !! weight, so the r-space contraction V(r)psi(r) there is multiplying zeros.
+      !! Measure the z-profile of the active density, keep the shortest cyclic
+      !! window holding 1-zslab_tol of it, and hand the contraction a block list
+      !! covering only that window.  The FFTs still run on the full grid; only the
+      !! multiply is restricted, and the multiply is 5/6 of the fold.
+      INTEGER  :: iz, ib, kg, n2, lo, ln, i0, i1, best_lo, best_len, cnt, ibk, c0
+      REAL(dp) :: tot, acc_, want, got
+      REAL(dp), ALLOCATABLE :: rz(:)
+      nxy_ = dffts%nnr / MAX(dffts%nr3,1)
+      nzkeep = dffts%nr3
+      zdrop  = 0.0_dp
+      best_lo = 1; best_len = dffts%nr3
+      IF (zslab_tol > 0.0_dp .AND. nxy_*dffts%nr3 == dffts%nnr) THEN
+         ALLOCATE(rz(dffts%nr3)); rz = 0.0_dp
+         DO kg = iks, iks+nks-1                      ! this pool's own channels
+            DO ib = 1, nbnd
+               psic = czero
+               DO n2 = 1, ngk_all(kg)
+                  psic(dffts%nl(igk_all(n2,kg))) = evc_all_l(n2,ib,kg)
+               ENDDO
+               CALL invfft('Wave', psic, dffts)
+               DO iz = 1, dffts%nr3
+                  rz(iz) = rz(iz) + SUM(ABS(psic((iz-1)*nxy_+1:iz*nxy_))**2)
+               ENDDO
+            ENDDO
+         ENDDO
+         CALL mp_sum(rz, inter_pool_comm)
+         tot = SUM(rz); want = (1.0_dp - zslab_tol)*tot
+         best_len = dffts%nr3 + 1
+         DO lo = 1, dffts%nr3                        ! shortest cyclic window >= want
+            acc_ = 0.0_dp; cnt = 0
+            DO ln = 1, dffts%nr3
+               iz = MOD(lo+ln-2, dffts%nr3) + 1
+               acc_ = acc_ + rz(iz); cnt = ln
+               IF (acc_ >= want) EXIT
+            ENDDO
+            IF (acc_ >= want .AND. cnt < best_len) THEN
+               best_len = cnt; best_lo = lo; got = acc_
+            ENDIF
+         ENDDO
+         IF (best_len > dffts%nr3) THEN
+            best_lo = 1; best_len = dffts%nr3; got = tot
+         ENDIF
+         nzkeep = best_len
+         zdrop  = 1.0_dp - got/MAX(tot,1.d-300)
+         DEALLOCATE(rz)
+      ENDIF
+      ! flat index segments (z is the slowest index, so each is contiguous)
+      i0 = best_lo; i1 = best_lo + best_len - 1
+      IF (i1 <= dffts%nr3) THEN
+         nzseg = 1
+         zseg(1,1) = (i0-1)*nxy_ + 1;  zseg(2,1) = i1*nxy_
+      ELSE
+         nzseg = 2
+         zseg(1,1) = (i0-1)*nxy_ + 1;  zseg(2,1) = dffts%nr3*nxy_
+         zseg(1,2) = 1;                zseg(2,2) = (i1 - dffts%nr3)*nxy_
+      ENDIF
+      nblk = 0
+      DO ibk = 1, nzseg
+         DO c0 = zseg(1,ibk), zseg(2,ibk), CBLKZ
+            nblk = nblk + 1
+         ENDDO
+      ENDDO
+      ALLOCATE(blk_lo(nblk), blk_ce(nblk))
+      nblk = 0
+      DO ibk = 1, nzseg
+         DO c0 = zseg(1,ibk), zseg(2,ibk), CBLKZ
+            nblk = nblk + 1
+            blk_lo(nblk) = c0
+            blk_ce(nblk) = MIN(CBLKZ, zseg(2,ibk)-c0+1)
+         ENDDO
+      ENDDO
+      IF (ionode .AND. nzkeep < dffts%nr3) THEN
+         WRITE(stdout,'(5X,A,I4,A,I4,A,F5.1,A,ES9.2,A,I3,A)') &
+              'zslab: keeping ', nzkeep, ' of ', dffts%nr3, ' z-slices (', &
+              100.d0*DBLE(nzkeep)/DBLE(dffts%nr3), '% of the grid), dropped weight ', &
+              zdrop, ' in ', nzseg, ' segment(s)'
+         FLUSH(stdout)
+      ENDIF
+    END SUBROUTINE pick_zslab
+
     SUBROUTINE do_fold_col(src_pass, tsc_, tft_, tml_)
       !! local-potential fold, entirely local: 396/npool*nkstot FFTs per rank
       LOGICAL, INTENT(IN) :: src_pass
       REAL(dp), INTENT(INOUT) :: tsc_, tft_, tml_
-      INTEGER, PARAMETER :: CBLK = 1024
-      INTEGER :: kgs2, ik2, n2, iq2, ip2, ig, c0, ce
-      COMPLEX(dp) :: accb(CBLK, 64), vlo(CBLK)
+      INTEGER :: kgs2, ik2, n2, iq2, ip2, ig, c0, ce, ibk
+      COMPLEX(dp) :: accb(CBLKZ, 64), vlo(CBLKZ)
       REAL(dp) :: tz2
       ! Column batches: psia/acol hold only `ncol` columns at a time, which is what
       ! makes large k-grids fit (the buffers are 2*nnr*nkstot*ncol complex).
@@ -1355,9 +1444,10 @@ CONTAINS
          ENDDO
          ! (b) grid-blocked contraction (everything for this batch stays in cache)
          tz2 = wtime()
-!$omp parallel do private(c0,ce,ik2,kgs2,ia,iq2,ip2,ig,accb,vlo) schedule(static)
-         DO c0 = 1, dffts%nnr, CBLK
-            ce = MIN(CBLK, dffts%nnr-c0+1)
+         IF (nzkeep < dffts%nr3) acol = czero    ! skipped slices must stay zero
+!$omp parallel do private(ibk,c0,ce,ik2,kgs2,ia,iq2,ip2,ig,accb,vlo) schedule(static)
+         DO ibk = 1, nblk
+            c0 = blk_lo(ibk); ce = blk_ce(ibk)
             DO ik2 = 1, nkstot
                accb(1:ce,1:nbc) = czero
                DO kgs2 = 1, nkstot

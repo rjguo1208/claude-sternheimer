@@ -226,11 +226,13 @@ For V$_S$ the two answers and the truth are compared level-by-level in a
 ## 8. $12\times12$ by coset decomposition — a second, independent gate
 
 Everything above lives at one supercell $k$-point ($\Gamma$), because a
-$6\times6$ $k$-grid on a $6\times6$ cube folds there. Section 7b of the methods
-note shows the finer grid is reachable exactly rather than approximately: $\Delta
-V$ cannot connect $k$-points differing by anything but a supercell $\mathbf
-G$, so a $12\times12$ grid is **four uncoupled shifted $6\times6$ runs**, one per
-coset, sampling the supercell BZ at $\Gamma$ and the three $M$ points.
+$6\times6$ $k$-grid on a $6\times6$ cube folds there. To get a second one we do
+*not* need a finer grid — we need the same defect concentration sampled
+elsewhere in the supercell BZ. Splitting a $12\times12$ grid into its four
+cosets of the supercell reciprocal lattice does exactly that: four shifted
+$36$-$k$ runs, each still one defect per 36 cells, folding to $\Gamma$ and the
+three $M$ points. (The finer grid *run directly* is a different and more dilute
+calculation — methods §7b&ndash;7c.)
 
 That turns the sampling upgrade into a validation. The three $M$ cosets are
 symmetry-equivalent, and the downfold does not know it: run separately they

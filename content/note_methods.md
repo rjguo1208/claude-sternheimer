@@ -133,29 +133,51 @@ component the coarse grid holds — here it discards $4\times10^{-8}$ of the wei
 while the fold cost falls as $n^{\rm cube}$: $5.6$ s per Lanczos step instead of
 $15.6$, with quasiparticle levels moved by $\le 0.1$ meV.
 
-### 7b. The fold channel set: $k$-grid $=$ supercell multiplicity
+### 7b. The $k$-grid is free: the supercell is a box, not a periodicity
 
-$\Delta V$ is periodic on the supercell, so it has Fourier weight **only** on
-supercell reciprocal vectors and
+The supercell exists to *capture one isolated defect*, not because we want a
+defect array. EDI builds the fold accordingly — on the fly, at the **exact**
+$q=\mathbf k_f-\mathbf k_i$, with no BZ wrap, and with the phase running over
+the whole cube (`ed_coarse_full_q`):
 
-$$\langle\psi_{\mathbf k}|\Delta V|\psi_{\mathbf k'}\rangle = 0
-\quad\text{unless}\quad \mathbf k-\mathbf k' \in \{\mathbf G_{\rm sc}\}.$$
+$$V_q(\mathbf r)=\sum_{\mathbf R\in\rm cube}\Delta V(\mathbf r+\mathbf R)\,
+e^{i\mathbf q\cdot(\mathbf r+\mathbf R)} ,$$
 
-A $k$-grid finer than $N^{\rm sc}$ therefore contains pairs with no channel at
-all, and the modulo channel lookup aliases them onto a real channel — inventing a
-matrix element that must vanish. Run directly, a $12\times12$ grid against a
-$6\times6$ cube gives cross-coset blocks as large as the diagonal ones
-(ratio $0.98$), silently. EDT now aborts unless `coarse_nk` equals $N^{\rm sc}$
-on every axis.
+which is the finite-box transform of a *localized* $\Delta V$. It is defined,
+and generically nonzero, for **arbitrary** $q$ — so $\langle\psi_{\mathbf
+k}|\Delta V|\psi_{\mathbf k'}\rangle$ connects any pair of $k$-points and the
+$k$-grid need not match the supercell. (Wrapping $q$ into the first BZ *without*
+the compensating phase is what would be wrong; MODE C's canonical storage
+applies it explicitly, $V_{q+G}(\mathbf r)=e^{iG\cdot\mathbf r}V_q(\mathbf r)$,
+exact because $e^{iG\cdot\mathbf R}=1$.) Measured on a $12\times12$ grid against
+a $6\times6$ cube: matrix elements between $k$-points differing by a
+non-supercell vector reach $0.975$ of the largest within-supercell one. Treating
+the cube as a periodicity would discard most of the scattering channels.
 
-The finer grid is still reachable, exactly: since $\Delta V$ cannot connect them,
-the $N_k$ points split into $(N_k/N^{\rm sc})^2$ cosets of the supercell
-reciprocal lattice, each of which is an *independent* problem of exactly the
-designed size. A $12\times12$ grid on a $6\times6$ cube is four shifted
-$6\times6$ runs at $\mathbf k_0 \in \{0,\tfrac12\mathbf b_1^{\rm sc}\}\times
-\{0,\tfrac12\mathbf b_2^{\rm sc}\}$ — the same cost per run, no new memory, and
-each shift is one supercell $k$-point at which the answer can be checked against
-an independent supercell NSCF.
+Only the real-space modulo map constrains the grids, and that constraint is
+§7's $n^{\rm cube}=N^{\rm sc}n^{\rm prim}$.
+
+### 7c. Two different $12\times12$ calculations
+
+Because $H_{\rm eff}=\varepsilon_A+(M_{AA}+\Sigma)/N_k$ carries the
+Born&ndash;von-K&aacute;rm&aacute;n normalization, $N_k$ *is* the dilution: one
+defect per $N_k$ primitive cells. Two inequivalent things therefore go by
+"$12\times12$":
+
+| | $k$-set | defect density | supercell truth? |
+|---|---|---|---|
+| **coset-decomposed** | four shifted $36$-$k$ runs | $1/36$ cells | yes — the $6\times6$ cell, at four supercell $k$ |
+| **direct** | one $144$-$k$ run | $1/144$ cells | no — would need a $431$-atom cell |
+
+The coset route splits the grid into $(N_k/N^{\rm sc})^2$ shifted runs of the
+designed size, each of which folds to one supercell $k$-point. It holds the
+concentration fixed, which is exactly what makes it comparable to a supercell
+calculation — it is a *validation* device, not the physics target. The direct
+run is the physics: full $q$ resolution at a four-times more dilute defect, the
+limit EDI is built for. The two agree where they must — the coset-diagonal
+blocks of the direct $144$-$k$ vertex reproduce the four shifted $36$-$k$ runs
+to $2\times10^{-6}$ on a block scale of $66$ (independent NSCF runs, so this is a
+gauge-invariant comparison of block eigenvalues).
 
 ## 8. From the downfold to the $T$-matrix and the electron–defect self-energy
 

@@ -542,10 +542,13 @@ CATALOG = [
      "downfolded vertex to the $T$-matrix, the spectral function and the electron&ndash;defect self-energy.",
      '<a href="pages/methods.html">Open derivations &rarr;</a>'),
     ("Downfolding RESULTS: Sdisp, V$_S$, O$_S$, Se$_S$ truth gates (rev 4)", "Result", "2026-08-08", "prod", "Headline",
-     "REVISION 4 adds a second, independent gate: a 12x12 $k$-grid is four uncoupled shifted 6x6 runs "
-     "(cosets of the supercell reciprocal lattice), so the downfold can be tested at the supercell $M$ "
-     "point against a dedicated 107-atom NSCF it has never seen. Raw offset $+25.0\\pm0.8$ meV at $M$ vs "
-     "$+25.5\\pm1.7$ at $\\Gamma$ &mdash; the reference constant is a property of $\\Delta V$, not of $k$. "
+     "REVISION 4 adds a second, independent gate: splitting a 12x12 $k$-grid into its four cosets gives "
+     "four shifted 6x6 runs at the SAME defect concentration, so the downfold can be tested at the "
+     "supercell $M$ point against a dedicated 107-atom NSCF it has never seen. Raw offset $+25.0\\pm0.8$ "
+     "meV at $M$ vs $+25.5\\pm1.7$ at $\\Gamma$ &mdash; the reference constant is a property of "
+     "$\\Delta V$, not of $k$. (Run directly instead, a 12x12 grid is a four-times more dilute defect "
+     "with full $q$ resolution &mdash; the supercell is a box holding one isolated defect, not a "
+     "periodicity, so the $k$-grid is free.) "
      "NET RESULT: $\\omega$-resolved MODE C matches the supercell truth on ALL three defects to $\\le$8 meV "
      "absolute and 0.7&ndash;3.8 meV in shape, with no fitting and no basis engineering.",
      '<a href="pages/twolevel-results.html">Open results &rarr;</a>'),
