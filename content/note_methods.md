@@ -133,6 +133,41 @@ component the coarse grid holds — here it discards $4\times10^{-8}$ of the wei
 while the fold cost falls as $n^{\rm cube}$: $5.6$ s per Lanczos step instead of
 $15.6$, with quasiparticle levels moved by $\le 0.1$ meV.
 
+### 7a. 2D slabs: skipping the vacuum in the contraction
+
+Most of a slab cell is vacuum, and $V(\mathbf r)\psi(\mathbf r)$ there is
+multiplying zeros. The FFTs still need the whole grid, but the real-space
+contraction does not — and with one rank per pool the $z$-slices are contiguous
+in the flat index, so restricting it is a block list, not an indexing rewrite.
+
+What a dropped slice costs a matrix element is bounded by
+$\sum_{\mathbf r\in\rm drop}|V(\mathbf r)|\rho(\mathbf r)$, so **that product**,
+not the density alone, is the profile to threshold. The distinction is not
+cosmetic: thresholding $\rho$ alone keeps $87\%$ of the grid at $10^{-5}$ and
+saves nothing, because in a slab the upper conduction bands are vacuum
+resonances and $\rho$ has a vacuum plateau. Weighted by $|V|$ (`zslab_tol`):
+
+| `zslab_tol` | $z$-slices kept | operator unit test | fold (s/step) | level shift |
+|---|---|---|---|---|
+| off | 216 (100%) | $1.9\times10^{-14}$ | 5.6 | — |
+| $10^{-5}$ | 181 (84%) | $5.2\times10^{-8}$ | 5.50 | $0.000$ meV |
+| $10^{-4}$ | 158 (73%) | $2.6\times10^{-7}$ | 5.38 | $0.000$ meV |
+| $\mathbf{10^{-3}}$ | **95 (44%)** | $4.8\times10^{-4}$ | **4.90** | $\mathbf{0.005}$ **meV** |
+| $10^{-2}$ | 46 (21%) | $3.7\times10^{-2}$ | 4.50 | $6.3$ meV |
+| $5\times10^{-2}$ | 30 (14%) | $1.0\times10^{-1}$ | 4.40 | $17$ meV |
+
+$10^{-3}$ is the knee: $44\%$ of the grid for a $0.005$ meV shift. Note that the
+Lanczos matrices themselves move much earlier ($\lVert\Delta A\rVert$ reaches
+$0.4$ on a scale of $31$ at $10^{-3}$) while the levels do not — the basis
+rotates but spans the same space, which is why the *levels*, not the matrices,
+are the acceptance test.
+
+The saving is real but capped, and the profile says why: after the coarse cube,
+$V\!\cdot\!\psi$ is only $1.7$ s of the $5.6$ s fold, and $10^{-3}$ cuts it to
+$0.9$ s — exactly proportional to the grid, but $12\%$ of the step. The largest
+remaining item is the KB nonlocal projector work ($1.3$ s), which is where the
+next factor has to come from.
+
 ### 7b. The $k$-grid is free: the supercell is a box, not a periodicity
 
 The supercell exists to *capture one isolated defect*, not because we want a

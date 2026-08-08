@@ -17,7 +17,7 @@ MODULE edt_sternheimer
   IMPLICIT NONE
   PRIVATE
   PUBLIC :: edt_set_vrs, hpsi_setup_k, test_hpsi_eigen, solve_rest_cg, rest_channel_compare
-  PUBLIC :: vtilde_diag_full, vtilde_block_mpi
+  PUBLIC :: vtilde_diag_full, vtilde_block_mpi, edmat_fill_or_check
 
 CONTAINS
 
@@ -480,12 +480,14 @@ CONTAINS
     USE mp_world,         ONLY : world_comm, mpime, nproc
     USE becmod,           ONLY : becp, allocate_bec_type, deallocate_bec_type
     USE uspp,             ONLY : nkb
+    USE edt_input,        ONLY : edmat_infile, edmat_check
     IMPLICIT NONE
     REAL(dp), INTENT(IN) :: xkc(3,nkstot), xkcr(3,nkstot)
     REAL(dp), INTENT(IN) :: omega0_ry, win_min_ry, win_max_ry, thr
     INTEGER,  INTENT(IN) :: nbndskip_in, nk_block_in, iket_band, iket_ki
     CHARACTER(LEN=*), INTENT(IN) :: outfile
     LOGICAL,  INTENT(IN) :: born_flag
+    LOGICAL :: use_file, skip_compute
     INTEGER, EXTERNAL :: global_kpoint_index
 
     INTEGER :: nk_use, iks, ik, kpg, kg, npw_kp, n2, na_max, N_A
@@ -569,6 +571,14 @@ CONTAINS
        FLUSH(stdout)
     ENDIF
 
+    ! ---- edmat.bin supply: born+file (no check) skips ALL wfc/source work ----
+    use_file = LEN_TRIM(edmat_infile) > 0
+    skip_compute = use_file .AND. born_flag .AND. (.NOT. edmat_check)
+    ALLOCATE(Mblk(N_A,N_A), Sgblk(N_A,N_A)); Mblk = czero; Sgblk = czero
+    IF (ionode .AND. use_file) WRITE(stdout,'(5X,2A,L2)') &
+         'edmat.bin supply: ', TRIM(edmat_infile), skip_compute
+    IF (.NOT. skip_compute) THEN
+
     ! ---- gather active wavefunctions to all ranks (each pool reads its local k) ----
     ALLOCATE(evc_act_all(n2,na_max,nkstot)); evc_act_all = czero
     ALLOCATE(evc_tmp(n2,nbnd))
@@ -613,8 +623,7 @@ CONTAINS
     ENDDO
     DEALLOCATE(bec_d, bec_p)
 
-    ! ---- assembly ----
-    ALLOCATE(Mblk(N_A,N_A), Sgblk(N_A,N_A)); Mblk = czero; Sgblk = czero
+    ! ---- assembly ----  (Mblk/Sgblk already allocated before the skip guard)
     ALLOCATE(S(npwx,N_A))
     ALLOCATE(Vf(dffts%nnr), gbuf(dffts%nnr), psic(dffts%nnr), u_n(dffts%nnr))
     gate_err = 0.0_dp; nch_loc = 0
@@ -707,10 +716,14 @@ CONTAINS
        ENDIF
     ENDDO
 
+    ENDIF   ! .NOT. skip_compute
+
     ! ---- reduce blocks across pools (the k'-sum) ----
     CALL mp_sum(Mblk,  inter_pool_comm)
     CALL mp_sum(Sgblk, inter_pool_comm)
     CALL mp_max(gate_err, world_comm)
+    IF (use_file .AND. ionode) &
+       CALL edmat_fill_or_check(TRIM(edmat_infile), xkcr, a2k, a2band, N_A, Mblk, edmat_check)
 
     ALLOCATE(Vblk(N_A,N_A))
     herm = 0.0_dp; mx = 0.0_dp
@@ -778,9 +791,107 @@ CONTAINS
     ENDIF
 
     DEALLOCATE(et_all, igk_all, ngk_all, gk_tmp, na_k, a2off, a2k, a2band, a2slot, eact)
-    DEALLOCATE(evc_act_all, coeff_d_all, coeff_p_all, vkb_d, vkb_p)
-    DEALLOCATE(Mblk, Sgblk, Vblk, S, Vf, gbuf, psic, u_n)
+    IF (ALLOCATED(evc_act_all)) DEALLOCATE(evc_act_all, coeff_d_all, coeff_p_all, vkb_d, vkb_p)
+    IF (ALLOCATED(S)) DEALLOCATE(S, Vf, gbuf, psic, u_n)
+    DEALLOCATE(Mblk, Sgblk, Vblk)
   END SUBROUTINE vtilde_block_mpi
+
+
+  SUBROUTINE edmat_fill_or_check(fname, xkcr, a2k, a2band, N_A, Mblk, do_check)
+    !-------------------------------------------------------------------------
+    ! Read an EDI edmat.bin (STREAM layout, no record markers):
+    !   int32 hdr(6) = ver, nki, nkf, ib0, ib1, naug
+    !   float64 xki(3,nki), xkf(3,nkf)          (crystal coords)
+    !   complex128 M(q,p,ikf,iki), q fastest    (= numpy reshape(nki,nkf,nbt,nbt))
+    ! GAUGE: only meaningful if the file was produced on the SAME wavefunction
+    ! save as this run (matrix elements carry the per-band random phases).
+    ! do_check=.TRUE. : keep the computed Mblk, print |M_file-M_comp| for the
+    !   four (ki/kf)x(band-order) orientations and their conjugates.
+    ! do_check=.FALSE.: overwrite Mblk from the file using orientation OR_FILL.
+    !-------------------------------------------------------------------------
+    USE io_global, ONLY : stdout
+    USE klist,     ONLY : nkstot
+    IMPLICIT NONE
+    CHARACTER(LEN=*), INTENT(IN) :: fname
+    INTEGER,  INTENT(IN) :: N_A, a2k(N_A), a2band(N_A)
+    REAL(dp), INTENT(IN) :: xkcr(3,nkstot)
+    COMPLEX(dp), INTENT(INOUT) :: Mblk(N_A,N_A)
+    LOGICAL,  INTENT(IN) :: do_check
+    INTEGER, PARAMETER :: OR_FILL = 3        ! validated: round-trip gate 3.9e-14 (2026-08-05)
+    INTEGER(4) :: hdr(6)
+    INTEGER :: iu2, nki, nkf, ib0f, ib1f, nbtf, i, kg, a, b, o, ka, kb, ba, bb
+    INTEGER, ALLOCATABLE :: fki(:), fkf(:)
+    REAL(8), ALLOCATABLE :: xki(:,:), xkf(:,:)
+    COMPLEX(8), ALLOCATABLE :: Mf(:,:,:,:)
+    REAL(dp) :: d(3), err(4), erc(4), mmax
+    COMPLEX(dp) :: v(4)
+
+    OPEN(newunit=iu2, file=fname, access='stream', form='unformatted', status='old')
+    READ(iu2) hdr
+    nki = hdr(2); nkf = hdr(3); ib0f = hdr(4); ib1f = hdr(5); nbtf = ib1f - ib0f + 1
+    WRITE(stdout,'(5X,A,6I7)') 'edmat.bin header (ver,nki,nkf,ib0,ib1,naug): ', hdr
+    IF (hdr(6) /= 0) CALL errore('edmat_fill_or_check','aug blocks in file not supported',1)
+    IF (nki /= nkstot .OR. nkf /= nkstot) &
+       CALL errore('edmat_fill_or_check','file k-grid /= run k-grid',1)
+    ALLOCATE(xki(3,nki), xkf(3,nkf))
+    READ(iu2) xki, xkf
+    ! map file k-index -> global k-index of this run (crystal coords mod 1)
+    ALLOCATE(fki(nkstot), fkf(nkstot)); fki = 0; fkf = 0
+    DO kg = 1, nkstot
+       DO i = 1, nki
+          d = xki(:,i) - xkcr(:,kg); d = d - NINT(d)
+          IF (MAXVAL(ABS(d)) < 1.d-5) fki(kg) = i
+          d = xkf(:,i) - xkcr(:,kg); d = d - NINT(d)
+          IF (MAXVAL(ABS(d)) < 1.d-5) fkf(kg) = i
+       ENDDO
+    ENDDO
+    IF (ANY(fki == 0) .OR. ANY(fkf == 0)) &
+       CALL errore('edmat_fill_or_check','k-point matching failed (grid/order/units)',1)
+    IF (ANY(a2band < ib0f) .OR. ANY(a2band > ib1f)) &
+       CALL errore('edmat_fill_or_check','manifold band outside file window ib0..ib1',1)
+    ALLOCATE(Mf(nbtf,nbtf,nkf,nki))
+    READ(iu2) Mf
+    CLOSE(iu2)
+
+    IF (do_check) THEN
+       err = 0.d0; erc = 0.d0; mmax = MAXVAL(ABS(Mblk))
+       DO a = 1, N_A
+          ka = a2k(a); ba = a2band(a) - ib0f + 1
+          DO b = 1, N_A
+             kb = a2k(b); bb = a2band(b) - ib0f + 1
+             v(1) = Mf(bb, ba, fkf(kb), fki(ka))
+             v(2) = Mf(ba, bb, fkf(kb), fki(ka))
+             v(3) = Mf(ba, bb, fkf(ka), fki(kb))
+             v(4) = Mf(bb, ba, fkf(ka), fki(kb))
+             DO o = 1, 4
+                err(o) = MAX(err(o), ABS(v(o) - Mblk(b,a)))
+                erc(o) = MAX(erc(o), ABS(CONJG(v(o)) - Mblk(b,a)))
+             ENDDO
+          ENDDO
+       ENDDO
+       WRITE(stdout,'(5X,A,ES10.2)') 'edmat CHECK vs computed M  (|M|max = ', mmax
+       DO o = 1, 4
+          WRITE(stdout,'(7X,A,I1,A,ES12.4,A,ES12.4)') 'orientation ', o, &
+               ':  |dM| = ', err(o), '   conj: ', erc(o)
+       ENDDO
+       WRITE(stdout,'(5X,A)') '(computed Mblk kept; set edmat_check=.false. to consume the file)'
+    ELSE
+       DO a = 1, N_A
+          ka = a2k(a); ba = a2band(a) - ib0f + 1
+          DO b = 1, N_A
+             kb = a2k(b); bb = a2band(b) - ib0f + 1
+             SELECT CASE (OR_FILL)
+             CASE (1); Mblk(b,a) = Mf(bb, ba, fkf(kb), fki(ka))
+             CASE (2); Mblk(b,a) = Mf(ba, bb, fkf(kb), fki(ka))
+             CASE (3); Mblk(b,a) = Mf(ba, bb, fkf(ka), fki(kb))
+             CASE (4); Mblk(b,a) = Mf(bb, ba, fkf(ka), fki(kb))
+             END SELECT
+          ENDDO
+       ENDDO
+       WRITE(stdout,'(5X,A,I2)') 'Mblk FILLED from edmat.bin, orientation ', OR_FILL
+    ENDIF
+    DEALLOCATE(Mf, xki, xkf, fki, fkf)
+  END SUBROUTINE edmat_fill_or_check
 
 
   SUBROUTINE get_betavkb_ki(ik, vkb, nat, ityp, tau, nkb)

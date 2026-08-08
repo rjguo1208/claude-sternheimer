@@ -1327,21 +1327,25 @@ CONTAINS
     END SUBROUTINE col2k
 
     SUBROUTINE pick_zslab()
-      !! 2D systems: most of the cell is vacuum, where the wavefunctions have no
-      !! weight, so the r-space contraction V(r)psi(r) there is multiplying zeros.
-      !! Measure the z-profile of the active density, keep the shortest cyclic
-      !! window holding 1-zslab_tol of it, and hand the contraction a block list
-      !! covering only that window.  The FFTs still run on the full grid; only the
-      !! multiply is restricted, and the multiply is 5/6 of the fold.
+      !! 2D systems: most of the cell is vacuum, and the r-space contraction there
+      !! is multiplying zeros.  What a dropped slice costs a matrix element is
+      !! |sum_r u*_b V u_a| <= sum_r |V(r)| rho(r), so THAT product -- not the
+      !! density alone -- is the profile to threshold.  (Thresholding rho alone
+      !! fails badly here: in a slab the upper conduction bands are vacuum
+      !! resonances, so rho has a vacuum plateau and no small window holds it.)
+      !! Keep the shortest cyclic z-window holding 1-zslab_tol of sum|V|rho and
+      !! hand the contraction a block list covering only that window.  The FFTs
+      !! still run on the full grid; only the multiply is restricted, and the
+      !! multiply is 5/6 of the fold.
       INTEGER  :: iz, ib, kg, n2, lo, ln, i0, i1, best_lo, best_len, cnt, ibk, c0
       REAL(dp) :: tot, acc_, want, got
-      REAL(dp), ALLOCATABLE :: rz(:)
+      REAL(dp), ALLOCATABLE :: rz(:), rho(:)
       nxy_ = dffts%nnr / MAX(dffts%nr3,1)
       nzkeep = dffts%nr3
       zdrop  = 0.0_dp
       best_lo = 1; best_len = dffts%nr3
       IF (zslab_tol > 0.0_dp .AND. nxy_*dffts%nr3 == dffts%nnr) THEN
-         ALLOCATE(rz(dffts%nr3)); rz = 0.0_dp
+         ALLOCATE(rz(dffts%nr3), rho(dffts%nnr)); rz = 0.0_dp; rho = 0.0_dp
          DO kg = iks, iks+nks-1                      ! this pool's own channels
             DO ib = 1, nbnd
                psic = czero
@@ -1349,12 +1353,14 @@ CONTAINS
                   psic(dffts%nl(igk_all(n2,kg))) = evc_all_l(n2,ib,kg)
                ENDDO
                CALL invfft('Wave', psic, dffts)
-               DO iz = 1, dffts%nr3
-                  rz(iz) = rz(iz) + SUM(ABS(psic((iz-1)*nxy_+1:iz*nxy_))**2)
-               ENDDO
+               rho = rho + ABS(psic)**2
             ENDDO
          ENDDO
-         CALL mp_sum(rz, inter_pool_comm)
+         CALL mp_sum(rho, inter_pool_comm)
+         DO iz = 1, dffts%nr3                        ! weight by the defect potential
+            rz(iz) = SUM(ABS(Vq((iz-1)*nxy_+1:iz*nxy_,1)) * rho((iz-1)*nxy_+1:iz*nxy_))
+         ENDDO
+         DEALLOCATE(rho)
          tot = SUM(rz); want = (1.0_dp - zslab_tol)*tot
          best_len = dffts%nr3 + 1
          DO lo = 1, dffts%nr3                        ! shortest cyclic window >= want
