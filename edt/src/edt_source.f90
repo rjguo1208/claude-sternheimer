@@ -51,6 +51,7 @@ CONTAINS
        BLOCK
          REAL(dp) :: rsc(3), lp, lc
          INTEGER  :: nsc(3), idir, nr_p(3), nr_c(3), nkg(3)
+         CHARACTER(LEN=160) :: msg
          nr_p = (/ dffts%nr1, dffts%nr2, dffts%nr3 /)
          nr_c = (/ V_d%nr1,   V_d%nr2,   V_d%nr3   /)
          nkg  = (/ coarse_nk1, coarse_nk2, coarse_nk3 /)
@@ -68,11 +69,12 @@ CONTAINS
             IF (ABS(rsc(idir)-DBLE(nsc(idir))) > 1.d-3) CALL errore('build_V_folded', &
                  'cube cell is not an integer multiple of the primitive cell', idir)
             IF (nr_c(idir) /= nsc(idir)*nr_p(idir)) THEN
-               IF (ionode) WRITE(stdout,'(5X,A,I1,A,I5,A,I2,A,I5,A)') &
-                  '*** FOLD GRID ERROR (axis ',idir,'): cube ',nr_c(idir), &
-                  ' /= supercell ',nsc(idir),' x primitive ',nr_p(idir),' ***'
-               CALL errore('build_V_folded', &
-                 'fold grid mismatch: need nr_cube = nsc * nr_primitive on every axis', idir)
+               ! every rank reaches this together, and whichever one aborts first
+               ! kills the others -- so the numbers go in the message, not a WRITE
+               WRITE(msg,'(A,I1,A,I5,A,I2,A,I5,A)') 'fold grid mismatch on axis ', idir, &
+                    ': cube ', nr_c(idir), ' /= supercell ', nsc(idir), &
+                    ' x primitive ', nr_p(idir), ' (need nr_cube = nsc * nr_prim)'
+               CALL errore('build_V_folded', TRIM(msg), idir)
             ENDIF
             ! DeltaV only has Fourier weight at supercell G-vectors, so the fold
             ! channel set is the supercell reciprocal lattice.  A k-grid finer than
@@ -81,11 +83,10 @@ CONTAINS
             ! that must vanish.  Sample the finer grid as separate shifted runs, one
             ! per coset of the supercell reciprocal lattice, instead.
             IF (nkg(idir) > 0 .AND. nkg(idir) /= nsc(idir)) THEN
-               IF (ionode) WRITE(stdout,'(5X,A,I1,A,I4,A,I3,A)') &
-                  '*** FOLD CHANNEL ERROR (axis ',idir,'): k-grid ',nkg(idir), &
-                  ' /= supercell ',nsc(idir),' -- use one shifted run per coset ***'
-               CALL errore('build_V_folded', &
-                 'k-grid must equal the supercell multiplicity on every axis', 10+idir)
+               WRITE(msg,'(A,I1,A,I4,A,I3,A)') 'fold channel set on axis ', idir, &
+                    ': k-grid ', nkg(idir), ' /= supercell ', nsc(idir), &
+                    ' (run one shifted job per coset instead)'
+               CALL errore('build_V_folded', TRIM(msg), 10+idir)
             ENDIF
          ENDDO
        END BLOCK
