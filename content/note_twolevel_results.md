@@ -275,7 +275,53 @@ must be. Truncating the same $\Gamma$ chain: $N_S=8$ is nonsense, $10$ is
 $21$ meV off, $12$ is $7$ meV off, $16$ is within $0.8$ meV and $24$ is
 converged. The production runs use $24$.
 
-## 9. Residual ledger
+## 9. The other $12\times12$: how big is the supercell's own error?
+
+Run the $144$-$k$ grid directly rather than by cosets and it is a different
+calculation — one defect per 144 cells instead of 36, with $q$ resolved
+throughout the BZ (methods §7b&ndash;7c). Nothing can be gated against a
+supercell there; a $12\times12$ cell is 431 atoms. But the comparison against
+the $6\times6$ answers a question the supercell truth cannot ask of itself:
+**how much of a defect level is periodic-image interaction?**
+
+The comparison is unusually clean. Both grids contain $K$ and $\Gamma$, so the
+pristine active manifold comes out identical — VBM $+0.0058$, CBM $+1.6679$,
+gap $1.6621$ eV — and no alignment is needed. And both use the *same* $\Delta
+V$, so the vacuum-reference constant of section 2 cancels exactly. What is left
+is the concentration.
+
+| in-gap bound state | $6\times6$ (1/36) | $12\times12$ (1/144) | shift |
+|---|---|---|---|
+| $a_1$-like | $+0.0846$ | $+0.0735$ | $-11.1$ meV |
+| degenerate pair | $+1.1986$ ($\times2$) | $+1.2023$ ($\times2$) | $+3.7$ meV |
+
+(Both columns at $N_S=16$, which is what the $144$-$k$ chain's memory allows, so
+the truncation is common to both; at $N_S=24$ the $6\times6$ reads $+0.0841$ and
+$+1.1985$ and the shifts are unchanged to $0.5$ meV.)
+
+So diluting the defect four-fold moves the true in-gap levels by $4$&ndash;$11$
+meV — the same size as the $+7.6\pm1.7$ meV residual this note has been
+tracking. **The downfold is now accurate to about the finite-size error of the
+reference it is being tested against.** Tightening it further would buy a closer
+fit to a supercell that is itself off by a comparable amount; the honest next
+lever is a more dilute reference, not a better downfold.
+
+Two things in the table are deliberately absent. The features near the band
+edges ($-0.0081$, $-0.0080$, $-0.0045$ below the VBM; $+1.6756$ just under the
+CBM) are continuum resonances, and a resonance read off a discrete spectrum
+moves with the sampling density — at four times the $k$-points they are not
+comparable quantities. Only genuinely isolated in-gap states are listed.
+
+**Cost.** $16$ block steps, $140.4$ min, $261$ s per step in the fold, operator
+unit test $2.3\times10^{-11}$. The scaling is cubic in $N_k$ at fixed rank
+count: the fold is $N_r\,n_b N_k^3/n_{\rm pool}$ (an $N_k^2$ channel double loop
+times $N_k$ columns per rank) and full reorthogonalization carries the same
+$N_k^3$ with an extra $N_S^2$. Measured, $36\to144$ $k$ takes the fold from
+$4.1$ to $261$ s of multiply — $64\times$, exactly $4^3$. Memory goes as
+$N_k^2$, which is why $N_S=16$ rather than $24$. Reorthogonalization overtakes
+the fold at step 9 and is the wall beyond this size.
+
+## 10. Residual ledger
 
 Nothing structural remains. With the two systematics of section 2 controlled,
 the $\omega$-resolved downfold agrees with the supercell truth to $\le 8$ meV
@@ -284,5 +330,12 @@ probe. What is left is (i) the per-defect reference constant, a convention that
 can be removed by subtracting the $\Delta V$ far-field plateau, and (ii) a
 few-meV floor consistent with the $\eta$ used in the quasiparticle search — a
 floor that section 8 shows is not a sampling artefact, since going from one
-supercell $k$-point to four leaves it at $0.8$ meV. Next levers: SOC, and the
-Wannier-interpolated fine-grid $T$-matrix built on the same $\tilde V(\omega)$.
+supercell $k$-point to four leaves it at $0.8$ meV.
+
+Section 9 puts a ceiling on what is worth chasing: the $6\times6$ reference
+itself carries $4$&ndash;$11$ meV of periodic-image error, so the remaining
+downfold residual is no longer the largest error in the comparison. Next levers
+are therefore about the *reference* and about reach, not about accuracy at
+$6\times6$: SOC; a more dilute gate; and the Wannier-interpolated fine-grid
+$T$-matrix on the same $\tilde V(\omega)$, which is also the way past the
+$N_k^3$ wall.

@@ -546,9 +546,10 @@ CATALOG = [
      "four shifted 6x6 runs at the SAME defect concentration, so the downfold can be tested at the "
      "supercell $M$ point against a dedicated 107-atom NSCF it has never seen. Raw offset $+25.0\\pm0.8$ "
      "meV at $M$ vs $+25.5\\pm1.7$ at $\\Gamma$ &mdash; the reference constant is a property of "
-     "$\\Delta V$, not of $k$. (Run directly instead, a 12x12 grid is a four-times more dilute defect "
-     "with full $q$ resolution &mdash; the supercell is a box holding one isolated defect, not a "
-     "periodicity, so the $k$-grid is free.) "
+     "$\\Delta V$, not of $k$. Run directly instead, the same grid is a four-times more dilute defect "
+     "with full $q$ resolution (the supercell is a box holding one isolated defect, not a periodicity, "
+     "so the $k$-grid is free): that run puts the 6x6 cell\'s OWN periodic-image error at 4&ndash;11 meV, "
+     "i.e. the downfold residual is no longer the largest error in the comparison. "
      "NET RESULT: $\\omega$-resolved MODE C matches the supercell truth on ALL three defects to $\\le$8 meV "
      "absolute and 0.7&ndash;3.8 meV in shape, with no fitting and no basis engineering.",
      '<a href="pages/twolevel-results.html">Open results &rarr;</a>'),
