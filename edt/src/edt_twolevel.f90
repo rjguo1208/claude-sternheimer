@@ -766,11 +766,13 @@ CONTAINS
     USE edic_mod,         ONLY : V_d, V_p
     USE edt_source,       ONLY : build_V_folded, count_nkb, make_coeff
     USE edt_sternheimer,  ONLY : edmat_fill_or_check, hpsi_setup_k
-    USE mp,               ONLY : mp_sum, mp_bcast
+    USE mp,               ONLY : mp_sum, mp_bcast, mp_alltoall
     USE mp_pools,         ONLY : inter_pool_comm, my_pool_id, npool
     USE mp_world,         ONLY : world_comm
     USE becmod,           ONLY : becp, allocate_bec_type, deallocate_bec_type
     USE uspp,             ONLY : nkb
+    USE constants,        ONLY : tpi
+    USE edt_input,        ONLY : fold_col
     IMPLICIT NONE
     REAL(dp), INTENT(IN) :: xkcr(3,nkstot), omega0_ry, win_min_ry, win_max_ry
     INTEGER,  INTENT(IN) :: nbndskip_in, nstep
@@ -789,6 +791,13 @@ CONTAINS
     COMPLEX(dp), ALLOCATABLE :: vkb_d(:,:), vkb_p(:,:), kcd(:,:), kcp(:,:)
     COMPLEX(dp), ALLOCATABLE :: BDl(:,:), BPl(:,:), tmpd(:), tmpp(:), psi_c(:,:), hps_c(:,:)
     COMPLEX(dp), ALLOCATABLE :: evc_all_l(:,:,:)
+    ! ---- column-distributed fold (fold_col): each rank owns nloc columns and
+    !      ALL k-channels, so every FFT is done once instead of npool times ----
+    COMPLEX(dp), ALLOCATABLE :: Vq(:,:), phw(:,:), xcol(:,:,:), acol(:,:,:)
+    COMPLEX(dp), ALLOCATABLE :: sbuf(:,:,:), rbuf(:,:,:), psia(:,:,:)
+    INTEGER,     ALLOCATABLE :: map_iq(:,:), map_ip(:,:)
+    INTEGER :: nloc, col0, iq_, ip_, ia, ga
+    LOGICAL :: use_col
     REAL(dp) :: xk3(3)
     COMPLEX(dp) :: cone, czero
     INTEGER, EXTERNAL :: global_kpoint_index
@@ -884,13 +893,29 @@ CONTAINS
     ALLOCATE(psic(dffts%nnr))
 
     ! ---- fold cache: ALL (source-k, local channel) folds built once ----
-    ALLOCATE(Vfa(dffts%nnr, nks, nkstot), STAT=istat)
-    IF (istat /= 0) CALL errore('vtilde_block_lanczos','fold cache alloc failed (reduce npool?)',1)
-    DO kg = 1, nkstot
-       DO ik = 1, nks
-          CALL build_V_folded(xkcr(:,kg) - xkcr(:,ik+iks-1), Vfa(:,ik,kg))
+    use_col = fold_col .AND. (nks == 1) .AND. (npool == nkstot) .AND. (MOD(NA_,npool) == 0)
+    IF (fold_col .AND. .NOT.use_col .AND. ionode) WRITE(stdout,'(5X,A)') &
+         'fold_col requested but layout unsuitable (need npool = nkstot and NA_ divisible) — using the k-layout'
+    IF (.NOT.use_col) THEN
+       ALLOCATE(Vfa(dffts%nnr, nks, nkstot), STAT=istat)
+       IF (istat /= 0) CALL errore('vtilde_block_lanczos','fold cache alloc failed (reduce npool?)',1)
+       DO kg = 1, nkstot
+          DO ik = 1, nks
+             CALL build_V_folded(xkcr(:,kg) - xkcr(:,ik+iks-1), Vfa(:,ik,kg))
+          ENDDO
        ENDDO
-    ENDDO
+    ELSE
+       CALL build_qcanon()
+       nloc = NA_/npool; col0 = my_pool_id*nloc
+       ALLOCATE(xcol(npwx,nloc,nkstot), acol(dffts%nnr,nkstot,nloc), STAT=istat)
+       IF (istat /= 0) CALL errore('vtilde_block_lanczos','column-layout alloc failed',1)
+       ALLOCATE(sbuf(npwx,nloc,npool), rbuf(npwx,nloc,npool))
+       IF (nloc > 64) CALL errore('vtilde_block_lanczos','fold_col: nloc>64 (raise the accb bound)',1)
+       ALLOCATE(psia(dffts%nnr,nkstot,nloc), STAT=istat)
+       IF (istat /= 0) CALL errore('vtilde_block_lanczos','psia alloc failed',1)
+       IF (ionode) WRITE(stdout,'(5X,A,I4,A,I5,A)') &
+            'fold_col ON: ', nloc, ' columns/rank, all ', nkstot, ' channels local (FFTs done once)'
+    ENDIF
 
     ! ---- Krylov storage ----
     ALLOCATE(Qs(npwx,nks,NA_,0:nstep), STAT=istat)
@@ -1106,6 +1131,32 @@ CONTAINS
       CALL mp_sum(kcd, inter_pool_comm)
       CALL mp_sum(kcp, inter_pool_comm)
 
+      IF (use_col) THEN
+         tz = wtime()
+         CALL k2col(v3, xcol)
+         tbc = wtime()-tz
+         CALL do_fold_col(src_pass, tsc, tft, tml)
+         tz = wtime()
+         CALL col2k(xcol, v3)
+         tbc = tbc + (wtime()-tz); tz = wtime()
+         DO ikl = 1, nks
+            kgl = ikl + iks - 1
+            CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xk(1,ikl), vkb_d, V_d%nat,V_d%ityp,V_d%tau, nkb_d)
+            CALL get_betavkb(ngk_all(kgl), igk_all(1,kgl), xk(1,ikl), vkb_p, V_p%nat,V_p%ityp,V_p%tau, nkb_p)
+            CALL ZGEMM('N','N', ngk_all(kgl), NA_, nkb_d,  cone, vkb_d, npwx, kcd, nkb_d, cone, v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2))
+            CALL ZGEMM('N','N', ngk_all(kgl), NA_, nkb_p, -cone, vkb_p, npwx, kcp, nkb_p, cone, v3(1,ikl,1), SIZE(v3,1)*SIZE(v3,2))
+         ENDDO
+         tcl = wtime()-tz
+         ndv = ndv + 1
+         IF (ionode .AND. ndv <= 3) THEN
+            WRITE(stdout,'(5X,A,I2,A,5(A,F6.1))') 'apply_dV[col] #',ndv,' [s]:', &
+                 ' acc0 ', tzr, ' transp ', tbc, ' KB ', tkb, &
+                 ' fft ', tft, ' V*psi ', tml
+            FLUSH(stdout)
+         ENDIF
+         RETURN
+      ENDIF
+
       DO kgs = 1, nkstot
          owner = kowner(kgs)
          tz = wtime()
@@ -1161,6 +1212,146 @@ CONTAINS
          FLUSH(stdout)
       ENDIF
     END SUBROUTINE apply_dV
+
+    SUBROUTINE build_qcanon()
+      !! 36 canonical folds V_q (q on the coarse grid, wrapped to [0,1)) plus the
+      !! four wrap phases exp(2*pi*i*G.r), G in {0,-1}^2.  Exact identity:
+      !!   V_{q_w+G}(r) = exp(2*pi*i*G.r) V_{q_w}(r)   (G.R integer kills the cell sum)
+      INTEGER :: kq, ik2, kg2, g1, g2, ig1, ig2, i1, i2, i3, ii, ip
+      REAL(dp) :: qw(3), qe(3), a1, a2
+      COMPLEX(dp) :: p1, p2
+      ALLOCATE(Vq(dffts%nnr, nkstot), phw(dffts%nnr, 4))
+      ALLOCATE(map_iq(nkstot,nkstot), map_ip(nkstot,nkstot))
+      DO kq = 1, nkstot
+         qw = xkcr(:,kq) - xkcr(:,1)
+         qw = qw - FLOOR(qw + 1.d-8)
+         CALL build_V_folded(qw, Vq(:,kq))
+      ENDDO
+      DO kg2 = 1, nkstot
+         DO ik2 = 1, nkstot
+            qe = xkcr(:,kg2) - xkcr(:,ik2)
+            qw = qe - FLOOR(qe + 1.d-8)
+            map_iq(ik2,kg2) = 0
+            DO kq = 1, nkstot
+               a1 = xkcr(1,kq)-xkcr(1,1) - FLOOR(xkcr(1,kq)-xkcr(1,1)+1.d-8)
+               a2 = xkcr(2,kq)-xkcr(2,1) - FLOOR(xkcr(2,kq)-xkcr(2,1)+1.d-8)
+               IF (ABS(a1-qw(1)) < 1.d-6 .AND. ABS(a2-qw(2)) < 1.d-6) map_iq(ik2,kg2) = kq
+            ENDDO
+            IF (map_iq(ik2,kg2) == 0) CALL errore('build_qcanon','q not found on the grid',1)
+            g1 = NINT(qe(1)-qw(1)); g2 = NINT(qe(2)-qw(2))
+            IF (g1 < -1 .OR. g1 > 0 .OR. g2 < -1 .OR. g2 > 0) &
+                 CALL errore('build_qcanon','unexpected wrap vector',1)
+            map_ip(ik2,kg2) = 1 + (-g1) + 2*(-g2)
+         ENDDO
+      ENDDO
+      DO ip = 1, 4
+         ig1 = -MOD(ip-1,2); ig2 = -((ip-1)/2)
+         ii = 0
+         DO i3 = 0, dffts%nr3-1
+            DO i2 = 0, dffts%nr2-1
+               p2 = CMPLX(COS(tpi*ig2*DBLE(i2)/dffts%nr2), SIN(tpi*ig2*DBLE(i2)/dffts%nr2), dp)
+               DO i1 = 0, dffts%nr1-1
+                  p1 = CMPLX(COS(tpi*ig1*DBLE(i1)/dffts%nr1), SIN(tpi*ig1*DBLE(i1)/dffts%nr1), dp)
+                  ii = ii + 1
+                  IF (ii <= dffts%nnr) phw(ii,ip) = p1*p2
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+    END SUBROUTINE build_qcanon
+
+    SUBROUTINE k2col(xk_, xc_)
+      COMPLEX(dp), INTENT(IN)  :: xk_(:,:,:)
+      COMPLEX(dp), INTENT(OUT) :: xc_(:,:,:)
+      INTEGER :: p
+      DO p = 1, npool
+         sbuf(:,:,p) = xk_(:,1,(p-1)*nloc+1:p*nloc)
+      ENDDO
+      CALL mp_alltoall(sbuf, rbuf, inter_pool_comm)
+      xc_ = rbuf
+    END SUBROUTINE k2col
+
+    SUBROUTINE col2k(xc_, xk_)
+      COMPLEX(dp), INTENT(IN)  :: xc_(:,:,:)
+      COMPLEX(dp), INTENT(OUT) :: xk_(:,:,:)
+      INTEGER :: p
+      sbuf = xc_
+      CALL mp_alltoall(sbuf, rbuf, inter_pool_comm)
+      xk_ = czero
+      DO p = 1, npool
+         xk_(:,1,(p-1)*nloc+1:p*nloc) = rbuf(:,:,p)
+      ENDDO
+    END SUBROUTINE col2k
+
+    SUBROUTINE do_fold_col(src_pass, tsc_, tft_, tml_)
+      !! local-potential fold, entirely local: 396/npool*nkstot FFTs per rank
+      LOGICAL, INTENT(IN) :: src_pass
+      REAL(dp), INTENT(INOUT) :: tsc_, tft_, tml_
+      INTEGER, PARAMETER :: CBLK = 1024
+      INTEGER :: kgs2, ik2, n2, iq2, ip2, ig, c0, ce
+      COMPLEX(dp) :: accb(CBLK, 64), vlo(CBLK)
+      REAL(dp) :: tz2
+      ! (a) FFT every (source, my column) ONCE into psia
+      psia = czero
+      DO kgs2 = 1, nkstot
+         DO ia = 1, nloc
+            ga = col0 + ia
+            IF (src_pass .AND. uk(selA(ga)) /= kgs2) CYCLE
+            tz2 = wtime()
+!$omp parallel do simd schedule(static)
+            DO ig = 1, dffts%nnr
+               psic(ig) = czero
+            ENDDO
+!$omp end parallel do simd
+            DO n2 = 1, ngk_all(kgs2)
+               psic(dffts%nl(igk_all(n2,kgs2))) = xcol(n2,ia,kgs2)
+            ENDDO
+            tsc_ = tsc_ + (wtime()-tz2); tz2 = wtime()
+            CALL invfft('Wave', psic, dffts)
+            psia(:,kgs2,ia) = psic
+            tft_ = tft_ + (wtime()-tz2)
+         ENDDO
+      ENDDO
+      ! (b) grid-blocked contraction: for each chunk of real-space points the whole
+      !     (channel x source x column) contraction runs out of cache, so psia, the
+      !     folded potentials and the accumulator are each streamed exactly once.
+      tz2 = wtime()
+!$omp parallel do private(c0,ce,ik2,kgs2,ia,iq2,ip2,ig,accb,vlo) schedule(static)
+      DO c0 = 1, dffts%nnr, CBLK
+         ce = MIN(CBLK, dffts%nnr-c0+1)
+         DO ik2 = 1, nkstot
+            accb(1:ce,1:nloc) = czero
+            DO kgs2 = 1, nkstot
+               iq2 = map_iq(ik2,kgs2); ip2 = map_ip(ik2,kgs2)
+               DO ig = 1, ce
+                  vlo(ig) = phw(c0+ig-1,ip2)*Vq(c0+ig-1,iq2)
+               ENDDO
+               DO ia = 1, nloc
+                  DO ig = 1, ce
+                     accb(ig,ia) = accb(ig,ia) + vlo(ig)*psia(c0+ig-1,kgs2,ia)
+                  ENDDO
+               ENDDO
+            ENDDO
+            DO ia = 1, nloc
+               DO ig = 1, ce
+                  acol(c0+ig-1,ik2,ia) = accb(ig,ia)
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+!$omp end parallel do
+      tml_ = tml_ + (wtime()-tz2)
+      xcol = czero
+      DO ik2 = 1, nkstot
+         DO ia = 1, nloc
+            psic = acol(:,ik2,ia)
+            CALL fwfft('Wave', psic, dffts)
+            DO n2 = 1, ngk_all(ik2)
+               xcol(n2,ia,ik2) = psic(dffts%nl(igk_all(n2,ik2)))
+            ENDDO
+         ENDDO
+      ENDDO
+    END SUBROUTINE do_fold_col
 
     SUBROUTINE project_PA(v3)
       !! v3 <- (1 - P_A) v3 per local channel (subtract active bands only)

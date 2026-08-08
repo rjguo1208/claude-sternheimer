@@ -64,6 +64,7 @@ MODULE edt_input
                                                     ! (bands split+1..nbnd, explicit diagonal D2 - validation gate)
   INTEGER  :: n_rung           = 4                  ! two-level: Neumann rungs for the tail ladder
   INTEGER  :: n_lancz          = 0                  ! MODE C: >0 = omega-resolved block-Lanczos, this many block steps
+  LOGICAL  :: fold_col         = .FALSE.            ! MODE C: column-distributed fold (one FFT per source-column instead of npool)
   CHARACTER(LEN=256) :: lancz_outfile = 'lanczos_chain.dat'  ! MODE C chain output
 
   NAMELIST / edt_nml / &
@@ -75,7 +76,7 @@ MODULE edt_input
        rest_nk1, rest_nk2, rest_nk3, sternheimer_thr, dress_order, dress_tol, &
        active_resum, resum_grid, rest_split, &
        do_full_block, block_nk, block_single_band, block_single_ki, vtilde_outfile, dump_wann, born_only, &
-       nbndskip_force, edmat_infile, edmat_check, tail_split_band, n_rung, n_lancz, lancz_outfile
+       nbndskip_force, edmat_infile, edmat_check, tail_split_band, n_rung, n_lancz, lancz_outfile, fold_col
 
 CONTAINS
 
@@ -143,6 +144,7 @@ CONTAINS
     CALL mp_bcast(tail_split_band,  ionode_id, world_comm)
     CALL mp_bcast(n_rung,           ionode_id, world_comm)
     CALL mp_bcast(n_lancz,          ionode_id, world_comm)
+    CALL mp_bcast(fold_col,         ionode_id, world_comm)
     CALL mp_bcast(lancz_outfile,    ionode_id, world_comm)
 
     IF (ionode) THEN
