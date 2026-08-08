@@ -272,7 +272,79 @@ With MODE C the vertex carries its true frequency dependence, so $T(\omega)$ has
 the correct analytic structure; static vertices pinned at $\omega_0$ displace
 features by tens of meV once $|\omega-\omega_0|\sim 1$ eV.
 
-## 9. Summary
+## 9. Does the vertex survive Wannier interpolation?
+
+Section 7c leaves the method with a hard limit: the fold and the
+reorthogonalization both scale as $N_k^3$ at fixed rank count, and $N_k$ *is* the
+defect concentration, so a finer mesh is simultaneously more expensive and a
+different physical system. The way out is the Lu&ndash;Bernardi construction —
+carry the vertex in a **pair-Wannier** basis,
+
+$$\mathcal M(\mathbf R_e,\mathbf R_p)=\frac1{N_k^2}\sum_{\mathbf k\mathbf k'}
+e^{+i\mathbf k\cdot\mathbf R_e}e^{-i\mathbf k'\cdot\mathbf R_p}\,
+U^\dagger(\mathbf k)\,M(\mathbf k,\mathbf k')\,U(\mathbf k') ,$$
+
+and read it back at any $\mathbf k$. That is only legitimate if $\mathcal M$
+decays in **both** arguments, so the question has to be measured, not assumed.
+
+### 9a. The Wigner&ndash;Seitz origin is not a detail
+
+$\mathcal M$ is built on Born&ndash;von-K&aacute;rm&aacute;n representatives, and
+images differ by $N^{\rm sc}\mathbf a$. On the coarse grid $e^{i\mathbf k\cdot
+N^{\rm sc}\mathbf a}=1$, so the choice is invisible — the transform inverts
+exactly whatever you pick. On a *finer* grid it is not $1$, and a bad choice
+aliases. The S vacancy sits at the supercell centre, $\mathbf R_{\rm
+def}=(3,3)$ in primitive lattice units, so representatives chosen about the
+origin pile the kernel onto the cell boundary: measured, that turns a $1$ meV
+prediction into a $300$ meV one.
+
+Two traps follow. First, $\mathbf R_{\rm def}$ must come from the **structure**
+(the S present in the pristine cube and absent from the defect cube), never from
+the peak of the kernel — an aliased kernel peaks in the wrong place, so fitting
+the centre to it is circular. Second, $(3,3)\equiv(-3,-3)$ only modulo $6$: the
+same "empirical centre" is right for a $6\times6$ lattice and wrong for a
+$12\times12$ one.
+
+### 9b. Leave-one-out on the vertex
+
+The direct $144$-$k$ run (section 9 of the results note) supplies $M(\mathbf
+k,\mathbf k')$ on all $144^2$ pairs in one Wannier gauge — the same
+wavefunctions are wannierized, `exclude_bands = 1-6, 18-20` leaving exactly the
+11 active bands 7&ndash;17 as an isolated composite group, so $U$ is unitary
+($\lVert U^\dagger U-1\rVert=2\times10^{-10}$, $\Omega_D=0.03$ &Aring;$^2$).
+Build the kernel from the $\Gamma$ coset alone — a complete $6\times6$ dataset,
+$6.2\%$ of the pairs — and predict the rest.
+
+![Wannier interpolation of the defect vertex](../assets/wannier_decay.png)
+
+| pairs | count | median | p90 | max |
+|---|---|---|---|---|
+| both on the $6\times6$ grid (training) | 1296 | $4\times10^{-15}$ | — | $1\times10^{-14}$ |
+| one off-grid | 7776 | $0.64$ meV | $0.95$ | $1.53$ |
+| **both off-grid** | **11664** | $\mathbf{0.74}$ **meV** | $1.03$ | $2.44$ |
+
+(Element-wise, in the same gauge; quoted as $\delta M\,\mathrm{Ry}/N_k$, the
+scale at which a vertex element enters $H_{\rm eff}$.) The training pairs come
+back at machine precision, which certifies the transform rather than the
+physics; the verdict is the $93.8\%$ that were never seen, and they land at
+about **1 meV**.
+
+Panel (a) says why. The kernel falls from $1.46$ on site to $2\times10^{-4}$ at
+$6a$, and the $6\times6$ and $12\times12$ curves — the same quantity measured in
+two different BvK cells — lie on top of each other wherever they overlap, so the
+smaller cell is not aliasing, only truncating early. A $12\times12$ coarse grid
+buys another factor of four of decay beyond what a $6\times6$ already delivers.
+
+Set against the other errors in this project — a $+7.6$ meV downfold residual and
+$4$&ndash;$11$ meV of periodic-image error in the $6\times6$ reference itself —
+interpolation would not be the dominant error. What this does **not** yet test is
+the $\omega$-dependent part: only the bare $M_{AA}$ was interpolated here.
+$\Sigma^R(\omega)$ should be at least as local for $\omega$ in the gap, since it
+carries an extra exponentially decaying resolvent whose range is set by the
+distance from $\omega$ to the rest spectrum — but that is an argument, and the
+same leave-one-out is the measurement.
+
+## 10. Summary
 
 | method | $\Sigma$ | order in $\Delta V$ | $\omega$ |
 |---|---|---|---|
