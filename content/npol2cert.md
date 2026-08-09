@@ -123,8 +123,14 @@ $$\max\bigl|E_\mathrm{EDI} - T_\mathrm{EDT}^{T(\mathrm{bands})}\bigr| = 8.7\time
 20260809(edi_v8d);**所有 20260702 版的 EDI-direct .bin 都携带带转置**,须重
 生成或读时转置(conv.py 产的同版本号文件是 EDT 约定,不受影响)。同批修复:
 B8($q_\mathrm{cryst}$ 改用 NSCF 表示,防 $e^{i\Delta G\cdot r}$ 假相位)与
-full_q $\sigma_1$-only。修复后同波函数 EDI-vs-EDT 全矩阵闭环与标量跨码
-unit test 见验证表(运行中补录)。
+full_q $\sigma_1$-only。修复后终极闭环(edi_v8d,同一组波函数):
+
+| 闭环 | 修复前 | 修复后 |
+|---|---|---|
+| noncolin:EDI .bin vs EDT-born 全矩阵(40 带 × 36 k) | max 1.68 | **max $8.7\times10^{-14}$,median $2.1\times10^{-16}$** |
+| 标量:EDT 链 unit test vs EDI edmat(跨码) | 1.677 | $\mathbf{1.86\times10^{-14}}$ |
+
+两个独立实现互相验证到机器精度——整个战役最强的跨码闭环。
 
 **总教训**:跨码对不上时,第一步不是审引擎,而是**按对仪器化转储把
 "引擎 vs 接口"分离**——两个各自正确的引擎完全可以隔着一个转置互相"定罪"。

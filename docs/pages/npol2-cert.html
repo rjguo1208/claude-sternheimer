@@ -51,7 +51,9 @@ $$\langle m|\mathcal{O}|n\rangle = \langle\chi_m|\chi_n\rangle\,\mathcal{O}_{\ma
 <div class="math">
 $$\max\bigl|E_\mathrm{EDI} - T_\mathrm{EDT}^{T(\mathrm{bands})}\bigr| = 8.7\times10^{-14}$$
 </div>
-<p>——块内带轴纯转置(无 $k$ 交换、无共轭)。修复为 EDI 写入端转置 + 格式版本 20260809(edi_v8d);<strong>所有 20260702 版的 EDI-direct .bin 都携带带转置</strong>,须重 生成或读时转置(conv.py 产的同版本号文件是 EDT 约定,不受影响)。同批修复: B8($q_\mathrm{cryst}$ 改用 NSCF 表示,防 $e^{i\Delta G\cdot r}$ 假相位)与 full_q $\sigma_1$-only。修复后同波函数 EDI-vs-EDT 全矩阵闭环与标量跨码 unit test 见验证表(运行中补录)。</p>
+<p>——块内带轴纯转置(无 $k$ 交换、无共轭)。修复为 EDI 写入端转置 + 格式版本 20260809(edi_v8d);<strong>所有 20260702 版的 EDI-direct .bin 都携带带转置</strong>,须重 生成或读时转置(conv.py 产的同版本号文件是 EDT 约定,不受影响)。同批修复: B8($q_\mathrm{cryst}$ 改用 NSCF 表示,防 $e^{i\Delta G\cdot r}$ 假相位)与 full_q $\sigma_1$-only。修复后终极闭环(edi_v8d,同一组波函数):</p>
+<div class="table-wrap"><table><thead><tr><th>闭环</th><th>修复前</th><th>修复后</th></tr></thead><tbody><tr><td>noncolin:EDI .bin vs EDT-born 全矩阵(40 带 × 36 k)</td><td>max 1.68</td><td><strong>max $8.7\times10^{-14}$,median $2.1\times10^{-16}$</strong></td></tr><tr><td>标量:EDT 链 unit test vs EDI edmat(跨码)</td><td>1.677</td><td>$\mathbf{1.86\times10^{-14}}$</td></tr></tbody></table></div>
+<p>两个独立实现互相验证到机器精度——整个战役最强的跨码闭环。</p>
 <p><strong>总教训</strong>:跨码对不上时,第一步不是审引擎,而是<strong>按对仪器化转储把 "引擎 vs 接口"分离</strong>——两个各自正确的引擎完全可以隔着一个转置互相"定罪"。</p>
 </section>
 </main>
