@@ -541,6 +541,15 @@ CATALOG = [
      "continued fraction / $\\chi$ augmentation; plus the fold-grid requirement and the route from the "
      "downfolded vertex to the $T$-matrix, the spectral function and the electron&ndash;defect self-energy.",
      '<a href="pages/methods.html">Open derivations &rarr;</a>'),
+    ("Full reorthogonalization is not needed: 531 GB &rarr; 62 GB", "Method", "2026-08-09", "ok", "Measured",
+     "Storing every Krylov block is what caps the chain length and blocks SOC, so the necessity of the sweep "
+     "was measured rather than assumed. Orthogonalizing against only the last 2 blocks instead of all: "
+     "orthogonality IDENTICAL to four figures ($6.038\\times10^{-9}$), bit-identical levels, chain matrices "
+     "differing $3\\times10^{-14}$ on a scale of 31, zero Ritz ghosts in the gap. The reason is Paige&#39;s: "
+     "loss of orthogonality needs a CONVERGED Ritz value, and 24 blocks of width 396 in $10^6$ dimensions "
+     "converge none. Speed only 1.65x, but $Q_s$ drops from $N_S+1$ blocks to two &mdash; and an SOC "
+     "12x12 run from eight nodes to one.",
+     '<a href="pages/methods.html#sec-9">Open the test &rarr;</a>'),
     ("Methods manuscript (REVTeX / APS): the whole route, publication form", "Writeup", "2026-08-08", "ok", "Drafted",
      "The complete method chain written as a PRX-format Methods section: Feshbach downfolding, the fold and its "
      "commensurability condition, the free $k$-mesh, block-Lanczos $\\Sigma^R(\\omega)$, the pair-Wannier "

@@ -441,6 +441,58 @@ minutes on one node.
 came from a thread-starved run — the $N_A=396$ chain took $89$ s in the same job,
 which is not compute-bound. Properly threaded it is $6$ s.)*
 
+### 9c-bis. Does the chain need full reorthogonalization?
+
+Every Krylov block is stored so that each new one can be orthogonalized against
+all of them, and that storage — not the arithmetic — is what caps the chain
+length and blocks SOC. The textbook justification is that a three-term
+recurrence loses orthogonality catastrophically. Whether it does *here* is
+measurable, and it does not.
+
+Running the same $6\times6$ chain ($N_S=24$, the longest we use) while
+orthogonalizing against only the last $m$ blocks:
+
+| $m$ | $\max_{ij}\lVert Q_i^\dagger Q_j - \delta_{ij}\rVert$ | levels | $\lVert\Delta A\rVert$ | orth (s) | chain (s) |
+|---|---|---|---|---|---|
+| all | $6.038\times10^{-9}$ | reference | — | $152$ | $305$ |
+| **2** | $6.038\times10^{-9}$ | $\mathbf{0.000}$ **meV** | $2.8\times10^{-14}$ | $\mathbf{33}$ | $\mathbf{185}$ |
+| 4 | $6.038\times10^{-9}$ | $0.000$ meV | $2.1\times10^{-14}$ | $52$ | $204$ |
+| 8 | $6.038\times10^{-9}$ | $0.000$ meV | $2.5\times10^{-14}$ | $88$ | $241$ |
+
+The orthogonality is *identical to four figures* across all four, the levels are
+bit-identical, the chain matrices differ by $3\times10^{-14}$ on a scale of $31$,
+and an inertia count finds zero Ritz values in the gap in every case — no ghosts.
+Full reorthogonalization is doing nothing.
+
+The reason is the one the theory gives: loss of orthogonality is triggered by a
+*converged* Ritz value (Paige), and $24$ blocks of width $396$ in a space of
+$\sim10^6$ dimensions converge none. The residual $6\times10^{-9}\approx\sqrt\epsilon$
+is not a Lanczos loss at all — it is identical in every variant, so it comes
+from the single-pass classical Gram--Schmidt within each step, and a second pass
+against the last two blocks would remove it at negligible cost.
+
+**What this buys is memory, not time.** The speedup is only $1.65\times$, but
+$Q_s$ drops from $N_S+1$ blocks to two:
+
+| | full | two blocks |
+|---|---|---|
+| $12\times12$, no SOC, $N_S=16$ | $531$ GB | $\mathbf{62}$ **GB** |
+| $12\times12$ with SOC | $2.12$ TB | $\mathbf{250}$ **GB** |
+
+SOC at $12\times12$ multiplies $N_A$ by two and the state length by two, so the
+fold costs $4\times$, reorthogonalization $8\times$ and memory $4\times$. With
+full reorthogonalization that is $2.75$ TB of fixed arrays — eight 375-GB nodes,
+and the pool structure caps the rank count at $N_k$, so those nodes must be run
+sparsely populated. With two-block storage it is under a terabyte: **one
+high-memory node**.
+
+The honest scope: this is measured for $N_S \le 24$ on this system. A longer
+chain, or one whose spectrum lets a Ritz value converge, would behave
+differently. The right implementation is therefore not a hard-coded two blocks
+but *partial* reorthogonalization — keep the (cheap) orthogonality monitor and
+reorthogonalize fully only when it degrades. Here it would never trigger;
+elsewhere it protects automatically.
+
 ### 9d. How small can the active space be?
 
 MoS$_2$ bands $13$&ndash;$17$ — the highest valence band and the four lowest

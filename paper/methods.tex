@@ -614,9 +614,26 @@ reorthogonalization carries the same $N_k^3$ with an additional $N_S^2$.
 Measured, $36 \to 144$ $k$-points take the multiply from $4.1$ to $261$~s,
 i.e.\ $64\times = 4^3$, confirming the law. Memory scales as $N_k^2$, which is
 what limits the chain length. Reorthogonalization overtakes the vertex
-application around the ninth block and is the wall beyond this size; selective
-reorthogonalization, or the pole--residue representation of
-Sec.~\ref{sec:lanczos}, are the levers.
+application around the ninth block.
+
+Storing every block is what caps the chain length, so it is worth testing
+whether it is needed. Repeating an $N_S=24$ chain while orthogonalizing against
+only the last $m$ blocks gives, for $m = 2, 4, 8$ and for full: an orthogonality
+$\max_{ij}\lVert Q_i^\dagger Q_j-\delta_{ij}\rVert = 6.04\times10^{-9}$
+\emph{identical to four figures}, bit-identical levels, chain matrices differing
+by $3\times10^{-14}$ on a scale of $31$, and zero Ritz values in the gap in every
+case. Full reorthogonalization does nothing here, for the reason the theory
+gives: loss of orthogonality is triggered by a converged Ritz value, and $24$
+blocks of width $396$ in $\sim10^6$ dimensions converge none. (The residual
+$\sqrt\epsilon$ is the single-pass classical Gram--Schmidt within a step, not a
+recurrence loss.) The gain is memory rather than speed --- $1.65\times$ faster,
+but $Q_s$ falls from $N_S+1$ blocks to two, i.e.\ $531 \to 62$ GB here and
+$2.12$ TB $\to 250$ GB with spin--orbit coupling, which moves an SOC
+$12\times12$ calculation from eight nodes onto one. The scope is what was
+measured: a longer chain, or a spectrum that lets a Ritz value converge, would
+behave differently, so the implementation of record should be \emph{partial}
+reorthogonalization --- monitor the orthogonality, which is cheap, and
+reorthogonalize fully only when it degrades.
 
 \subsection{Cost}
 
