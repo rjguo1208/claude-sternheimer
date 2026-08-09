@@ -341,8 +341,14 @@ validity window is imposed.
 
 ![Electron-defect spectral function along Gamma-M-K-Gamma](../assets/kpath_spectral.png)
 
-$200$ frequencies over $[-1.5,+3.0]$ eV, $181$ $k$-points, $R_{\rm cut}=4a$ (61
-cells, cluster dimension 671), $\eta=50$ meV.
+$450$ frequencies over $[-1.5,+3.0]$ eV ($\Delta\omega=10$ meV), $181$
+$k$-points, $R_{\rm cut}=4a$ (61 cells, cluster dimension 671), $\eta=50$ meV.
+
+![Zoom on the gap](../assets/kpath_spectral_zoom.png)
+
+The same run, zoomed on the gap. At $n_d=1/36$ the near-edge weight is large
+enough to renormalize the valence band visibly at K — the bare band (thin line)
+runs below the bright weight.
 
 **The acceptance test.** In the gap $\mathcal G^A$ is real, so the bound states
 are the roots of $\det[1-\tilde{\mathcal V}\mathcal G^A(\omega)]=0$ — a
@@ -352,16 +358,20 @@ diagonalizing $H_{\rm eff}(\omega)$ on the coarse grid:
 
 | | cluster Koster&ndash;Slater | direct diagonalization | difference |
 |---|---|---|---|
-| deep in-gap level | $+1.2018$ | $+1.2023$ | $\mathbf{-0.5}$ **meV** |
-| $a_1$, near the edge | $+0.0823$ | $+0.0735$ | $+8.8$ meV |
+| deep in-gap level | $+1.2019$ | $+1.2023$ | $\mathbf{-0.38}$ **meV** |
+| $a_1$, near the edge | $+0.0808$ | $+0.0735$ | $+7.3$ meV |
 
 The deep level lands at half a meV. That welds the whole new chain — Wannier
 gauge, pair kernel, cluster truncation, fine-grid $\mathcal G^A$, Dyson solve —
 onto the coarse-grid result that sections 1&ndash;9 validated; a systematic error
-anywhere in it could not survive this. The $a_1$ level is $68$ meV above the VBM,
-sitting on the shoulder of the valence continuum with $\eta=50$ meV, so its
-$|T|$ peak is not an isolated Lorentzian and the $8.8$ meV is as likely to be
-resolution as physics — a denser $\omega$ grid and smaller $\eta$ will say which.
+anywhere in it could not survive this. The $a_1$ level is a different object and its $7.3$ meV is not
+error. Doubling the $\omega$ resolution moved it only from $8.8$ to $7.3$ meV, so
+it is not a grid artefact. It sits $68$ meV above the VBM, where at $\eta=50$ meV
+$\mathcal G^A$ already has an imaginary part: that state is a **resonance**
+hybridized with the valence continuum, not a bound state, and the peak of $|T|$
+is not the same quantity as a quasiparticle fixed point computed on a coarse grid
+whose spectrum is discrete and has no continuum to hybridize with. Lowering
+$\eta$ is the test that would show it.
 
 **What the figure shows.** The host bands stay sharp; the defect adds two flat
 in-gap lines. Their *energy* is $\mathbf k$-independent by construction, but
@@ -380,10 +390,13 @@ diagonal changes sign. It is a dressed rest state about $1$ eV above the CBM —
 very likely the collective mode that made the MODE B Neumann ladder diverge, and
 MODE C carries it exactly rather than working around it.
 
-**Cost.** $40.7$ min on one node, of which the continued fraction is $2194$ s
-($90\%$); the cluster solve is $136$ s and the vertex transform $17$ s. The
-$\omega$ points are independent, so an $\omega$-parallel driver (8 workers
-$\times$ 16 threads) is the obvious lever and is implemented.
+**Cost.** The $\omega$ points are independent, so the driver runs 8 workers
+$\times$ 16 threads over an interleaved $\omega$ split. Measured: $450$
+frequencies in $\mathbf{6}$ **min** $\mathbf{25}$ **s**, i.e. $0.85$ s per
+$\omega$ against $11.8$ s for the serial version — a $\mathbf{13.9\times}$
+speedup (8 from the workers, the rest from an exclusive node). The continued
+fraction is still $90\%$ of it, so the pole&ndash;residue representation of
+section 9c is the next lever if a much denser grid is ever wanted.
 
 ## 11. Residual ledger
 
