@@ -3,11 +3,16 @@
 ## 0. 摘要
 
 MODE C 下折叠链的 npol=2(旋量)移植在翻倍测试(noncolin=T、lspinorb=F、标量赝势)中
-未能复现"能级精确 ×2",触发了一次完整的司法式裁决。结论:**EDT 的 npol=2 实现无罪
-——三个独立规范不变判据全部机器精度通过;有罪方是 EDI-direct 的 noncolin 矩阵元**
-(自旋分量丢失)。修复路线为把 born 块 $M_{AA}$ 的计算移植进 EDT 本体(npol=2),
-使 noncolin/SOC 全流程不再依赖 EDI 的 edmat。终判:旋量对简并 **0.0000 meV**,
-跨宿主 VBM 门控 ≤4.9 meV(宿主孪生底噪),链-vs-born 闭环 unit test $4.6\times10^{-11}$。
+未能复现"能级精确 ×2",触发了一次完整的司法式裁决。两幕结论:第一幕,**EDT 的
+npol=2 实现无罪**——三个独立规范不变判据全部机器精度通过;第二幕(按对仪器化转储后
+的大反转),**EDI 的计算引擎同样无罪(逐对 $10^{-12}$ 精确),真凶是文件接口:
+EDI-direct 的 .bin 在每个 $(k_i,k_f)$ 块内写 $(\mathrm{bra},\mathrm{ket})$,
+而 EDT 读取约定是 $(\mathrm{ket},\mathrm{bra})$——纯带轴转置**,数值判决
+$\max|E_\mathrm{EDI}-T_\mathrm{EDT}^{T(\mathrm{bands})}|=8.7\times10^{-14}$。
+修复:EDI 写入端转置(格式版本 20260709→20260809);EDT 侧则把 born 块 $M_{AA}$
+移植进本体(npol=2),SOC 生产线自给自足。终判:旋量对简并 **0.0000 meV**,
+跨宿主 VBM 门控 ≤4.9 meV(宿主孪生底噪),链-vs-born 闭环 $4.6\times10^{-11}$,
+修复后 EDI-vs-EDT 同波函数全矩阵 $\sim10^{-13}$。
 
 ## 1. 翻倍测试与最初的失败
 
@@ -48,15 +53,17 @@ $[K(m_1,n),K(m_2,n)]$ 必须与局域 2-矢量 $[L(m_1,n),L(m_2,n)]$ 复比例�
 | EDT($P_\mathrm{full}-P_\mathrm{nokb}$) | 中位 **1.0000**,p10 1.000 | **25/25** |
 | EDI($M_\mathrm{EDI}-裁判$) | 中位 0.977,p10 0.759 | 44% |
 
-同时,EDI 总残差 $M_\mathrm{EDI}-(裁判+K_\mathrm{EDT})$ 高达 0.50(而 $\max|M|=0.42$),
-且与局域幅度相关(0.69)——EDI-direct 的 noncolin 矩阵元局域+KB 皆不可信。
-源码层面,`ed_coarse_full_q` 的 noncolin-无-SO 分支确认只缩并 $\sigma=1$
-(`becd(ikb,1)·becd(ikb,1)·dvan`,丢掉 $\sigma=2$)。
+同时,"EDI 总残差"$M_\mathrm{EDI}^{\rm file}-(裁判+K_\mathrm{EDT})$ 高达 0.50
+(而 $\max|M|=0.42$)且与局域幅度相关(0.69)——此刻的证据链指向"EDI 矩阵元
+局域+KB 皆不可信",据此把 born 块移植进了 EDT(§4)。**但这一定罪的机制随后被
+推翻**(§7):按对仪器化转储证明 EDI 引擎逐对精确,坏的是文件接口的带轴约定。
+(审读中顺带发现的 `ed_coarse_full_q` noncolin 分支 $\sigma_1$-only 缩并是
+真实的代码错误并已修复,但它属于插值路径,不在本案传播链上。)
 
-**方法论教训(记录在案)**:此前对 EDI 的 SV"平反"(奇异值中位数 6.5e-3)是被
-$M_\mathrm{loc}\otimes I_2 + M_\mathrm{KB}\otimes e_{11}$ 的数学结构欺骗——该矩阵的
-奇异值恰好一半等于真标量 SV、一半缺 KB;中位数刚好落在好的一半上。
-**永远看全分布(p90/max),不要只看中位数。**
+**方法论教训(记录在案)**:(1) 此前对 EDI 的 SV"平反"(中位数 6.5e-3)之所以
+成立又不可信,根本原因是**奇异值对转置不变**——SV 类判据对这类接口错误天然全盲;
+(2) 全矩阵 Hermiticity 使 $|M^T|$ 与 $|M|$ 幅度谱相同,"中位比值 1.0000 而
+p10/p90 大散布"正是转置的指纹;(3) **永远看全分布,永远补逐元素复数级对账。**
 
 ## 4. 修复:born 块进 EDT,noncolin 全流程去 EDI 化
 
@@ -96,3 +103,28 @@ noncolin 宿主(d66nc)是两次独立 SCF,QE 的 noncolin-XC($m\to0$ 路径)使�
   Se$_\mathrm{S}$)已按战役几何重算排队。
 - 50 vs 100 Ry 收敛检查:SOC 劈裂本身 50 Ry 已收敛(K-VB 149.0 meV、K-CB 3.0 meV,
   差 <0.1 meV),但活性窗绝对能量漂移 max 16 meV → SOC 栈维持 100 Ry。
+
+## 7. 第二幕:按对仪器化转储与接口真凶
+
+把 EDI 装上 `EDI_DBG_PAIR` 探针(对指定 $(k_i,k_f)$ 对转储装配前的
+$m_\mathrm{loc}$ 与 $m_\mathrm{nl}$ 矩阵),与裁判/已认证的 EDT KB 三方对账:
+
+| 对账(对 $(k_1,k_{29})$,80 元素) | 结果 |
+|---|---|
+| EDI $m_\mathrm{loc}$ vs 独立裁判 | $6.9\times10^{-12}$ |
+| EDI $m_\mathrm{nl}$ vs EDT KB(已认证) | $9.5\times10^{-14}$ |
+| 但整装 .bin vs EDT-born 全矩阵 | max 1.68 |
+
+数值全对、摆放全错 → 罪在装配/写盘。7 种轴假设一次扫描:
+
+$$\max\bigl|E_\mathrm{EDI} - T_\mathrm{EDT}^{T(\mathrm{bands})}\bigr| = 8.7\times10^{-14}$$
+
+——块内带轴纯转置(无 $k$ 交换、无共轭)。修复为 EDI 写入端转置 + 格式版本
+20260809(edi_v8d);**所有 20260702 版的 EDI-direct .bin 都携带带转置**,须重
+生成或读时转置(conv.py 产的同版本号文件是 EDT 约定,不受影响)。同批修复:
+B8($q_\mathrm{cryst}$ 改用 NSCF 表示,防 $e^{i\Delta G\cdot r}$ 假相位)与
+full_q $\sigma_1$-only。修复后同波函数 EDI-vs-EDT 全矩阵闭环与标量跨码
+unit test 见验证表(运行中补录)。
+
+**总教训**:跨码对不上时,第一步不是审引擎,而是**按对仪器化转储把
+"引擎 vs 接口"分离**——两个各自正确的引擎完全可以隔着一个转置互相"定罪"。
