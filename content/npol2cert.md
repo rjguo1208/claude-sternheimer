@@ -9,7 +9,7 @@ npol=2 实现无罪**——三个独立规范不变判据全部机器精度通�
 EDI-direct 的 .bin 在每个 $(k_i,k_f)$ 块内写 $(\mathrm{bra},\mathrm{ket})$,
 而 EDT 读取约定是 $(\mathrm{ket},\mathrm{bra})$——纯带轴转置**,数值判决
 $\max|E_\mathrm{EDI}-T_\mathrm{EDT}^{T(\mathrm{bands})}|=8.7\times10^{-14}$。
-修复:EDI 写入端转置(格式版本 20260709→20260809);EDT 侧则把 born 块 $M_{AA}$
+修复:EDI 写入端转置(格式版本 20260702→20260809);EDT 侧则把 born 块 $M_{AA}$
 移植进本体(npol=2),SOC 生产线自给自足。终判:旋量对简并 **0.0000 meV**,
 跨宿主 VBM 门控 ≤4.9 meV(宿主孪生底噪),链-vs-born 闭环 $4.6\times10^{-11}$,
 修复后 EDI-vs-EDT 同波函数全矩阵 $\sim10^{-13}$。
