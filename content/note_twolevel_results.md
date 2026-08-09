@@ -510,14 +510,28 @@ each shift against its own bare band rather than a common zero.
 
 The same window at the valence edge, in the ranges of the corresponding Banff
 figure: $E-E_{\rm VBM}\in[-0.45,+0.35]$ eV on the same $K$-centred path,
-$\eta=5$ meV. (Se$_S$ was still running when this was written and is added
-separately.)
+$\eta=5$ meV.
 
 ![Valence-edge zoom about K](../assets/kzoom_vbm.png)
 
-Both defects put substantial flat weight just above the valence edge at
-$n_d=1/36$ — V$_S$ at $+0.16$ eV, O$_S$ at $+0.07$ eV — and both leave a clearly
-renormalized valence band below. The green dotted lines on the V$_S$ panel are
+The three separate cleanly. V$_S$ and O$_S$ both put substantial flat weight
+just above the valence edge at $n_d=1/36$ and leave a visibly renormalized band
+below; Se$_S$ does neither — its valence band tracks the bare one and its peak
+sits at the edge itself.
+
+| | peak of $A$ at K | flat-band detector, max |
+|---|---|---|
+| V$_S$ | $+0.1650$ eV | $\mathbf{36.6}$ |
+| O$_S$ | $+0.0760$ eV | $22.1$ |
+| Se$_S$ | $\mathbf{+0.0080}$ **eV** | $\mathbf{4.2}$ |
+
+The detector — the median over $k$, which suppresses the dispersive host band
+and keeps $k$-independent weight — is the sharpest statement: Se$_S$ is nearly
+featureless at a ninth of the vacancy's amplitude, and the small oscillations
+its curve does show are ripple at the $\omega$-grid spacing, not structure. That
+is the same ordering the $T$-matrix norms gave ($11.19$ / $0.44$ / $0.17$),
+now read off the spectral function at the edge that matters for $p$-type
+transport. The green dotted lines on the V$_S$ panel are
 the $6\times6$ supercell reference levels of section 4, which describe the same
 concentration:
 
