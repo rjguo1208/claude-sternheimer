@@ -398,7 +398,44 @@ speedup (8 from the workers, the rest from an exclusive node). The continued
 fraction is still $90\%$ of it, so the pole&ndash;residue representation of
 section 9c is the next lever if a much denser grid is ever wanted.
 
-## 11. Residual ledger
+## 11. Three defects through the same pipeline
+
+O$_S$ and Se$_S$ were carried through the identical route — same $12\times12$
+isolated-defect chain ($16$ blocks, $141.5$ and $140.4$ min, operator unit test
+$1.8\times10^{-11}$ and $7.2\times10^{-12}$), same pair-Wannier transform, same
+cluster, same $450$ frequencies. Only the host differs in one respect: their
+cells carry a third and fourth atomic species, so the pristine calculation
+supplying the active manifold must declare all four (see the note in section 10
+of the methods page).
+
+![Three defects](../assets/three_defects.png)
+
+In the gap $\mathcal G^A$ is real, so a bound state requires
+$1-\tilde{\mathcal V}\mathcal G^A$ to become singular. It does so only for the
+vacancy:
+
+| defect | $\max\lVert\tilde V\rVert$ | $\max|T|$ | in-gap bound states |
+|---|---|---|---|
+| V$_S$ | $0.878$ | $\mathbf{11.19}$ | $+0.0808$, $+1.2019$ eV |
+| O$_S$ | $0.706$ | $0.44$ | **none** |
+| Se$_S$ | $0.203$ | $0.17$ | **none** |
+
+Neither isovalent substitution binds anything: their $T$-matrices never
+approach the singularity, and the panels show a clean gap with host bands that
+are merely broadened — strongly for O$_S$, barely at all for Se$_S$. This is
+the same ordering the coarse-grid level gates gave, now obtained in the
+isolated-defect limit with the rest space resummed to all orders and the
+frequency dependence carried exactly, and with no supercell reference involved
+at any point.
+
+It is worth being precise about what changed and what did not. The earlier
+gates established that O$_S$'s in-gap "ghost" at $+0.80$ eV is an artefact of
+insufficient dressing — a correctly converged rest self-energy removes it. The
+present calculation does not merely fail to find that state at a finer mesh; it
+shows that at the isolated-defect concentration the O$_S$ potential is too weak
+to bind at all, with $\max|T|$ a factor of $25$ below the vacancy's.
+
+## 12. Residual ledger
 
 Nothing structural remains. With the two systematics of section 2 controlled,
 the $\omega$-resolved downfold agrees with the supercell truth to $\le 8$ meV

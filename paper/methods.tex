@@ -469,6 +469,30 @@ state with each Bloch state.
   \label{fig:akw}
 \end{figure}
 
+\begin{figure*}[t]
+  \includegraphics[width=\textwidth]{three_defects.png}
+  \caption{The same pipeline applied to three point defects at
+  $n_d = 1/36$: identical chains ($16$ blocks, $141$ min), identical transform,
+  identical cluster. A bound state requires $1 - \mathcal{V}\mathcal{G}^A$ to
+  become singular in the gap, where $\mathcal{G}^A$ is real; only the vacancy
+  achieves it. The isovalent substitutions leave the gap clean and merely
+  broaden the host bands, strongly for O$_{\rm S}$ and barely at all for
+  Se$_{\rm S}$.}
+  \label{fig:three}
+\end{figure*}
+
+
+\subsection{Application}
+
+Figure~\ref{fig:three} shows the method applied unchanged to three point
+defects. The chains are indistinguishable in cost ($16$ blocks, $141$ min,
+operator identity $2\times10^{-11}$ to $7\times10^{-12}$) because the cost
+depends only on the mesh and manifold dimensions, not on $\dV$. The physics is
+not: the vacancy drives $\max|T| = 11.2$ and binds two in-gap states, whereas
+the isovalent substitutions reach only $0.44$ and $0.17$ and bind none. Since
+$\mathcal{G}^A$ is real in the gap, the absence of a singularity in
+$1 - \mathcal{V}\mathcal{G}^A$ is a statement, not a numerical near-miss.
+
 
 \section{Validation}
 \label{sec:validation}
