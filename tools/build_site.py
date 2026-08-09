@@ -26,6 +26,7 @@ ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESEARCH  = os.path.join(ROOT, "research.md")
 PLAN      = os.path.join(ROOT, "plan.md")
 NOTE_KNORM = os.path.join(ROOT, "content", "note_kprime_norm.md")
+NOTE_NPOL2 = os.path.join(ROOT, "content", "npol2cert.md")
 NOTE_RESULTS = os.path.join(ROOT, "content", "note_tmatrix_results.md")
 NOTE_LADDER = os.path.join(ROOT, "content", "note_sternheimer_ladder.md")
 NOTE_KOSTER = os.path.join(ROOT, "content", "note_koster_slater.md")
@@ -266,7 +267,7 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            '%s%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
                                       a("pages/sternheimer-ladder.html", "Rest-space ladder", "ladder"),
                                       a("pages/deflated-ladder.html", "Deflated ladder", "deflated"),
@@ -276,6 +277,7 @@ def _topnav(active, prefix=""):
                                       a("pages/feshbach-implementation.html", "Feshbach impl.", "fesh"),
                                       a("pages/plan.html", "Implementation Plan", "plan"),
                                       a("pages/results.html", "Results", "results"),
+                                      a("pages/npol2-cert.html", "npol=2 cert.", "npol2"),
                                       a("pages/note-kprime-normalization.html", "Note: k&prime;-norm", "note")))
 
 def page_shell(title, head_html, nav_html, body_html, css_href):
@@ -360,6 +362,29 @@ def build_note():
     out = page_shell(SITE_TITLE + " — Note: k'-sum normalization",
                      header, _topnav("note", prefix="../"), body, "../assets/style.css")
     with open(os.path.join(PAGES_DIR, "note-kprime-normalization.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
+def build_npol2cert():
+    with open(NOTE_NPOL2, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=False)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">EDT 的 npol=2(旋量)实现如何在翻倍测试失败后被三个'
+              '规范不变判据无罪释放,EDI-direct noncolin 矩阵元如何被定罪,以及取而代之的'
+              'EDT 自产 born 块与双门终判。</p>'
+              '<div class="meta"><span class="pill">Certification</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">MathJax v3</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " — npol=2 certification",
+                     header, _topnav("npol2", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "npol2-cert.html"), "w", encoding="utf-8") as f:
         f.write(out)
     return r
 
@@ -535,6 +560,13 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
+    ("npol=2 认证:翻倍测试裁决、EDI noncolin 定罪、EDT born 块自立", "Verification", "2026-08-09", "ok", "Certified",
+     "翻倍测试 FAIL 引发的司法式裁决:局域臂 52/52 与独立 numpy 裁判精确 1.000;简并对 2-矢量"
+     "平行性 25/25 达 $|\\cos|=1.0000$;标量回归 $8\\times10^{-15}$ — EDT 无罪。EDI-direct noncolin "
+     "矩阵元被定罪(混合旋量下自旋分量丢失,残差达 0.50)。born 块移植进 EDT 后:闭环 unit test "
+     "$4.6\\times10^{-11}$,SV 审计 1260 块 p90 $7.8\\times10^{-3}$,终判旋量对简并 0.0000 meV。"
+     "教训:SV 中位数会被 $M_\\mathrm{loc}\\otimes I_2+M_\\mathrm{KB}\\otimes e_{11}$ 结构欺骗,永远看全分布。",
+     '<a href="pages/npol2-cert.html">Open the adjudication &rarr;</a>'),
     ("Method derivations: $\\Sigma$, the $T$-matrix, the e&ndash;d self-energy", "Method", "2026-08-07", "ok", "Reference",
      "The exact downfolding identity and each method as one choice of $\\Sigma$: M-only / bare 2nd order / "
      "two-level static ladder (with its $\\rho(D_2W_{22})<1$ caveat) / $\\omega$-resolved block-Lanczos "
@@ -823,6 +855,7 @@ def main():
     build_note()
     build_results()
     build_ladder()
+    build_npol2cert()
     build_deflated()
     build_tlres()
     build_methods()

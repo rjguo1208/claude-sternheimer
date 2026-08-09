@@ -1,0 +1,51 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sternheimer Electron-Defect T-matrix — npol=2 certification</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head><body>
+<nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html">Two-level results</a><a href="../pages/methods.html">Method derivations</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/npol2-cert.html" style="color:#fff;text-decoration:underline">npol=2 cert.</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
+<header><div class="header-inner"><h1>npol=2 认证:翻倍测试的裁决与谱系</h1><p class="subtitle">EDT 的 npol=2(旋量)实现如何在翻倍测试失败后被三个规范不变判据无罪释放,EDI-direct noncolin 矩阵元如何被定罪,以及取而代之的EDT 自产 born 块与双门终判。</p><div class="meta"><span class="pill">Certification</span><span class="pill">7 sections</span><span class="pill">MathJax v3</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<main>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-0">0. 摘要</a><a href="#sec-1">1. 翻倍测试与最初的失败</a><a href="#sec-2">2. 三方分解:局域臂与 KB 臂分开审</a><a href="#sec-3">3. 关键证据:混合旋量与简并对平行性</a><a href="#sec-4">4. 修复:born 块进 EDT,noncolin 全流程去 EDI 化</a><a href="#sec-5">5. 终判:双门框架</a><a href="#sec-6">6. 对 SOC 生产的直接后果</a></div></section>
+
+<section id="sec-0"><h2>0. 摘要</h2>
+<p>MODE C 下折叠链的 npol=2(旋量)移植在翻倍测试(noncolin=T、lspinorb=F、标量赝势)中 未能复现"能级精确 ×2",触发了一次完整的司法式裁决。结论:<strong>EDT 的 npol=2 实现无罪 ——三个独立规范不变判据全部机器精度通过;有罪方是 EDI-direct 的 noncolin 矩阵元</strong> (自旋分量丢失)。修复路线为把 born 块 $M_{AA}$ 的计算移植进 EDT 本体(npol=2), 使 noncolin/SOC 全流程不再依赖 EDI 的 edmat。终判:旋量对简并 <strong>0.0000 meV</strong>, 跨宿主 VBM 门控 ≤4.9 meV(宿主孪生底噪),链-vs-born 闭环 unit test $4.6\times10^{-11}$。</p>
+</section>
+<section id="sec-1"><h2>1. 翻倍测试与最初的失败</h2>
+<p>翻倍测试构造:同一 MoS$_2$ V$_\mathrm{S}$ 6×6 体系,宿主用 noncolin=T、lspinorb=F 与 <strong>标量赝势</strong>重算(d66nc)。此时 $H$ 自旋对角、无磁化,物理与标量计算完全相同: 下折叠有效哈密顿量的每个能级都应精确出现两次。首次运行(EDI-direct 提供 born 块 $M_{AA}$)结果 FAIL:能级既不成对也不对应,链的算符恒等测试 $\max|P^\dagger(\Delta V\,\Psi)-M|$ 高达 $8.7\times10^{-1}$(标量情形为 $10^{-14}$ 量级)。</p>
+</section>
+<section id="sec-2"><h2>2. 三方分解:局域臂与 KB 臂分开审</h2>
+<p>用两个探针钩子把 apply_dV 拆开:<code>EDT_NOKB=1</code> 关闭 KB(非局域)通道得纯局域投影, 再以独立编写的 numpy 平面波积分器(裁判,零依赖重实现:补零 ifftn、$e^{iq\cdot r}$ 相位、 双旋量分量求和)对 160 个复矩阵元逐一对账:</p>
+<div class="table-wrap"><table><thead><tr><th>审计对象</th><th>判据</th><th>结果</th></tr></thead><tbody><tr><td>EDT 旋量局域 fold</td><td>$\|P_\mathrm{nokb}\|/\|裁判\|$</td><td>52/52 元素比值 <strong>1.000</strong>(全部 3% 内)</td></tr><tr><td>EDT 旋量 KB</td><td>$\|P_\mathrm{full}-P_\mathrm{nokb}\|/\|M_\mathrm{EDI}-裁判\|$</td><td>中位 0.36,p10=0,散布 0.13–1.3</td></tr></tbody></table></div>
+<p>局域臂当场无罪(且裁判与 EDT 互验)。KB 臂的"罪证"随后被证明是冤案——分母 $M_\mathrm{EDI}-裁判$ 本身被污染。</p>
+</section>
+<section id="sec-3"><h2>3. 关键证据:混合旋量与简并对平行性</h2>
+<p>d66nc 的本征态是<strong>重度混合旋量</strong>(纯度 0.51–0.99:Davidson 在简并对内任意 SU(2) 混合, 纯旋量假设不成立)。对无 SO 的自旋对角算符,真实矩阵元满足</p>
+<div class="math">
+$$\langle m|\mathcal{O}|n\rangle = \langle\chi_m|\chi_n\rangle\,\mathcal{O}_{\mathrm{orb}}(m,n),$$
+</div>
+<p>于是对简并对 $(m_1,m_2)$(同轨道、正交旋量),<strong>KB 部分的 2-矢量 $[K(m_1,n),K(m_2,n)]$ 必须与局域 2-矢量 $[L(m_1,n),L(m_2,n)]$ 复比例平行</strong> (都 $\propto[\langle\chi_{m_1}|\chi_n\rangle,\langle\chi_{m_2}|\chi_n\rangle]$)。 这是规范不变的终极判据——对 per-k 幺正与简并混合完全免疫:</p>
+<div class="table-wrap"><table><thead><tr><th>被审 KB</th><th>平行度 $|\cos|$</th><th>通过率 (&gt;0.99)</th></tr></thead><tbody><tr><td>EDT($P_\mathrm{full}-P_\mathrm{nokb}$)</td><td>中位 <strong>1.0000</strong>,p10 1.000</td><td><strong>25/25</strong></td></tr><tr><td>EDI($M_\mathrm{EDI}-裁判$)</td><td>中位 0.977,p10 0.759</td><td>44%</td></tr></tbody></table></div>
+<p>同时,EDI 总残差 $M_\mathrm{EDI}-(裁判+K_\mathrm{EDT})$ 高达 0.50(而 $\max|M|=0.42$), 且与局域幅度相关(0.69)——EDI-direct 的 noncolin 矩阵元局域+KB 皆不可信。 源码层面,<code>ed_coarse_full_q</code> 的 noncolin-无-SO 分支确认只缩并 $\sigma=1$ (<code>becd(ikb,1)·becd(ikb,1)·dvan</code>,丢掉 $\sigma=2$)。</p>
+<p><strong>方法论教训(记录在案)</strong>:此前对 EDI 的 SV"平反"(奇异值中位数 6.5e-3)是被 $M_\mathrm{loc}\otimes I_2 + M_\mathrm{KB}\otimes e_{11}$ 的数学结构欺骗——该矩阵的 奇异值恰好一半等于真标量 SV、一半缺 KB;中位数刚好落在好的一半上。 <strong>永远看全分布(p90/max),不要只看中位数。</strong></p>
+</section>
+<section id="sec-4"><h2>4. 修复:born 块进 EDT,noncolin 全流程去 EDI 化</h2>
+<p>把 <code>vtilde_block_mpi</code>(born 路径,<code>born_only=.true.</code>)移植 npol=2:源矢量 $S$、 bec/coeff 数组加自旋维,fold 加分量循环($\Delta V_\mathrm{loc}$ 自旋对角), KB 走与 apply_dV 相同的 <code>make_coeff_nc</code>(dvan 自旋对角 / dvan_so 2×2), bra 侧逐分量收缩;npol=1 逐位不变。验证梯(kbval):</p>
+<div class="table-wrap"><table><thead><tr><th>关卡</th><th>结果</th></tr></thead><tbody><tr><td>标量 born 回归(r9 vs 存档)</td><td><strong>逐位相同</strong>(8,296,152 B)</td></tr><tr><td>nc born(40 带 × 36 k,$N_A=1440$)</td><td>Hermiticity $1.1\times10^{-14}$</td></tr><tr><td>链-vs-born 闭环 unit test</td><td>$\mathbf{4.6\times10^{-11}}$(对 EDI edmat 时 0.87)</td></tr><tr><td>SV-翻倍审计,<strong>全部</strong> 1260 离对角块</td><td>中位 3.5e-3,p90 7.8e-3,max 1.1e-2(双 SCF 宿主差水平,无坏尾)</td></tr></tbody></table></div>
+</section>
+<section id="sec-5"><h2>5. 终判:双门框架</h2>
+<p>原"0.2 meV 内精确 ×2"隐含<strong>同一哈密顿量</strong>假设。实际上标量宿主(dout66f)与 noncolin 宿主(d66nc)是两次独立 SCF,QE 的 noncolin-XC($m\to0$ 路径)使原始本征值 差 3–52 meV、VBM 差 10.8 meV——异宿主上 0.2 meV 原则上不可达。正确框架:</p>
+<div class="table-wrap"><table><thead><tr><th>门</th><th>性质</th><th>结果</th></tr></thead><tbody><tr><td>旋量对简并 $\max|e_{2j}-e_{2j-1}|$</td><td>同宿主,<strong>精确</strong></td><td><strong>0.0000 meV — PASS</strong></td></tr><tr><td>各自 VBM 门控后 scalar-vs-nc</td><td>跨宿主,受孪生底噪限</td><td>≤4.86 meV — PASS</td></tr></tbody></table></div>
+<p>叠加 §2–§4 的机器精度内证,npol=2 EDT(链 + born)达到生产认证。 验收与取证脚本存于 qe-edt 仓库 <code>post/</code>:<code>doubling_accept.py</code>、<code>parallel_test.py</code>、 <code>analyze_split.py</code>、<code>svdouble2.py</code>。</p>
+</section>
+<section id="sec-6"><h2>6. 对 SOC 生产的直接后果</h2>
+<ul><li>SOC(lspinorb=T)链一律使用 <strong>EDT 自产 born edmat</strong>(<code>do_full_block=.true.,
+  born_only=.true.</code>),禁止投喂 EDI-direct 的 noncolin/SOC edmat。</li><li>顺带发现旧 SOC O$_\mathrm{S}$ 超胞是<strong>未弛豫几何</strong>(O 替位 $z$ 差 1.0 bohr), 与非 SOC 生产线(弛豫)不一致——四只 SOC 超胞(洁净、O$_\mathrm{S}$、V$_\mathrm{S}$、 Se$_\mathrm{S}$)已按战役几何重算排队。</li><li>50 vs 100 Ry 收敛检查:SOC 劈裂本身 50 Ry 已收敛(K-VB 149.0 meV、K-CB 3.0 meV, 差 &lt;0.1 meV),但活性窗绝对能量漂移 max 16 meV → SOC 栈维持 100 Ry。</li></ul>
+</section>
+</main>
+<footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
+Static HTML; equations rendered client-side with MathJax v3. No raw wavefunctions, cubes,
+binaries, or logs are published.</footer>
+</body></html>
