@@ -772,7 +772,7 @@ CONTAINS
     USE becmod,           ONLY : becp, allocate_bec_type, deallocate_bec_type
     USE uspp,             ONLY : nkb
     USE constants,        ONLY : tpi
-    USE edt_input,        ONLY : fold_col, col_chunk, zslab_tol
+    USE edt_input,        ONLY : fold_col, col_chunk, zslab_tol, n_reorth
     IMPLICIT NONE
     REAL(dp), INTENT(IN) :: xkcr(3,nkstot), omega0_ry, win_min_ry, win_max_ry
     INTEGER,  INTENT(IN) :: nbndskip_in, nstep
@@ -1033,6 +1033,7 @@ CONTAINS
     CALL deallocate_bec_type(becp)
 
     ! ---- write chains (ionode) ----
+    CALL ortho_report()
     IF (ionode) THEN
        iu = 79
        OPEN(unit=iu, file=TRIM(outfile), form='unformatted', status='replace')
@@ -1531,24 +1532,60 @@ CONTAINS
     END SUBROUTINE gemm_sub
 
     SUBROUTINE reorth_all(w_, jmax)
-      !! classical Gram-Schmidt of w_ against ALL stored blocks 0..jmax
-      !! (single strided ZGEMM: Qs columns (a,j) share a uniform stride)
+      !! Gram-Schmidt of w_ against stored blocks.  n_reorth = 0 orthogonalizes
+      !! against ALL of 0..jmax (the safe default); n_reorth = m > 0 keeps only
+      !! the last m blocks, which is what a memory-lean scheme would do -- the
+      !! whole point of storing every block is this sweep, so its necessity is
+      !! worth measuring rather than assuming.
       COMPLEX(dp), INTENT(INOUT) :: w_(:,:,:)
       INTEGER, INTENT(IN) :: jmax
-      INTEGER :: ikl, ncols
-      ncols = NA_*(jmax+1)
+      INTEGER :: ikl, ncols, j0
+      j0 = 0
+      IF (n_reorth > 0) j0 = MAX(0, jmax - n_reorth + 1)
+      ncols = NA_*(jmax-j0+1)
       IF (.NOT. ALLOCATED(Cm)) ALLOCATE(Cm(NA_*(nstep+1), NA_))
       Cm(1:ncols,:) = czero
       DO ikl = 1, nks
-         CALL ZGEMM('C','N', ncols, NA_, npwx, cone, Qs(1,ikl,1,0), SIZE(Qs,1)*SIZE(Qs,2), &
+         CALL ZGEMM('C','N', ncols, NA_, npwx, cone, Qs(1,ikl,1,j0), SIZE(Qs,1)*SIZE(Qs,2), &
                     w_(1,ikl,1), SIZE(w_,1)*SIZE(w_,2), cone, Cm, SIZE(Cm,1))
       ENDDO
       CALL mp_sum(Cm(1:ncols,:), inter_pool_comm)
       DO ikl = 1, nks
-         CALL ZGEMM('N','N', npwx, NA_, ncols, -cone, Qs(1,ikl,1,0), SIZE(Qs,1)*SIZE(Qs,2), &
+         CALL ZGEMM('N','N', npwx, NA_, ncols, -cone, Qs(1,ikl,1,j0), SIZE(Qs,1)*SIZE(Qs,2), &
                     Cm, SIZE(Cm,1), cone, w_(1,ikl,1), SIZE(w_,1)*SIZE(w_,2))
       ENDDO
     END SUBROUTINE reorth_all
+
+    SUBROUTINE ortho_report()
+      !! max |<Q_i|Q_j> - delta_ij| over all stored blocks: the direct measure of
+      !! whether the recurrence has lost orthogonality at all.
+      COMPLEX(dp), ALLOCATABLE :: Gm(:,:)
+      REAL(dp) :: dev
+      INTEGER :: ikl, nc, i
+      nc = NA_*(nstep+1)
+      ALLOCATE(Gm(nc, NA_))
+      dev = 0.0_dp
+      DO i = 0, nstep
+         Gm = czero
+         DO ikl = 1, nks
+            CALL ZGEMM('C','N', nc, NA_, npwx, cone, Qs(1,ikl,1,0), SIZE(Qs,1)*SIZE(Qs,2), &
+                       Qs(1,ikl,1,i), SIZE(Qs,1)*SIZE(Qs,2), cone, Gm, nc)
+         ENDDO
+         CALL mp_sum(Gm, inter_pool_comm)
+         Gm(i*NA_+1:(i+1)*NA_, :) = Gm(i*NA_+1:(i+1)*NA_, :) - eyeNA()
+         dev = MAX(dev, MAXVAL(ABS(Gm)))
+      ENDDO
+      IF (ionode) WRITE(stdout,'(5X,A,I3,A,ES11.3)') &
+           'ORTHOGONALITY (n_reorth =', n_reorth, '):  max|<Q_i|Q_j> - delta| =', dev
+      DEALLOCATE(Gm)
+    END SUBROUTINE ortho_report
+
+    FUNCTION eyeNA() RESULT(e)
+      COMPLEX(dp) :: e(NA_,NA_)
+      INTEGER :: i
+      e = czero
+      DO i = 1, NA_; e(i,i) = cone; ENDDO
+    END FUNCTION eyeNA
 
     SUBROUTINE apply_trsm(w_, R_)
       !! w_ <- w_ * R_^-1  (R_ upper triangular, from ZPOTRF 'U')

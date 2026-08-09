@@ -15,6 +15,7 @@ MODULE edt_input
 
   ! ---- coarse k-grid (must match the primitive NSCF) ----
   INTEGER :: coarse_nk1 = 0, coarse_nk2 = 0, coarse_nk3 = 0
+  INTEGER :: n_reorth = 0          ! 0 = orthogonalize against all stored blocks; m>0 = last m only
   REAL(dp) :: zslab_tol = 0.0_dp   ! 2D: drop z-slices holding at most this fraction of the active density (0 = keep all)
 
   ! ---- supercell difference potential (cube files from extract_pot.x) ----
@@ -70,7 +71,7 @@ MODULE edt_input
   CHARACTER(LEN=256) :: lancz_outfile = 'lanczos_chain.dat'  ! MODE C chain output
 
   NAMELIST / edt_nml / &
-       edi_prefix, edi_outdir, coarse_nk1, coarse_nk2, coarse_nk3, zslab_tol, &
+       edi_prefix, edi_outdir, coarse_nk1, coarse_nk2, coarse_nk3, zslab_tol, n_reorth, &
        potfile_d, potfile_p, pot_align, defect_center, core_align_radius, &
        nbndsub, filukk, hr_seedname, &
        range_sep, rhofile_d, rhofile_p, coulomb_2d, alpha_gauss, &
@@ -103,6 +104,7 @@ CONTAINS
 
     CALL mp_bcast(edi_prefix,       ionode_id, world_comm)
     CALL mp_bcast(edi_outdir,       ionode_id, world_comm)
+    CALL mp_bcast(n_reorth,         ionode_id, world_comm)
     CALL mp_bcast(zslab_tol,        ionode_id, world_comm)
     CALL mp_bcast(coarse_nk1,       ionode_id, world_comm)
     CALL mp_bcast(coarse_nk2,       ionode_id, world_comm)

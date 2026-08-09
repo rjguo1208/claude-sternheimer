@@ -506,6 +506,41 @@ $2$-species host used for V$_S$ and the $4$-species one required by O$_S$/Se$_S$
 differ by $16$ meV in the interpolated CBM at K, which is why the table quotes
 each shift against its own bare band rather than a common zero.
 
+### 11c. The valence edge about K
+
+The same window at the valence edge, in the ranges of the corresponding Banff
+figure: $E-E_{\rm VBM}\in[-0.45,+0.35]$ eV on the same $K$-centred path,
+$\eta=5$ meV. (Se$_S$ was still running when this was written and is added
+separately.)
+
+![Valence-edge zoom about K](../assets/kzoom_vbm.png)
+
+Both defects put substantial flat weight just above the valence edge at
+$n_d=1/36$ — V$_S$ at $+0.16$ eV, O$_S$ at $+0.07$ eV — and both leave a clearly
+renormalized valence band below. The green dotted lines on the V$_S$ panel are
+the $6\times6$ supercell reference levels of section 4, which describe the same
+concentration:
+
+| flat feature | nearest reference level | difference |
+|---|---|---|
+| $-0.1590$ | $-0.0899$ | $-69.1$ meV |
+| $-0.0720$ | $-0.0899$ | $+17.9$ meV |
+| $\mathbf{-0.0250}$ | $\mathbf{-0.0248}$ | $\mathbf{-0.2}$ **meV** |
+| $+0.0840$ | $+0.0596$ | $+24.4$ meV |
+| $+0.1270$ | $+0.0596$ | $+67.4$ meV |
+
+The central feature lands on its reference to $0.2$ meV and the two flanking it
+to $\sim20$ meV, but the outermost two do not pair off cleanly. A level-by-level
+match is not what should be expected here, and it is worth saying why rather
+than treating the mismatch as an error. The reference levels are eigenvalues of
+a periodic supercell — the defect interacting with its own images coherently.
+The peaks plotted are poles of $[\,\omega - H_0 - n_d T\,]^{-1}$, the
+single-site (average-$T$-matrix) result, in which defects scatter independently
+with no interference. At $n_d = 1/36$ the mean defect separation is six cells
+and that approximation is being pushed; the discrepancy is a statement about the
+ensemble treatment, not about the vertex. At $10^{12}$ cm$^{-2}$
+(section 11a) the two descriptions would agree.
+
 ## 12. Residual ledger
 
 Nothing structural remains. With the two systematics of section 2 controlled,
