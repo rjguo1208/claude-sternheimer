@@ -541,6 +541,12 @@ CATALOG = [
      "continued fraction / $\\chi$ augmentation; plus the fold-grid requirement and the route from the "
      "downfolded vertex to the $T$-matrix, the spectral function and the electron&ndash;defect self-energy.",
      '<a href="pages/methods.html">Open derivations &rarr;</a>'),
+    ("Methods manuscript (REVTeX / APS): the whole route, publication form", "Writeup", "2026-08-08", "ok", "Drafted",
+     "The complete method chain written as a PRX-format Methods section: Feshbach downfolding, the fold and its "
+     "commensurability condition, the free $k$-mesh, block-Lanczos $\\Sigma^R(\\omega)$, the pair-Wannier "
+     "transform and its origin convention, the real-space Koster&ndash;Slater closure, and a validation table "
+     "gating every stage. 6 pages, compiles clean under REVTeX 4.2.",
+     '<a href="paper/methods.pdf">methods.pdf &rarr;</a> &nbsp; <a href="https://github.com/rjguo1208/claude-sternheimer/blob/main/paper/methods.tex">source</a>'),
     ("Spectral function A(k,$\\omega$) end to end, welded to the coarse-grid levels", "Result", "2026-08-08", "prod", "Headline",
      "The whole route run end to end: $\\omega$-resolved vertex &rarr; pair-Wannier &rarr; real-space "
      "Koster&ndash;Slater cluster &rarr; $\\Sigma^{ed}=n_d T_{kk}$ &rarr; $A(k,\\omega)$ on "
