@@ -462,6 +462,50 @@ shallow $+0.08$ eV line is faintly visible above the valence edge, both with
 weight $\propto n_d$. The isovalent substitutions leave both edges clean, as
 they must, having no pole to carry weight.
 
+### 11b. The conduction edge about K
+
+The earlier explicit-$T$ work on Banff reported this window: $k$ from
+$K-0.3\,\overline{\Gamma K}$ through $K$ to $K+0.45\,\overline{KM}$, and
+$E-E_{\rm VBM}\in[1.45,2.15]$ eV at $\eta=5$ meV. Reproducing it here puts two
+independent routes on the same axes — that one built the $T$-matrix by explicit
+inversion of a truncated rest space, this one by $\omega$-resolved downfolding,
+Wannier interpolation and a real-space cluster.
+
+![Conduction-edge zoom about K](../assets/kzoom_cbm.png)
+
+$\eta=5$ meV is what makes this expensive: the $\mathcal G^A$ Brillouin-zone sum
+must have a level spacing finer than $\eta$, so the fine mesh goes to
+$1200\times1200$ ($1.44$M points) and $\mathcal G^A$ overtakes the continued
+fraction as the dominant cost ($12$ s per frequency against $8.7$). $701$
+frequencies at $\Delta\omega=1$ meV — the features are $5$--$10$ meV wide, so
+the reference's $0.25$ meV is oversampled — take $25$--$27$ min per defect.
+
+At $n_d=1/36$ the conduction edge at K moves by tens of meV, and the three
+defects move it differently:
+
+| defect | bare CBM | peak at K | shift | flat weight above $1.75$ eV |
+|---|---|---|---|---|
+| O$_S$ | $+1.6520$ | $+1.6100$ | $\mathbf{-42.0}$ meV | strong, $\approx1.93$--$1.96$ |
+| Se$_S$ | $+1.6520$ | $+1.6750$ | $+23.0$ meV | weak, $1.78$ |
+| V$_S$ | $+1.6679$ | $+1.7070$ | $+39.1$ meV | $1.80$ |
+
+The flat-band detector (median over $k$, which suppresses the dispersive host
+band and keeps $k$-independent weight) is the sharpest discriminator: O$_S$
+carries a clear resonance near $1.95$ eV that neither other defect has.
+
+**Comparison with the Banff figure.** The ordering agrees — O$_S$ pulls the
+edge down and adds the most structure above it, Se$_S$ is the cleanest, V$_S$ is
+intermediate — but the magnitudes do not. The shifts here are larger, and the
+flat features sit $\sim100$ meV lower. Three differences are candidates and only
+the first is likely decisive: (i) that calculation truncates the rest space at
+band 70 while this one resums the whole of it including the plane-wave tail, and
+under-dressing is exactly what sections 4--6 showed moves levels by tens of meV;
+(ii) its vertex is frozen at $\omega_0=$ CBM, this one is $\omega$-resolved;
+(iii) the two hosts here are themselves different self-consistent runs — the
+$2$-species host used for V$_S$ and the $4$-species one required by O$_S$/Se$_S$
+differ by $16$ meV in the interpolated CBM at K, which is why the table quotes
+each shift against its own bare band rather than a common zero.
+
 ## 12. Residual ledger
 
 Nothing structural remains. With the two systematics of section 2 controlled,
