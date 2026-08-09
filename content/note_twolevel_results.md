@@ -435,6 +435,33 @@ present calculation does not merely fail to find that state at a finer mesh; it
 shows that at the isolated-defect concentration the O$_S$ potential is too weak
 to bind at all, with $\max|T|$ a factor of $25$ below the vacancy's.
 
+### 11a. At an experimentally relevant density
+
+Because the cluster solve makes $n_d$ a free parameter, the same cached
+$T(\kk,\omega)$ serves any density. Converting with the primitive-cell area
+$\tfrac{\sqrt3}{2}a^2 = 8.786$~\AA$^2$,
+$$n_d = 10^{12}\ \mathrm{cm^{-2}} \;=\; 8.79\times10^{-4}\ \text{per cell}
+\;=\; \text{one defect per } 1138 \text{ cells},$$
+a factor of $32$ more dilute than the $6\times6$ supercell.
+
+![Band-edge zoom at 1e12 cm^-2](../assets/zoom_edges_1e12.png)
+
+One caveat governs this figure and is worth stating plainly. At this density the
+physical linewidth is $\mathrm{Im}\,\Sigma^{\rm ed} = n_d\,\mathrm{Im}\,T \approx
+4$ meV, well below the $\eta = 50$ meV used for the maps of section 10: at that
+broadening the three defects look identical and the defect lines are invisible,
+because what is being plotted is the artificial width, not the physics. The
+figure above therefore uses $\eta = 15$ meV. Reducing $\eta$ has a cost of its
+own — the Brillouin-zone sum for $\mathcal G^A$ must not have a level spacing
+coarser than $\eta$, so the fine mesh was raised from $96\times96$ to
+$288\times288$; the run still takes $7$ min per defect.
+
+With that resolution the vacancy's two bound states survive dilution: the
+$+1.20$ eV line remains sharp and flat below the conduction edge, and the
+shallow $+0.08$ eV line is faintly visible above the valence edge, both with
+weight $\propto n_d$. The isovalent substitutions leave both edges clean, as
+they must, having no pole to carry weight.
+
 ## 12. Residual ledger
 
 Nothing structural remains. With the two systematics of section 2 controlled,
