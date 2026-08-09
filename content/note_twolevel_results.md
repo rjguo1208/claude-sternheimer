@@ -321,7 +321,71 @@ $4.1$ to $261$ s of multiply — $64\times$, exactly $4^3$. Memory goes as
 $N_k^2$, which is why $N_S=16$ rather than $24$. Reorthogonalization overtakes
 the fold at step 9 and is the wall beyond this size.
 
-## 10. Residual ledger
+## 10. The spectral function, end to end
+
+Everything above lives on a coarse $k$-grid. Sections 7b&ndash;9d of the methods
+note assemble the route off it: the $\omega$-resolved downfolded vertex, the
+pair-Wannier transform (leave-one-out $0.61$&ndash;$0.88$ meV), and a real-space
+Koster&ndash;Slater cluster whose dimension does not depend on the fine grid.
+Running it end to end:
+
+$$\tilde V(\omega)=M_{AA}+\Sigma^R(\omega)\ \to\
+\tilde{\mathcal V}(\mathbf R_e,\mathbf R_p;\omega)\ \to\
+\mathcal T=\big[1-\tilde{\mathcal V}\mathcal G^A(\omega)\big]^{-1}\tilde{\mathcal V}\ \to\
+\Sigma^{\rm ed}=n_d T_{\mathbf k\mathbf k}\ \to\ A(\mathbf k,\omega)$$
+
+with $\mathcal G^A$ built by Wannier interpolation of the host onto a
+$96\times96$ grid. **No fit in $\omega$**: the continued fraction is evaluated at
+every point, so the poles of the rest self-energy are carried exactly and no
+validity window is imposed.
+
+![Electron-defect spectral function along Gamma-M-K-Gamma](../assets/kpath_spectral.png)
+
+$200$ frequencies over $[-1.5,+3.0]$ eV, $181$ $k$-points, $R_{\rm cut}=4a$ (61
+cells, cluster dimension 671), $\eta=50$ meV.
+
+**The acceptance test.** In the gap $\mathcal G^A$ is real, so the bound states
+are the roots of $\det[1-\tilde{\mathcal V}\mathcal G^A(\omega)]=0$ — a
+determinant with no $\mathbf k$ in it, which is why the in-gap lines are flat.
+Those roots must reproduce the quasiparticle levels obtained by directly
+diagonalizing $H_{\rm eff}(\omega)$ on the coarse grid:
+
+| | cluster Koster&ndash;Slater | direct diagonalization | difference |
+|---|---|---|---|
+| deep in-gap level | $+1.2018$ | $+1.2023$ | $\mathbf{-0.5}$ **meV** |
+| $a_1$, near the edge | $+0.0823$ | $+0.0735$ | $+8.8$ meV |
+
+The deep level lands at half a meV. That welds the whole new chain — Wannier
+gauge, pair kernel, cluster truncation, fine-grid $\mathcal G^A$, Dyson solve —
+onto the coarse-grid result that sections 1&ndash;9 validated; a systematic error
+anywhere in it could not survive this. The $a_1$ level is $68$ meV above the VBM,
+sitting on the shoulder of the valence continuum with $\eta=50$ meV, so its
+$|T|$ peak is not an isolated Lorentzian and the $8.8$ meV is as likely to be
+resolution as physics — a denser $\omega$ grid and smaller $\eta$ will say which.
+
+**What the figure shows.** The host bands stay sharp; the defect adds two flat
+in-gap lines. Their *energy* is $\mathbf k$-independent by construction, but
+their *weight* varies by $85$&ndash;$93\%$ along the path — that is the overlap
+of the localized state with each Bloch state, and it is physics, not noise.
+Going from $n_d=1/144$ to $1/36$ moves the deep line from $+1.2023$ to $+1.1999$
+eV, the defect&ndash;defect interaction at higher concentration.
+
+**Where the poles of $\Sigma^R$ are.** Counting Ritz values by inertia: of the
+$25\,344$ poles, $25$ lie inside the active manifold and four inside the gap —
+but a dense scan shows $\lVert\Sigma^R\rVert$ rising smoothly and monotonically
+from $0.398$ to $0.863$ across the whole gap, so those four carry negligible
+residue. (That is also why the Chebyshev fit of section 9c reached $0.026$ meV.)
+One pole near $+2.65$ eV does not: $\lVert\Sigma^R\rVert$ reaches $41.9$ and the
+diagonal changes sign. It is a dressed rest state about $1$ eV above the CBM —
+very likely the collective mode that made the MODE B Neumann ladder diverge, and
+MODE C carries it exactly rather than working around it.
+
+**Cost.** $40.7$ min on one node, of which the continued fraction is $2194$ s
+($90\%$); the cluster solve is $136$ s and the vertex transform $17$ s. The
+$\omega$ points are independent, so an $\omega$-parallel driver (8 workers
+$\times$ 16 threads) is the obvious lever and is implemented.
+
+## 11. Residual ledger
 
 Nothing structural remains. With the two systematics of section 2 controlled,
 the $\omega$-resolved downfold agrees with the supercell truth to $\le 8$ meV

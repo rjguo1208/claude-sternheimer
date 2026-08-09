@@ -541,6 +541,14 @@ CATALOG = [
      "continued fraction / $\\chi$ augmentation; plus the fold-grid requirement and the route from the "
      "downfolded vertex to the $T$-matrix, the spectral function and the electron&ndash;defect self-energy.",
      '<a href="pages/methods.html">Open derivations &rarr;</a>'),
+    ("Spectral function A(k,$\\omega$) end to end, welded to the coarse-grid levels", "Result", "2026-08-08", "prod", "Headline",
+     "The whole route run end to end: $\\omega$-resolved vertex &rarr; pair-Wannier &rarr; real-space "
+     "Koster&ndash;Slater cluster &rarr; $\\Sigma^{ed}=n_d T_{kk}$ &rarr; $A(k,\\omega)$ on "
+     "$\\Gamma$&ndash;M&ndash;K&ndash;$\\Gamma$, with NO fit in $\\omega$. Acceptance: the deep in-gap "
+     "bound state, a root of a determinant with no $k$ in it, comes out at $+1.2018$ eV against $+1.2023$ "
+     "from direct diagonalization &mdash; 0.5 meV. That welds Wannier gauge, pair kernel, cluster truncation "
+     "and fine-grid $G^A$ onto the validated coarse-grid result. 40.7 min, 90% of it the continued fraction.",
+     '<a href="pages/twolevel-results.html#sec-10">Open the spectral function &rarr;</a>'),
     ("$\\omega$-dependent vertex + active-space size: three acceptance tests", "Method", "2026-08-08", "ok", "Passed",
      "$\\omega_0$ sits BELOW the gap, so freezing $\\Sigma^R$ there costs 18&ndash;24 meV on the in-gap levels "
      "&mdash; more than every other error in the chain. Unnecessary: $\\Sigma^R$ is analytic across the gap "
