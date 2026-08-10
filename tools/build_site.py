@@ -27,6 +27,7 @@ RESEARCH  = os.path.join(ROOT, "research.md")
 PLAN      = os.path.join(ROOT, "plan.md")
 NOTE_KNORM = os.path.join(ROOT, "content", "note_kprime_norm.md")
 NOTE_NPOL2 = os.path.join(ROOT, "content", "npol2cert.md")
+NOTE_SOCZOOM = os.path.join(ROOT, "content", "soczoom.md")
 NOTE_RESULTS = os.path.join(ROOT, "content", "note_tmatrix_results.md")
 NOTE_LADDER = os.path.join(ROOT, "content", "note_sternheimer_ladder.md")
 NOTE_KOSTER = os.path.join(ROOT, "content", "note_koster_slater.md")
@@ -267,7 +268,7 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            '%s%s%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
                                       a("pages/sternheimer-ladder.html", "Rest-space ladder", "ladder"),
                                       a("pages/deflated-ladder.html", "Deflated ladder", "deflated"),
@@ -278,6 +279,7 @@ def _topnav(active, prefix=""):
                                       a("pages/plan.html", "Implementation Plan", "plan"),
                                       a("pages/results.html", "Results", "results"),
                                       a("pages/npol2-cert.html", "npol=2 cert.", "npol2"),
+                                      a("pages/soc-zoom.html", "SOC zooms", "soczoom"),
                                       a("pages/note-kprime-normalization.html", "Note: k&prime;-norm", "note")))
 
 def page_shell(title, head_html, nav_html, body_html, css_href):
@@ -385,6 +387,27 @@ def build_npol2cert():
     out = page_shell(SITE_TITLE + " — npol=2 certification",
                      header, _topnav("npol2", prefix="../"), body, "../assets/style.css")
     with open(os.path.join(PAGES_DIR, "npol2-cert.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
+def build_soczoom():
+    with open(NOTE_SOCZOOM, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=False)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">首批含 SOC 的电子-缺陷谱函数:K 谷 CBM/VBM zoom,'
+              '10 旋量带活性流形,EDI-v8d born + EDT r11 链,$n_d=10^{{12}}$ cm$^{{-2}}$。</p>'
+              '<div class="meta"><span class="pill">Production</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " — SOC zoom spectral functions",
+                     header, _topnav("soczoom", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "soc-zoom.html"), "w", encoding="utf-8") as f:
         f.write(out)
     return r
 
@@ -560,6 +583,12 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
+    ("SOC 缺陷谱函数首批:K 谷 CBM/VBM zoom(O$_S$ + V$_S$)", "Production", "2026-08-10", "prod", "Headline",
+     "首批含自旋轨道耦合的 $A(k,\\omega)$:12×12、10 旋量带活性流形、$n_d=10^{12}$ cm$^{-2}$、"
+     "$\\eta=5$ meV。CBM 窗直接呈现传导带 SOC 双线(K 劈裂 3 meV 沿 $K\\to M$ 张开);VBM 窗呈现 "
+     "149 meV K 点价带劈裂与缺陷平带多重态(V$_S$ 间隙侧新增 +0.181 eV 特征)。born=EDI-v8d(跨码 1e-14),"
+     "链=EDT r11(unit test 2.5-2.7e-11),10 带簇使 T 缓存从小时级降到 5 分钟。Se$_S$ 在跑。",
+     '<a href="pages/soc-zoom.html">Open the zooms &rarr;</a>'),
     ("npol=2 认证:翻倍测试裁决、EDI noncolin 定罪、EDT born 块自立", "Verification", "2026-08-09", "ok", "Certified",
      "翻倍测试 FAIL 引发的司法式裁决:局域臂 52/52 与独立 numpy 裁判精确 1.000;简并对 2-矢量"
      "平行性 25/25 达 $|\\cos|=1.0000$;标量回归 $8\\times10^{-15}$ — EDT 无罪。EDI-direct noncolin "
@@ -856,6 +885,7 @@ def main():
     build_results()
     build_ladder()
     build_npol2cert()
+    build_soczoom()
     build_deflated()
     build_tlres()
     build_methods()
