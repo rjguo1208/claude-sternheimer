@@ -24,6 +24,7 @@
 \newcommand{\GG}{\mathbf{G}}
 \newcommand{\meV}{\;\mathrm{meV}}
 
+\newcommand{\HR}{H_R}
 \begin{document}
 
 \title{Methods: frequency-resolved active-space downfolding of the
@@ -241,10 +242,14 @@ The resolvent \eqref{eq:SigmaR} is needed only between the $N_A$ sources
   \label{eq:source}
 \end{equation}
 Three details fix the implementation.
-(i) $\dV|\psi_a\rangle$ uses the exact-$q$ fold of Sec.~\ref{sec:fold}: the
-state resident at channel $\kk_i$ scatters into \emph{every} channel $\kk'$
-with the folded potential $V_{\kk_i-\kk'}(\rr)$ of Eq.~\eqref{eq:applydV};
-no momentum is wrapped to a supercell zone. The nonlocal
+(i) $\dV|\psi_a\rangle$ uses the exact-$q$ fold of Sec.~\ref{sec:vertex}: the
+state resident at channel $\kk_i$ scatters into \emph{every} channel $\kk'$,
+\begin{equation}
+  (\dV\chi)_{\kk'}(\rr)=\sum_{\kk}V_{\kk-\kk'}(\rr)\,\chi_{\kk}(\rr),
+  \label{eq:applydV}
+\end{equation}
+with the folded potential of Eq.~\eqref{eq:fold}; no momentum is wrapped to
+a supercell zone. The nonlocal
 (Kleinman--Bylander) difference is added per output channel,
 $\sum_{\mu\nu}|\beta^{\kk'}_{\mu}\rangle D_{\mu\nu}
 \langle\beta^{\kk_i}_{\nu}|\psi_a\rangle$ with
@@ -331,6 +336,8 @@ fraction, evaluated from the bottom of the chain,
 The inverse is constructed, never expanded, so there is no convergence-radius
 condition: a dressed rest state that a Neumann ladder would fail to converge is
 carried exactly. One chain serves every $\omega$ and every broadening.
+
+A complete first-principles derivation of the recurrence, the moment-matching and error structure of the truncation, and the continued fraction is given in Appendix~\ref{app:lanczos}.
 
 Evaluation details. The recursion is initialized at the bottom,
 $S_{N_S}=[\omega-A_{N_S}]^{-1}$, and swept upward; each $\omega$ costs
@@ -736,6 +743,174 @@ Fig.~\ref{fig:akw} --- $450$ frequencies, $181$ $k$-points --- therefore costs
 minutes once the chain exists, and any defect concentration afterwards is free
 because $T$ is independent of $n_d$.
 
+
+\appendix
+
+\section{Block-Lanczos evaluation of the rest resolvent: derivation}
+\label{app:lanczos}
+
+This appendix derives, from first principles, every statement used in
+Sec.~\ref{sec:lanczos}: why the resolvent needs only a Krylov corner, why the
+recurrence has three terms, why the truncated approximant is a matched-moment
+rational function whose error is controlled by the last coupling block, and
+why the $(1,1)$ corner of the block-tridiagonal inverse is the nested
+continued fraction. Throughout, $\HR \equiv P_R H P_R$ is Hermitian on
+$\mathcal{R}=\mathrm{ran}\,P_R$, and the source block
+$X=[\,\chi_1\cdots\chi_{N_A}\,]$, $\chi_a = P_R\,\dV\,|\psi_a\rangle$,
+collects the $N_A$ bundles of Sec.~\ref{sec:lanczos}.
+
+\subsection{Reduction to a corner problem}
+
+The object of Eq.~\eqref{eq:SigmaR} is the $N_A\times N_A$ matrix
+\begin{equation}
+  \Sigma^R(\omega) \;=\; \frac{1}{N_k}\, X^{\dagger}\,
+  \big[\omega-\HR\big]^{-1} X .
+  \label{eq:appSigma}
+\end{equation}
+Factorize $X=Q_1R_0$ with $Q_1^{\dagger}Q_1=\openone_{N_A}$ ($R_0$ upper
+triangular; if $X$ is numerically rank deficient the factorization truncates
+to the numerical rank, cf.\ Sec.~\ref{sec:cost}). Then
+\begin{equation}
+  \Sigma^R(\omega)=\frac{1}{N_k}\,R_0^{\dagger}\,
+  G_{11}(\omega)\,R_0,
+  \qquad
+  G_{11}(\omega)\equiv Q_1^{\dagger}\big[\omega-\HR\big]^{-1}Q_1 ,
+  \label{eq:corner}
+\end{equation}
+so only the \emph{corner} of the resolvent on $\mathrm{span}(Q_1)$ is ever
+required --- never the inverse itself.
+
+\subsection{Krylov space and the three-term block recurrence}
+
+Define the block Krylov space
+$\mathcal{K}_N=\mathrm{span}\{Q_1,\HR Q_1,\dots,\HR^{\,N-1}Q_1\}$ and
+construct its orthonormal block basis $\{Q_1,\dots,Q_N\}$ by block
+Gram--Schmidt applied to $\HR Q_j$. Write
+\begin{equation}
+  \HR Q_j=\sum_{l\le j+1} Q_l\,C_{lj},
+  \qquad C_{lj}=Q_l^{\dagger}\HR Q_j .
+\end{equation}
+For $l<j-1$, Hermiticity gives
+$C_{lj}=\big(Q_j^{\dagger}\HR Q_l\big)^{\dagger}$; but
+$\HR Q_l\in\mathcal{K}_{l+1}\subseteq\mathcal{K}_{j-1}\perp Q_j$, hence
+$C_{lj}=0$: \emph{only three terms survive},
+\begin{equation}
+  \HR\,Q_j = Q_{j-1}B_{j-1}^{\dagger} + Q_j A_j + Q_{j+1}B_j ,
+  \label{eq:app3term}
+\end{equation}
+with $A_j=Q_j^{\dagger}\HR Q_j$ Hermitian and
+$Q_{j+1}B_j=\mathrm{qr}\!\big(\HR Q_j-Q_jA_j-Q_{j-1}B_{j-1}^{\dagger}\big)$,
+$B_j$ upper triangular. Equation~\eqref{eq:app3term} is
+Eq.~\eqref{eq:lanczos} of the main text; collecting coefficients,
+$Q^{(N)}{}^{\dagger}\HR\,Q^{(N)}=T_N$ with
+$Q^{(N)}=[\,Q_1\cdots Q_N\,]$ and
+\begin{equation}
+  T_N=\begin{pmatrix}
+   A_1 & B_1^{\dagger} & & \\
+   B_1 & A_2 & B_2^{\dagger} & \\
+       & B_2 & \ddots & \ddots \\
+       &     & \ddots & A_N
+  \end{pmatrix}.
+\end{equation}
+
+\subsection{The truncated approximant and its exactness properties}
+
+The Lanczos approximation replaces the corner in \eqref{eq:corner} by its
+Rayleigh--Ritz value on $\mathcal{K}_N$,
+\begin{equation}
+  G_{11}(\omega)\;\approx\;G_{11}^{(N)}(\omega)\;=\;
+  E_1^{\dagger}\big[\omega-T_N\big]^{-1}E_1 ,
+  \label{eq:appRR}
+\end{equation}
+where $E_1$ is the first block column of the $NN_A$ identity
+($Q_1=Q^{(N)}E_1$). Three exactness statements follow.
+
+\emph{(a) Moment matching.} By construction
+$\HR^{\,m}Q_1\in\mathcal{K}_{m+1}$, and one shows by induction that
+$Q^{(N)}{}^{\dagger}\HR^{\,m}Q_1=T_N^{\,m}E_1$ for all $m\le N-1$; therefore
+\begin{equation}
+  Q_1^{\dagger}\HR^{\,m}Q_1=E_1^{\dagger}T_N^{\,m}E_1
+  \qquad\text{for } m\le 2N-1
+  \label{eq:moments}
+\end{equation}
+(split $m=m_1+m_2$ with $m_1,m_2\le N-1$ and insert
+$Q^{(N)}Q^{(N)\dagger}$, exact on $\mathcal{K}_N$). Expanding both
+resolvents at large $|\omega|$, the approximant \eqref{eq:appRR} matches the
+first $2N$ moments of the exact corner: block-Lanczos is the matrix-valued
+Gauss quadrature of the resolvent.
+
+\emph{(b) Termination.} If $B_N=0$ the space $\mathcal{K}_N$ is
+$\HR$-invariant and \eqref{eq:appRR} is \emph{exact} for every $\omega$.
+
+\emph{(c) Error and pole structure.} For finite $N$, write the residual of
+$Y(\omega)=Q^{(N)}[\omega-T_N]^{-1}E_1$:
+\begin{equation}
+  (\omega-\HR)\,Y=Q_1-Q_{N+1}B_N\,
+  \big[\omega-T_N\big]^{-1}_{N1},
+  \label{eq:appres}
+\end{equation}
+obtained by applying \eqref{eq:app3term} column-block-wise; hence
+\begin{equation}
+  G_{11}(\omega)-G^{(N)}_{11}(\omega)=
+  \Big(\big[\omega-T_N\big]^{-1}_{1N}\Big) B_N^{\dagger}\,
+  Q_{N+1}^{\dagger}\big[\omega-\HR\big]^{-1}Q_{N+1}\,
+  B_N \Big(\big[\omega-T_N\big]^{-1}_{N1}\Big).
+  \label{eq:apperr}
+\end{equation}
+The error is quadratic in the corner-to-corner block of the tridiagonal
+inverse, which decays exponentially in $N$ at a rate set by the distance of
+$\omega$ from the Ritz spectrum. This is the precise form of the
+\emph{active-window rule} of Sec.~\ref{sec:lanczos}: if the manifold choice
+pushes defect-weighted states into $\mathcal{R}$, Ritz values appear next to
+the evaluation window, the decay stalls, and at fixed $N_S$ the approximant
+both misplaces poles and leaks spurious ones (the $150$ meV failure of the
+narrow manifold), while a manifold that keeps them active leaves
+$\Sigma^R$ smooth and the same $N_S$ suffices.
+$G^{(N)}_{11}$ itself is a rational matrix function with at most $NN_A$
+poles (the Ritz values of $T_N$) and residues
+$E_1^{\dagger}|n\rangle\langle n|E_1$ of rank $\le N_A$, as used in the
+pole census of Sec.~\ref{sec:lanczos}.
+
+\subsection{Corner inverse as a continued fraction}
+
+Partition $T_N$ into its last block against the rest and eliminate the last
+block by a Schur complement: with
+$S_N(\omega)=[\omega-A_N]^{-1}$,
+\begin{equation}
+  \big[\omega-T_N\big]^{-1}_{\text{first }N-1\text{ blocks}}
+  =\Big[\omega-T_{N-1}-E_{N-1}B_{N-1}^{\dagger}
+  S_N B_{N-1}E_{N-1}^{\dagger}\Big]^{-1},
+\end{equation}
+i.e.\ the elimination only dresses the $(N{-}1,N{-}1)$ diagonal block:
+$A_{N-1}\to A_{N-1}+B_{N-1}^{\dagger}S_N B_{N-1}$. Iterating downward,
+\begin{equation}
+  S_j(\omega)=\big[\omega-A_j-B_j^{\dagger}S_{j+1}(\omega)B_j\big]^{-1},
+  \qquad
+  G^{(N)}_{11}(\omega)=S_1(\omega),
+  \label{eq:appcf}
+\end{equation}
+which is Eq.~\eqref{eq:cf}. Each evaluation costs $N_S$ Hermitian solves of
+size $N_A$; no quantity of plane-wave dimension appears. Combining
+\eqref{eq:corner} and \eqref{eq:appcf},
+\begin{equation}
+  \boxed{\;\Sigma^R_{N_S}(\omega)=\frac{1}{N_k}\,
+  R_0^{\dagger}\,S_1(\omega)\,R_0\;}
+\end{equation}
+with the chain data $(R_0,\{A_j,B_j\}_{j\le N_S})$ the complete interface
+between the plane-wave solver and all post-processing.
+
+\subsection{Finite precision}
+
+In exact arithmetic \eqref{eq:app3term} preserves global block
+orthogonality; in floating point it decays once Ritz pairs converge
+(Paige's analysis). The window-$m$ reorthogonalization of
+Eq.~\eqref{eq:reorth} restores components against the last $m$ blocks only;
+its validity regime and direct numerical verification ($m=2$ bit-identical
+to full, $m=1$ to $0.000000$ meV at the chain lengths used) are given in
+Sec.~\ref{sec:lanczos}. The Hermiticity of each $A_j$ is enforced by
+symmetrization and monitored ($\sim10^{-14}$), and the projector $P_R$ is
+re-applied with each window pass so that roundoff cannot leak the Krylov
+space into the active manifold.
 
 \begin{acknowledgments}
 Computations were performed on Anvil at Purdue University.
