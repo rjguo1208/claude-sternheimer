@@ -272,8 +272,7 @@ product},
 \end{equation}
 with $R_0$ ($N_A{\times}N_A$, upper triangular) stored: the sources enter the
 final resolvent only through it, and its singular values are those of
-$V_{RA}$ (the basis of the rank compression discussed in
-Sec.~\ref{sec:cost}).
+$V_{RA}$ (the basis of the rank compression of Sec.~\ref{sec:rankcomp}).
 
 \subsection{Block recurrence}
 
@@ -289,16 +288,23 @@ With $Q_0\equiv0$, steps $j=1,\dots,N_S$ perform
   Q_{j+1}B_j &= \mathrm{qr}(W)\quad(B_j\text{ upper triangular}).
   \label{eq:qrj}
 \end{align}
-$H$ in \eqref{eq:happly} is the untouched Kohn--Sham Hamiltonian of the
-pristine primitive cell, applied channel-diagonally: kinetic term in
-$\GG$-space, one FFT pair for the local potential, a projector
-\textsc{zgemm} for the nonlocal part. $\dV$ never appears after the source
-step --- the defect enters $\Sigma^R$ only through $R_0$. The coefficient
-pair $(A_j,B_j)$ is appended to the chain file; bundles are discarded as the
-window advances. Applying $\dV$ (source step and the operator-identity gate
-below) is the cost driver: by Eq.~\eqref{eq:applydV} every output channel
-couples to every source channel, a triple loop over grid points, channels
-and columns.
+$H$ in \eqref{eq:happly} is the \emph{dressed} operator of
+Eq.~\eqref{eq:SigmaR}, $H = H_0 + \dV$ --- not the bare $H_0$. Its pristine
+part acts channel-diagonally: kinetic term in $\GG$-space, one FFT pair for
+the local potential, a projector \textsc{zgemm} for the nonlocal part. Its
+defect part couples all coarse-$k$ channels of a bundle and is re-applied at
+\emph{every} step by the same fold machinery, Eq.~\eqref{eq:applydV}, that
+assembles the sources; in the discrete bundle representation its matrix
+elements carry the $1/N_k$ of Eq.~\eqref{eq:Vtilde}. This per-step fold is
+the cost driver --- every output channel couples to every source channel, a
+triple loop over grid points, channels and columns --- and dominates the
+wall time of each iteration. It is also not optional: omitting it would
+replace $P_R H P_R$ by $P_R H_0 P_R$ in Eq.~\eqref{eq:SigmaR} and truncate
+$\Sigma^R$ at second order in $\dV$ (a single rest excursion with free rest
+propagation), whereas the all-order rest scattering that distinguishes the
+downfolded vertex from the Born term lives precisely in this repeated
+$\dV$. The coefficient pair $(A_j,B_j)$ is appended to the chain file;
+bundles are discarded as the window advances.
 
 Before the first step the code verifies the \emph{operator identity}
 $\langle\psi_b|\dV|\psi_a\rangle$ (recomputed by the fold machinery on probe
@@ -729,6 +735,29 @@ measured: a longer chain, or a spectrum that lets a Ritz value converge, would
 behave differently, so the implementation of record should be \emph{partial}
 reorthogonalization --- monitor the orthogonality, which is cheap, and
 reorthogonalize fully only when it degrades.
+
+\subsection{Start-block rank compression}
+\label{sec:rankcomp}
+
+The sources enter $\Sigma^R$ only through $R_0$ [Eq.~\eqref{eq:corner}], and
+the singular values of $R_0$ are those of $V_{RA}$; their spectrum decays
+fast. Truncating the SVD $R_0 = u\,s\,v^{\dagger}$ at $\sigma/\sigma_1 >
+\tau$, rotating the start block onto the kept directions, $W = Q_1 u_r$
+(one \textsc{zgemm}), and running the entire recurrence at the reduced width
+$N_L$ makes both the iteration memory and the per-step fold \emph{linear} in
+$N_L/N_A$; the self-energy is recovered as $\Sigma^R = (s_r
+v_r^{\dagger})^{\dagger}\, S(\omega)\, (s_r v_r^{\dagger})/N_k$ with
+$N_L\times N_L$ continued-fraction blocks. Measured on the spin--orbit
+$22$-band $6\times6$ sulfur-vacancy chain ($N_A=792$, $N_S=16$): $\tau =
+10^{-4}$ keeps $N_L=540$ ($68\%$) and $\tau=10^{-3}$ keeps $N_L=324$
+($41\%$), with wall times $0.63\times$ and $0.40\times$ the full-rank chain;
+$\tau=0$ reproduces the uncompressed chain file bit for bit. Against the
+full-rank levels, the deep-gap defect doublet moves $0.5$ meV ($N_L=540$)
+and $2$ meV ($324$) and conduction-band defect features stay below
+$0.25$ meV; only resonances hybridized with the valence-continuum edge move
+$\sim10$--$20$ meV, the same class and size as the $N_S$-truncation residual
+itself. Combined with the rolling window this is what places a spin--orbit
+$12\times12$ chain on a single large-memory node.
 
 \subsection{Cost}
 
