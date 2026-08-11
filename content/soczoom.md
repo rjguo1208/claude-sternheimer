@@ -47,6 +47,11 @@ SOC 对间隙缺陷能级的重排与劈裂。
 超胞本征值(各 1040 条,O$_\mathrm{S}$ VBM=第 936 态、V$_\mathrm{S}$ 第 930 态)
 直接对账:
 
+**三方总览**(黑=真值,蓝=10 带,红=22 带;V$_\mathrm{S}$ 内嵌图为间隙 zoom——
+10 带的杂散峰与错位双重态 vs 22 带的干净贴合一图定案):
+
+![3-way DOS comparison](../assets/socdos_3way.png)
+
 ![OS DOS truth 22b](../assets/socdos_OS_22b.png)
 
 ![VS DOS truth 22b](../assets/socdos_VS_22b.png)
