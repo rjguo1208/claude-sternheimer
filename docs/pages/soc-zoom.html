@@ -6,9 +6,9 @@
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head><body>
 <nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html">Two-level results</a><a href="../pages/methods.html">Method derivations</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/npol2-cert.html">npol=2 cert.</a><a href="../pages/soc-zoom.html" style="color:#fff;text-decoration:underline">SOC zooms</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
-<header><div class="header-inner"><h1>SOC 缺陷谱函数:K 谷带边 zoom(首批)</h1><p class="subtitle">首批含 SOC 的电子-缺陷谱函数:K 谷 CBM/VBM zoom,10 旋量带活性流形,EDI-v8d born + EDT r11 链,$n_d=10^{12}$ cm$^{-2}$。</p><div class="meta"><span class="pill">Production</span><span class="pill">5 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<header><div class="header-inner"><h1>SOC 缺陷谱函数:K 谷带边 zoom(首批)</h1><p class="subtitle">首批含 SOC 的电子-缺陷谱函数:K 谷 CBM/VBM zoom,10 旋量带活性流形,EDI-v8d born + EDT r11 链,$n_d=10^{12}$ cm$^{-2}$。</p><div class="meta"><span class="pill">Production</span><span class="pill">6 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
 <main>
-<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-0">0. 摘要</a><a href="#sec-1">1. 图</a><a href="#sec-2">2. 平带探测器读数(局域缺陷特征,$E-E_\mathrm{VBM}$/eV)</a><a href="#sec-3">3. 计算路径(本批)</a><a href="#sec-4">4. 待办</a></div></section>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-0">0. 摘要</a><a href="#sec-1">1. 图</a><a href="#sec-2">2. 平带探测器读数(局域缺陷特征,$E-E_\mathrm{VBM}$/eV)</a><a href="#sec-3">3. 计算路径(本批)</a><a href="#sec-4">4. 超胞真值闸门:陪集 DOS 对账(已完成)</a><a href="#sec-5">5. 待办</a></div></section>
 
 <section id="sec-0"><h2>0. 摘要</h2>
 <p>首批<strong>含自旋轨道耦合</strong>的电子-缺陷谱函数 $A(k,\omega)$:MoS$_2$ 单层,O$_\mathrm{S}$ 与 V$_\mathrm{S}$(弛豫几何),12×12 粗网格、10 旋量带活性流形(带 25–34:1 对 VB + 4 对 CB), $n_d = 10^{12}\,\mathrm{cm^{-2}}$、$\eta=5$ meV、KZOOM 路径($K-0.3\,\overline{\Gamma K} \to K+0.45\,\overline{KM}$,721 点)、$N_f=1200$。CBM 窗直接呈现<strong>传导带 SOC 双线</strong> (K 点劈裂 3.0 meV,沿 $K\to M$ 张开);VBM 窗呈现 <strong>149 meV 的 K 点价带自旋劈裂</strong>与 其间的缺陷平带多重态。Se$_\mathrm{S}$ 链完成后补齐三缺陷版本。</p>
@@ -25,8 +25,16 @@
 <section id="sec-3"><h2>3. 计算路径(本批)</h2>
 <ul><li><strong>born $M_{AA}$</strong>:EDI-direct v8d(带轴转置修复后,与 EDT 跨码闭环 1e-14 认证), 144×144 k 对全 40 带,5m36s;</li><li><strong>MODE C 链</strong>:EDT r11(A2A 分批转置手术,6×6 逐位回归)/Anvil highmem 单节点 16 pool×3 线程,n_reorth=1(0.000000 meV 判决)、col_chunk=1,~45 min/步 × 16 步; 链启动 unit test = 每次生产的跨码闭环(O$_\mathrm{S}$ 2.730e-11、V$_\mathrm{S}$ 2.547e-11);</li><li><strong>10 旋量带 Wannier</strong>:soc40 宿主带 25–34 为全局隔离群(与 24/35 带净隙 6.5 meV/0.56 eV), 无需 disentanglement;w90 3.1 写盘崩溃经 chk 直提 + restart=plot 恢复(u.mat 幺正 1.9e-10);</li><li><strong>T 缓存</strong>:Koster–Slater 簇(RCUT=4,61 胞,dim 610),10 带下每窗仅 ~5 分钟 (11 带标量生产为 2–3.5h)——Banff 4 节点四窗并行完成;</li><li>宿主:100 Ry(60 Ry 复核:劈裂 ≤0.03 meV 但绝对能级 7.32 meV 超 5 meV 门)。</li></ul>
 </section>
-<section id="sec-4"><h2>4. 待办</h2>
-<ul><li>Se$_\mathrm{S}$ SOC 链(在跑)→ 三缺陷版 zoom;</li><li>10 带流形的两道物理关补验:留一法插值误差、22-带对照链的带边谱一致性;</li><li>SOC 超胞真值能级(对照 V$_\mathrm{S}$ 多重态的直接验证)。</li></ul>
+<section id="sec-4"><h2>4. 超胞真值闸门:陪集 DOS 对账(已完成)</h2>
+<p>陪集分解使 6×6-陪集的下折叠问题严格等价于周期缺陷阵列 = SOC 超胞。用 socsup 的 超胞本征值(各 1040 条,O$_\mathrm{S}$ VBM=第 936 态、V$_\mathrm{S}$ 第 930 态) 直接对账:</p>
+<p><img src="../assets/socdos_OS_22b.png" alt="OS DOS truth 22b" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p><img src="../assets/socdos_VS_22b.png" alt="VS DOS truth 22b" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p><strong>流形宽度仲裁</strong>(同一宿主、同一 edmat,唯一变量 = active 窗口):</p>
+<div class="table-wrap"><table><thead><tr><th>V$_\mathrm{S}$ 深间隙双重态</th><th>10 带</th><th><strong>22 带</strong></th><th>超胞真值</th></tr></thead><tbody><tr><td>位置 (eV)</td><td>~0.93/1.0(偏 ~150 meV)</td><td><strong>+1.118/+1.166</strong></td><td>1.086/~1.15</td></tr><tr><td>间隙杂散峰</td><td>0.18–0.73 一串假峰</td><td><strong>无</strong></td><td>无</td></tr><tr><td>O$_\mathrm{S}$ CB 起点</td><td>+1.538(差 28 meV)</td><td>+1.554(差 12 meV)</td><td>+1.566</td></tr></tbody></table></div>
+<p><strong>结论与分工</strong>:V$_\mathrm{S}$ 空位深态带强 S-p 特征,Mo-d 主导的 10 带流形张不开它 (非 SOC 时"5 带败给 11 带"的教训在 SOC 重演)。10 带适用于<strong>带边 K 谷 zoom</strong> (本页 §1 图定性可靠、快 30×);<strong>深间隙/真值级定量必须 22 带</strong>。22 带残差 ~20–40 meV 源于 N$_S$=16 链截断,可按需加深。</p>
+</section>
+<section id="sec-5"><h2>5. 待办</h2>
+<ul><li>Se$_\mathrm{S}$ SOC 链(在跑)→ 三缺陷版 zoom + 其真值对账;</li><li>带边 zoom 的 22 带复核(判定 10 带在 K 谷窗口的定量误差);</li><li>10 带留一法插值误差(Wannier 质量关)。</li></ul>
 </section>
 </main>
 <footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
