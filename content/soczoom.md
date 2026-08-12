@@ -11,7 +11,11 @@ $n_d = 10^{12}\,\mathrm{cm^{-2}}$、$\eta=5$ meV、KZOOM 路径($K-0.3\,\overlin
 
 ## 1. 图
 
-**三缺陷 22 带版(2026-08-12,144k 链 + 10-of-22 带窗投影;Se$_\mathrm{S}$ 谱函数首秀):**
+**全路径总览($\Gamma$–M–K–$\Gamma$,全能窗;2026-08-12):**
+
+![SOC22 full path](../assets/kfull_soc22.png)
+
+**三缺陷 22 带 K 谷 zoom(144k 链 + 10-of-22 带窗投影;Se$_\mathrm{S}$ 谱函数首秀):**
 
 ![SOC22 CBM zoom](../assets/kzoom_soc22_cbm.png)
 
