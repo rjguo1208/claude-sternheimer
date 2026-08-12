@@ -48,6 +48,16 @@ Se$_\mathrm{S}$ 几乎无特征(等价电子);CBM 窗中 O$_\mathrm{S}$ 的 Re$\
 是其下方 +1.545 共振的能级吸引,V$_\mathrm{S}$ 的 Re$\,\Sigma>0$ 向隙内增强
 是深双重态(+1.12/+1.17)从下方的推斥;$-$Im 在带边同步开启(散射相空间)。
 
+
+**同图 $n_d = 10^{13}$ cm$^{-2}$ 版**($\Sigma = n_d T$ 严格线性,$T$ 缓存复用——
+色标整体 ×10:V$_\mathrm{S}$ 共振核心 Re$\,\Sigma$ 达 ±3.8 eV,$-$Im 超 1 eV。
+注意:此浓度下单点缺陷 T-矩阵(独立散射体假设)开始吃紧——共振附近的谱重整已非
+微扰,缺陷间干涉/ATA 修正在此量级进入;$10^{12}$ 版是定量可靠区):
+
+![Sigma CBM zoom nd13](../assets/sigzoom_soc22_cbm_nd13.png)
+
+![Sigma VBM zoom nd13](../assets/sigzoom_soc22_vbm_nd13.png)
+
 首批 10 带版(O$_\mathrm{S}$+V$_\mathrm{S}$)存档:
 
 ![SOC CBM zoom](../assets/kzoom_soc_cbm.png)
