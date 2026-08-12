@@ -11,7 +11,10 @@ $n_d = 10^{12}\,\mathrm{cm^{-2}}$、$\eta=5$ meV、KZOOM 路径($K-0.3\,\overlin
 
 ## 1. 图
 
-**全路径总览($\Gamma$–M–K–$\Gamma$,全能窗;2026-08-12):**
+**全路径总览($\Gamma$–M–K–$\Gamma$,全能窗;2026-08-12)——
+⚠ 下图为 10 轨道(Mo-d)Wannier 框架:V$_\mathrm{S}$ 的深间隙 S-p 双重态
+(+1.12/+1.17,见 §4b DOS)在该子空间**不可表示**,故间隙内缺失;带边结构可靠。
+22 轨道版(含 S-p)在制,完成后替换:**
 
 ![SOC22 full path](../assets/kfull_soc22.png)
 
