@@ -34,6 +34,20 @@ $\max|T|$ 增强 ×200),而 O$_\mathrm{S}$/Se$_\mathrm{S}$ 间隙干净——三
 
 ![SOC22 VBM zoom](../assets/kzoom_soc22_vbm.png)
 
+
+**自能色图($\Sigma^{ed}(k,\omega)=n_d\,T(k,k;\omega)$,同 KZOOM 路径与能窗;
+上行 Re Tr $\Sigma$(发散色标),下行 $-$Im Tr $\Sigma$(对数)):**
+
+![Sigma CBM zoom](../assets/sigzoom_soc22_cbm.png)
+
+![Sigma VBM zoom](../assets/sigzoom_soc22_vbm.png)
+
+读图:$T(k,k)$ 沿路径近乎平直——点缺陷短程势的特征;VBM 窗中 V$_\mathrm{S}$
+的 +0.03 浅隙态呈教科书式共振($-$Im 亮线、Re 过零翻号,$\pm$300 meV 色散瓣),
+Se$_\mathrm{S}$ 几乎无特征(等价电子);CBM 窗中 O$_\mathrm{S}$ 的 Re$\,\Sigma<0$
+是其下方 +1.545 共振的能级吸引,V$_\mathrm{S}$ 的 Re$\,\Sigma>0$ 向隙内增强
+是深双重态(+1.12/+1.17)从下方的推斥;$-$Im 在带边同步开启(散射相空间)。
+
 首批 10 带版(O$_\mathrm{S}$+V$_\mathrm{S}$)存档:
 
 ![SOC CBM zoom](../assets/kzoom_soc_cbm.png)
