@@ -583,6 +583,13 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
+    ("22 带 144k 稀释极限 DOS:三缺陷三方对照(真值/阵列/稀释)", "Production", "2026-08-12", "prod", "Headline",
+     "12×12×22 旋量带链(起始块 SVD `svd_tol=1e-4`,秩 ~1024-1080 = 32-34%,Banff 4 节点 4.6 h/链)"
+     "的稀释极限 DOS。V$_S$ 深间隙双重态:真值 +1.085/+1.135 → 阵列 +1.115/+1.165 → 稀释 "
+     "+1.120/+1.170 — <b>稀释位移 ≤5 meV,深态在 1/36 已达孤立极限</b>;O$_S$ CB 共振 +1.545 三线"
+     "重合;Se$_S$ 首个下折叠 DOS(间隙干净)。SVD 三尺度夹逼真秩 ∈(1008,1024],物理秩由缺陷势"
+     "空间支撑决定、与缺陷化学无关。",
+     '<a href="pages/soc-zoom.html#sec-4">Open the 3-way DOS &rarr;</a>'),
     ("SOC 缺陷谱函数首批:K 谷 CBM/VBM zoom(O$_S$ + V$_S$)", "Production", "2026-08-10", "prod", "Headline",
      "首批含自旋轨道耦合的 $A(k,\\omega)$:12×12、10 旋量带活性流形、$n_d=10^{12}$ cm$^{-2}$、"
      "$\\eta=5$ meV。CBM 窗直接呈现传导带 SOC 双线(K 劈裂 3 meV 沿 $K\\to M$ 张开);VBM 窗呈现 "
