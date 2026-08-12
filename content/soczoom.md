@@ -11,6 +11,14 @@ $n_d = 10^{12}\,\mathrm{cm^{-2}}$、$\eta=5$ meV、KZOOM 路径($K-0.3\,\overlin
 
 ## 1. 图
 
+**三缺陷 22 带版(2026-08-12,144k 链 + 10-of-22 带窗投影;Se$_\mathrm{S}$ 谱函数首秀):**
+
+![SOC22 CBM zoom](../assets/kzoom_soc22_cbm.png)
+
+![SOC22 VBM zoom](../assets/kzoom_soc22_vbm.png)
+
+首批 10 带版(O$_\mathrm{S}$+V$_\mathrm{S}$)存档:
+
 ![SOC CBM zoom](../assets/kzoom_soc_cbm.png)
 
 ![SOC VBM zoom](../assets/kzoom_soc_vbm.png)
@@ -96,6 +104,6 @@ $N_S=16$ 链截断,与浓度无关。(ii) O$_\mathrm{S}$ 的 CB 共振三线重�
 
 ## 5. 待办
 
-- ~~Se$_\mathrm{S}$ SOC 链 + 真值对账~~(完成:见 §4b,Se$_\mathrm{S}$ 22b 144k 链 + DOS 已上);三缺陷 zoom 待 kpath 队列;
-- 带边 zoom 的 22 带复核(判定 10 带在 K 谷窗口的定量误差);
+- ~~Se$_\mathrm{S}$ SOC 链 + 真值对账 + 三缺陷 zoom~~(全部完成:§1 22 带三缺陷版、§4b DOS);
+- ~~带边 zoom 的 22 带复核~~(完成:§1 的 22 带版即是;V$_\mathrm{S}$ CB 平带 10 带 +1.694/+1.758 → 22 带 +1.698 单特征,Se$_\mathrm{S}$ CB 洁净、V$_\mathrm{S}$ VBM 侧 −0.213/−0.181/−0.036 与 +0.185 间隙尖峰(与 §4b 稀释 DOS +0.19 互证));
 - 10 带留一法插值误差(Wannier 质量关)。
