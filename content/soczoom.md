@@ -2,23 +2,33 @@
 
 ## 0. 摘要
 
-首批**含自旋轨道耦合**的电子-缺陷谱函数 $A(k,\omega)$:MoS$_2$ 单层,O$_\mathrm{S}$ 与
-V$_\mathrm{S}$(弛豫几何),12×12 粗网格、10 旋量带活性流形(带 25–34:1 对 VB + 4 对 CB),
+**含自旋轨道耦合**的电子-缺陷谱函数 $A(k,\omega)$:MoS$_2$ 单层,O$_\mathrm{S}$ /
+Se$_\mathrm{S}$ / V$_\mathrm{S}$(弛豫几何)三缺陷,12×12 粗网格 × 22 旋量带链
+(带 13–34)+ **22 轨道 Wannier 顶点帧**(同一 wannier 化,无 disentanglement),
 $n_d = 10^{12}\,\mathrm{cm^{-2}}$、$\eta=5$ meV、KZOOM 路径($K-0.3\,\overline{\Gamma K}
-\to K+0.45\,\overline{KM}$,721 点)、$N_f=1200$。CBM 窗直接呈现**传导带 SOC 双线**
+\to K+0.45\,\overline{KM}$,721 点)、$N_f=1200$。CBM 窗呈现**传导带 SOC 双线**
 (K 点劈裂 3.0 meV,沿 $K\to M$ 张开);VBM 窗呈现 **149 meV 的 K 点价带自旋劈裂**与
-其间的缺陷平带多重态。Se$_\mathrm{S}$ 链完成后补齐三缺陷版本。
+其间的缺陷平带多重态;全路径窗中 V$_\mathrm{S}$ 的深间隙 S-p 双重态(+1.12/+1.17)
+横贯显形。谱函数由快速路线(顶点因子化 + 宿主 $G_0$ 谱分箱,`kpath_fast.py`)产出:
+9 窗全套 ~30 分钟,门内验证因子化精确(1e-15)、分箱中隙 3e-5 / 带边 7e-4。
 
 ## 1. 图
 
-**全路径总览($\Gamma$–M–K–$\Gamma$,全能窗;2026-08-12)——
-⚠ 下图为 10 轨道(Mo-d)Wannier 框架:V$_\mathrm{S}$ 的深间隙 S-p 双重态
-(+1.12/+1.17,见 §4b DOS)在该子空间**不可表示**,故间隙内缺失;带边结构可靠。
-22 轨道版(含 S-p)在制,完成后替换:**
+**全路径总览($\Gamma$–M–K–$\Gamma$,全能窗;2026-08-12,22 轨道 Wannier 框架
+[带 13–34,无 disentanglement])。V$_\mathrm{S}$ 面板中 **+1.12/+1.17 eV 的深间隙
+S-p 双重态**横贯全路径显形(与 §4b 的稀释 DOS 能级一致;$T(\omega)$ 在两能级处
+$\max|T|$ 增强 ×200),而 O$_\mathrm{S}$/Se$_\mathrm{S}$ 间隙干净——三缺陷对照即
+物理判据。色标下限 0.03:$n_d=8.8\times10^{-4}$/cell 的孤立缺陷平带谱权重本就小
+($\max_k A \approx 0.2$),这是稀释极限的诚实亮度:**
 
 ![SOC22 full path](../assets/kfull_soc22.png)
 
-**三缺陷 22 带 K 谷 zoom(144k 链 + 10-of-22 带窗投影;Se$_\mathrm{S}$ 谱函数首秀):**
+> 工序注记:此前 10 轨道版缺失该双重态有**两**个独立原因——Mo-d 子空间不可表示性,
+> 以及 chk→u.mat 转换器写出了等效转置的 $U$(酉性检验对此免疫)。后者由
+> wannier 化恒等式 $U^\dagger\,\mathrm{diag}(\varepsilon_k)\,U = H_W(k)$ 判定并修复
+> (正确取向 1.5e-5,错误取向 O(4 eV);工具已入 qe-edt `post/chk2umat.py`)。
+
+**三缺陷 22 带 K 谷 zoom(144k 链 + 22 轨道帧,同一 wannier 化):**
 
 ![SOC22 CBM zoom](../assets/kzoom_soc22_cbm.png)
 
