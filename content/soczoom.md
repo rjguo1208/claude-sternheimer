@@ -58,6 +58,22 @@ Se$_\mathrm{S}$ 几乎无特征(等价电子);CBM 窗中 O$_\mathrm{S}$ 的 Re$\
 
 ![Sigma VBM zoom nd13](../assets/sigzoom_soc22_vbm_nd13.png)
 
+
+**浓度系列:$n_d = 3\times10^{13}$ cm$^{-2}$(2.64%/胞)——杂质带区**。
+谱函数已强烈重构:CBM 窗中 O$_\mathrm{S}$ 把 CB 底**下拉并劈裂**(其 +1.545 共振
+成杂质带),V$_\mathrm{S}$ 把 CB 底**上推** ~50 meV——方向恰为 $10^{12}$ 版
+Re$\,\Sigma$ 符号的放大兑现;VBM 窗中 V$_\mathrm{S}$ 价带顶与缺陷能级反交叉、
+边缘上推 ~0.13 eV,O$_\mathrm{S}$ +0.05,Se$_\mathrm{S}$ 整体微移仍带状。
+**注意**:此浓度下 $n_d T$ 独立散射体近似只作定性参考(缺陷间干涉/多重散射未含):
+
+![A CBM zoom nd3e13](../assets/kzoom_soc22_nd3e13_cbm.png)
+
+![A VBM zoom nd3e13](../assets/kzoom_soc22_nd3e13_vbm.png)
+
+![Sigma CBM zoom nd3e13](../assets/sigzoom_soc22_cbm_nd3e13.png)
+
+![Sigma VBM zoom nd3e13](../assets/sigzoom_soc22_vbm_nd3e13.png)
+
 首批 10 带版(O$_\mathrm{S}$+V$_\mathrm{S}$)存档:
 
 ![SOC CBM zoom](../assets/kzoom_soc_cbm.png)
