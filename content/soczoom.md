@@ -36,7 +36,11 @@ $\max|T|$ 增强 ×200),而 O$_\mathrm{S}$/Se$_\mathrm{S}$ 间隙干净——三
 
 
 **自能色图($\Sigma^{ed}(k,\omega)=n_d\,T(k,k;\omega)$,同 KZOOM 路径与能窗;
-上行 Re Tr $\Sigma$(发散色标),下行 $-$Im Tr $\Sigma$(对数)):**
+上行 Re Tr $\Sigma$(发散色标),下行 $-$Im Tr $\Sigma$(对数))。链式分数在
+$\omega+i\eta$ 求值(推迟 $\tilde V$):有限链把被修饰的 rest 连续谱离散成实轴
+Ritz 极点,实 $\omega$ 求值会让窗内极点呈零宽度细针(诊断:极点处 $\max|S_m|$
+71/63/161,各缺陷能量不同=链侧而非宿主 vHs);$+i\eta$ 后细针化为 ~$\eta$ 宽的
+物理洛伦兹,隙内能级仅移 $O(\eta^2/\Delta)$:**
 
 ![Sigma CBM zoom](../assets/sigzoom_soc22_cbm.png)
 
