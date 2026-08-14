@@ -948,6 +948,27 @@ def build_index():
 # ======================================================================
 #  main + self-checks
 # ======================================================================
+def leak_scan():
+    """placeholder-leak guard over EVERY generated page (a bare `$` in prose --
+    e.g. a shell variable like $A -- can pair with a later one and swallow a
+    protected span).  Cheap, and it catches the failure the per-builder checks
+    do not see."""
+    bad = []
+    for root, _dirs, files in os.walk(os.path.join(ROOT, "docs")):
+        for fn in files:
+            if fn.endswith(".html"):
+                fp = os.path.join(root, fn)
+                with open(fp, encoding="utf-8") as f:
+                    n = f.read().count("\x00")
+                if n:
+                    bad.append((os.path.relpath(fp, ROOT), n))
+    if bad:
+        for fp, n in bad:
+            print("  [LEAK] %s: %d placeholder(s)" % (fp, n))
+        raise SystemExit("placeholder leak -- fix the source markdown")
+    print("  [leak scan] %s: clean" % "all pages")
+
+
 def main():
     os.makedirs(PAGES_DIR, exist_ok=True)
     build_theory()
@@ -965,6 +986,7 @@ def main():
     build_koster()
     build_feshplan()
     build_index()
+    leak_scan()
 
     th = open(os.path.join(PAGES_DIR, "theory.html"), encoding="utf-8").read()
     pl = open(os.path.join(PAGES_DIR, "plan.html"),   encoding="utf-8").read()

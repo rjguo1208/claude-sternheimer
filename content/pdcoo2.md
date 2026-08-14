@@ -77,7 +77,7 @@ $d^6$ 的 $t_{2g}$ 是**满带**(闭壳层),Hubbard 项对满带只给整体移�
 
 四个 SCF + 四个能带计算(两种胞 × PBE/+U)在 Anvil highmem 单节点上**合计不到 6 分钟**
 (六方 SCF 80 s、菱方 SCF 45 s,能带各 30–90 s)。输入卡、SLURM 脚本与出图脚本在
-`~/edi_tmatrix/pdcoo2/`;计算目录 `$A/pdcoo2h`(六方)、`$A/pdcoo2r`(菱方)。
+`~/edi_tmatrix/pdcoo2/`;计算目录 `/anvil/scratch/x-rg47749/pdcoo2h`(六方)与 `.../pdcoo2r`(菱方)。
 
 **可继续的方向**:费米面(六边形柱面的直接可视化)、投影态密度(定量验证"费米面是 Pd 的")、
 $U$ 扫描(2/4/6 eV 看 Co-3d 带位置的移动)、或加入自旋轨道耦合。
