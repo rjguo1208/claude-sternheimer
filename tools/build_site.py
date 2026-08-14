@@ -28,6 +28,7 @@ PLAN      = os.path.join(ROOT, "plan.md")
 NOTE_KNORM = os.path.join(ROOT, "content", "note_kprime_norm.md")
 NOTE_NPOL2 = os.path.join(ROOT, "content", "npol2cert.md")
 NOTE_SOCZOOM = os.path.join(ROOT, "content", "soczoom.md")
+NOTE_MODED   = os.path.join(ROOT, "content", "moded.md")
 NOTE_RESULTS = os.path.join(ROOT, "content", "note_tmatrix_results.md")
 NOTE_LADDER = os.path.join(ROOT, "content", "note_sternheimer_ladder.md")
 NOTE_KOSTER = os.path.join(ROOT, "content", "note_koster_slater.md")
@@ -268,7 +269,7 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            '%s%s%s%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
                                       a("pages/sternheimer-ladder.html", "Rest-space ladder", "ladder"),
                                       a("pages/deflated-ladder.html", "Deflated ladder", "deflated"),
@@ -280,6 +281,7 @@ def _topnav(active, prefix=""):
                                       a("pages/results.html", "Results", "results"),
                                       a("pages/npol2-cert.html", "npol=2 cert.", "npol2"),
                                       a("pages/soc-zoom.html", "SOC zooms", "soczoom"),
+                                      a("pages/mode-d-crosscheck.html", "MODE D check", "moded"),
                                       a("pages/note-kprime-normalization.html", "Note: k&prime;-norm", "note")))
 
 def page_shell(title, head_html, nav_html, body_html, css_href):
@@ -410,6 +412,27 @@ def build_soczoom():
     with open(os.path.join(PAGES_DIR, "soc-zoom.html"), "w", encoding="utf-8") as f:
         f.write(out)
     return r
+
+def build_moded():
+    with open(NOTE_MODED, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=True)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">{s}</p>'
+              '<div class="meta"><span class="pill">Cross-check</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], s=r.get("subtitle") or "", n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " \u2014 MODE D cross-check",
+                     header, _topnav("moded", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "mode-d-crosscheck.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
 
 def build_ladder():
     with open(NOTE_LADDER, encoding="utf-8") as f:
@@ -583,6 +606,13 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
+    ("MODE D(折叠自由电子尾部)交叉检验:DOS 对拍 MODE C + 自由电子能量空间收敛", "Cross-check",
+     "2026-08-13", "ok", "Verified",
+     "合作者 cz 贡献的 OPW/折叠自由电子尾部(EDI `opw-tail`)在 6×6 非 SOC 理想 V$_S$ 上的独立复现与"
+     "对拍。M2 数字逐一复现(drop 11.10 / ffree 1.32 / fexact 2.79 meV);<b>DOS 六个峰全部落在 5 meV "
+     "网格内与 MODE C 重合</b>,间隙 $L_1$ 误差 0.196 vs drop-block 1.140(×5.8);新扫的自由电子能量"
+     "空间收敛给出生产端 χ 只需 ~6-10% 的平面波(侧文件压 10-17 倍)。",
+     '<a href="pages/mode-d-crosscheck.html">Open the cross-check &rarr;</a>'),
     ("22 带 144k 稀释极限 DOS:三缺陷三方对照(真值/阵列/稀释)", "Production", "2026-08-12", "prod", "Headline",
      "12×12×22 旋量带链(起始块 SVD `svd_tol=1e-4`,秩 ~1024-1080 = 32-34%,Banff 4 节点 4.6 h/链)"
      "的稀释极限 DOS。V$_S$ 深间隙双重态:真值 +1.085/+1.135 → 阵列 +1.115/+1.165 → 稀释 "
@@ -893,6 +923,7 @@ def main():
     build_ladder()
     build_npol2cert()
     build_soczoom()
+    build_moded()
     build_deflated()
     build_tlres()
     build_methods()

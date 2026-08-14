@@ -1,0 +1,51 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sternheimer Electron-Defect T-matrix — MODE D cross-check</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head><body>
+<nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html">Two-level results</a><a href="../pages/methods.html">Method derivations</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/npol2-cert.html">npol=2 cert.</a><a href="../pages/soc-zoom.html">SOC zooms</a><a href="../pages/mode-d-crosscheck.html" style="color:#fff;text-decoration:underline">MODE D check</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
+<header><div class="header-inner"><h1>MODE D(折叠自由电子尾部)对 MODE C 的交叉检验</h1><p class="subtitle">6×6 非 SOC MoS$_2$、理想 V$_S$:同一套数据上的 DOS 对拍与自由电子能量空间收敛</p><div class="meta"><span class="pill">Cross-check</span><span class="pill">6 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<main>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 被检验的是什么</a><a href="#sec-2">2. 计算设置</a><a href="#sec-3">3. 独立复现(流水线同源确认)</a><a href="#sec-4">4. 自由电子能量空间的收敛性</a><a href="#sec-5">5. DOS 对拍</a><a href="#sec-6">6. 结论与未决</a></div></section>
+<blockquote><p><strong>方法归属</strong>:MODE D(OPW/折叠自由电子尾部)由合作者 <strong>cz</strong> 贡献,实现于 EDI 开发仓库的 <code>opw-tail</code> 分支(<code>doc/opw_tail.md</code> + <code>post/tail_fold.py</code>)。本页是<strong>我方在同一套数据上的 独立复现与交叉检验</strong>——即该方法笔记中列为 "still to do" 的 MODE C 对拍的第一块拼图。 本页不含任何该方法的实现代码,只报告我们自己跑出的数字。</p></blockquote>
+<section id="sec-1"><h2>1. 被检验的是什么</h2>
+<p>外空间的<strong>能带补全</strong>:把希尔伯特空间切成 $1 = P + K + Q$——$P$ 为活性窗口(11 带 $d+p$), $K$ 为直到 $n_x$ 的显式外空间(带真实 DFT 能量与矩阵元),$Q$ 为 $n_x$ 之上直到平面波截断的 尾部(<strong>永不枚举</strong>)。用 Schur 补把 $Q$ <strong>精确</strong>消去:</p>
+<div class="math">
+$$\Sigma_P(\omega)=T_{PP}+\bigl(W_{PK}+T_{PK}\bigr)\bigl[\omega-H_{KK}-T_{KK}\bigr]^{-1}\bigl(W_{KP}+T_{KP}\bigr),
+\qquad T_{XY}=W_{XQ}\,G_Q(\omega)\,W_{QY}$$
+</div>
+<p>尾部因此出现在<strong>三处</strong>:直接路径 $T_{PP}$、显式带哈密顿量的修饰 $T_{KK}$、以及 $P\!\leftrightarrow\!K$ 耦合的修饰 $T_{PK}$。近似只有两个:$G_Q$ 取平面波对角的自由电子形式 $D_G=1/(\omega-\bar V-|k_f+G|^2)$,以及每条显式带只需一个矢量 $\chi_X=\hat Q\,\Delta V|\psi_X\rangle$(其中 $\hat Q$ 只减掉<strong>已有的</strong> $n_x$ 条显式带投影)。</p>
+<p>对照的 <strong>MODE C</strong> 是我们的精确 $\omega$ 分辨 Feshbach 折叠(生产路径用块 Lanczos 连分式实现; 本页在同一套 160 带数据上用直接求解给出同一个目标量)。</p>
+</section>
+<section id="sec-2"><h2>2. 计算设置</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>值</th></tr></thead><tbody><tr><td>体系 / 缺陷</td><td>MoS$_2$ 单层 6×6 超胞,<strong>理想</strong>(未弛豫)S 空位</td></tr><tr><td>相对论</td><td>标量(非 SOC)</td></tr><tr><td>k 网格</td><td>36 k(12×12 的 stride-2 子块,精确 q,无 wrap)</td></tr><tr><td>显式带宇宙</td><td>160 带;活性 $P$ = 带 7–17(396 态)</td></tr><tr><td>MODE D 划分</td><td>$n_x=100$ → $K$ = 89 带,尾部块 = 60 带</td></tr><tr><td>自由电子背景</td><td>$\bar V=-7.649$ eV(能量匹配,尾部块底 $+28.07$ eV)</td></tr><tr><td>频率</td><td>全部在 $\omega+i\eta$ 求值,$\eta=10$ meV(推迟)</td></tr><tr><td>参照</td><td>160 带全阶折叠($\mathrm{VBM}=-5.9365$ eV,gap $1.657$ eV)</td></tr></tbody></table></div>
+<p><strong>为什么全部走复频率</strong>:实轴求值会把窗口内每个外空间极点渲染成零宽度的针——这是我们在 谱函数管线上刚踩过并修掉的同一个坑(链式分数改在 $\omega+i\eta$ 求值)。</p>
+</section>
+<section id="sec-3"><h2>3. 独立复现(流水线同源确认)</h2>
+<p>用我们自己装配的数据(36k 子块切片、独立的波函数读取、独立驱动)复现该方法笔记里的 M2 自洽测试数字——间隙窗口(~20 条能级)最大误差,相对 160 带全阶折叠:</p>
+<div class="table-wrap"><table><thead><tr><th>变体</th><th>本次运行</th><th>方法笔记</th><th>含义</th></tr></thead><tbody><tr><td>drop-block</td><td><strong>11.10 meV</strong></td><td>11.1</td><td>完全不要尾部</td></tr><tr><td><strong>ffree-open</strong></td><td><strong>1.32 meV</strong></td><td>1.3</td><td>折叠自由电子尾部</td></tr><tr><td>fexact</td><td><strong>2.79 meV</strong></td><td>2.8</td><td>折叠框架 + 精确尾部谱</td></tr></tbody></table></div>
+<p>三个数字全中。<strong>注意 <code>fexact</code> 比 <code>ffree</code> 更差</strong>:一旦耦合被折叠进去,尾部<strong>模型谱</strong>的细节 已是二阶效应——这一反直觉的结论在我们的独立复现里同样成立。</p>
+</section>
+<section id="sec-4"><h2>4. 自由电子能量空间的收敛性</h2>
+<p>方法笔记里唯一没有扫过的轴,也是<strong>生产端最实际的参数</strong>:尾部收缩 $T_{XY}=\sum_G \chi_X^*(G)\,D_G\,\chi_Y(G)$ 的平面波求和按动能 $|k+G|^2$ 截断后, 每条带每个 k 到底需要存多少个 $G$。</p>
+<div class="table-wrap"><table><thead><tr><th>$|k+G|^2$ 截断</th><th>平面波数</th><th>块权重</th><th>绝对误差</th><th>相对全 $G$</th></tr></thead><tbody><tr><td>全集(1361 eV)</td><td>24034</td><td>1.00000</td><td>1.315 meV</td><td>—</td></tr><tr><td>500 eV</td><td>5351</td><td>0.99990</td><td>1.316</td><td>0.000</td></tr><tr><td><strong>300 eV</strong></td><td><strong>2486</strong></td><td>0.99885</td><td>1.320</td><td><strong>0.007</strong></td></tr><tr><td>200 eV</td><td>1353</td><td>0.99497</td><td>1.347</td><td>0.048</td></tr><tr><td>150 eV</td><td>878</td><td>0.98910</td><td>1.394</td><td>0.102</td></tr><tr><td>100 eV</td><td>479</td><td>0.97119</td><td>1.663</td><td>0.480</td></tr><tr><td>75 eV</td><td>312</td><td>0.93234</td><td>2.379</td><td>1.478</td></tr><tr><td>50 eV</td><td>169</td><td>0.78137</td><td>5.946</td><td>4.631</td></tr><tr><td>30 eV</td><td>80</td><td>0.17414</td><td>9.494</td><td>8.179</td></tr><tr><td>10 eV</td><td>15</td><td>0.00073</td><td>11.061</td><td>9.746</td></tr></tbody></table></div>
+<p>两个读数:<strong>(i)</strong> 截断 $\to 0$ 精确回到 drop-block(11.06 vs 11.10)——内部一致性自证; <strong>(ii)</strong> 模型自身误差(1.32 meV)在约 200 eV 以上完全主导截断误差。故尾部收缩只需 <strong>~1400–2500 个 $G$(全集的 6–10%)</strong>,侧文件可压 <strong>10–17 倍</strong>,误差预算分文不动。</p>
+<blockquote><p><strong>限制</strong>:此框架下 $\chi$ 是<strong>带投影</strong>得到的(投到第 101–160 带),其 $G$ 成分偏软;真实生产的 $\chi=\hat Q\Delta V|\psi\rangle$ 更硬。上表因此是<strong>下界</strong>,真值需要尚未实现的 Fortran $\chi$ 导出。</p></blockquote>
+</section>
+<section id="sec-5"><h2>5. DOS 对拍</h2>
+<p><img src="../assets/moded_dos_VS.png" alt="MODE D vs MODE C DOS" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p>活性空间 DOS,对数轴,灰底为间隙;下panel 为相对 MODE C 的差值。</p>
+<div class="table-wrap"><table><thead><tr><th>MODE C 峰 (eV)</th><th>MODE D 位移</th><th>drop-block 位移</th><th>特征</th></tr></thead><tbody><tr><td>$-0.285$</td><td>0.0 meV</td><td>0.0 meV</td><td>价带边多重态</td></tr><tr><td>$-0.020$</td><td>0.0</td><td>0.0</td><td>VBM 邻近对</td></tr><tr><td><strong>$+1.170$</strong></td><td><strong>0.0</strong></td><td><strong>$+10.0$</strong></td><td><strong>V$_S$ 深 $e$ 双重态</strong></td></tr><tr><td>$+1.695$</td><td>0.0</td><td>0.0</td><td>导带边</td></tr><tr><td>$+1.940$ / $+1.980$</td><td>0.0</td><td>0.0</td><td>共振</td></tr></tbody></table></div>
+<p><strong>六个峰全部落在 5 meV 的 $\omega$ 网格分辨率之内</strong>。间隙内 DOS 的 $L_1$ 误差: <strong>MODE D $0.196$ vs drop-block $1.140$ 态</strong>——折叠尾部把误差降到 $1/5.8$。差值图里 drop-block 在 $+1.17$ 处的 $\pm 23$ 双极振荡是能级移位的典型signature,而 MODE D 只剩 $\pm 8$ 的形状残差、无位移。</p>
+</section>
+<section id="sec-6"><h2>6. 结论与未决</h2>
+<p><strong>结论</strong>:在 6×6 非 SOC 理想 V$_S$ 上,MODE D 用 100 条显式带 + 解析尾部复现了 MODE C (160 带精确折叠)的谱,DOS 层面的差异在 5 meV 分辨率以下;而同样丢掉 60 条带却不加尾部 (drop-block)会把深能级推 10 meV。</p>
+<p><strong>尚未证明</strong>:$\chi$ 的带投影性质使第 4 节是下界(需 Fortran $\chi$ 导出);弛豫几何、 12×12 稀释极限(该方法真正的目标场景,也是链方法最贵之处)、O$_S$ 幻影态检验均未做; 本页的 MODE C 是同一套数据上的直接精确折叠,跑生产链(块 Lanczos)还能额外检验链机制本身。</p>
+</section>
+</main>
+<footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
+Static HTML; equations rendered client-side with MathJax v3. No raw wavefunctions, cubes,
+binaries, or logs are published.</footer>
+</body></html>
