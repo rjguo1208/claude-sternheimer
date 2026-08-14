@@ -608,10 +608,11 @@ def build_results():
 CATALOG = [
     ("MODE D(折叠自由电子尾部)交叉检验:DOS 对拍 MODE C + 自由电子能量空间收敛", "Cross-check",
      "2026-08-13", "ok", "Verified",
-     "合作者 cz 贡献的 OPW/折叠自由电子尾部(EDI `opw-tail`)在 6×6 非 SOC 理想 V$_S$ 上的独立复现与"
-     "对拍。M2 数字逐一复现(drop 11.10 / ffree 1.32 / fexact 2.79 meV);<b>DOS 六个峰全部落在 5 meV "
-     "网格内与 MODE C 重合</b>,间隙 $L_1$ 误差 0.196 vs drop-block 1.140(×5.8);新扫的自由电子能量"
-     "空间收敛给出生产端 χ 只需 ~6-10% 的平面波(侧文件压 10-17 倍)。",
+     "合作者 cz 贡献的 OPW/折叠自由电子尾部(EDI `opw-tail`)在 6×6 非 SOC **三个体系**(理想 V$_S$、弛豫 V$_S$、弛豫 O$_S$)上的独立复现与"
+     "对拍。M2 数字逐一复现(drop 11.10 / ffree 1.32 / fexact 2.79 meV);<b>三套共 18 个 DOS 峰"
+     "与 MODE C 的位移全部 ≤5 meV(网格分辨率)</b>,而丢掉尾部的 drop-block 把缺陷能级推 10-90 meV;"
+     "间隙 $L_1$ 误差降到 1/4.2-1/6.2。新扫的自由电子能量空间收敛给出生产端 χ 只需 ~2500 个平面波"
+     "(300 eV 截断,代价 0.007-0.024 meV),且该数由原胞几何决定、对宿主截断不敏感。",
      '<a href="pages/mode-d-crosscheck.html">Open the cross-check &rarr;</a>'),
     ("22 带 144k 稀释极限 DOS:三缺陷三方对照(真值/阵列/稀释)", "Production", "2026-08-12", "prod", "Headline",
      "12×12×22 旋量带链(起始块 SVD `svd_tol=1e-4`,秩 ~1024-1080 = 32-34%,Banff 4 节点 4.6 h/链)"
