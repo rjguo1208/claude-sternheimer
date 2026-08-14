@@ -6,9 +6,9 @@
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head><body>
 <nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html">Two-level results</a><a href="../pages/methods.html">Method derivations</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/npol2-cert.html">npol=2 cert.</a><a href="../pages/soc-zoom.html">SOC zooms</a><a href="../pages/mode-d-crosscheck.html">MODE D check</a><a href="../pages/pdcoo2-bands.html" style="color:#fff;text-decoration:underline">PdCoO2 bands</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
-<header><div class="header-inner"><h1>PdCoO$_2$ delafossite:能带结构(PBE 与 PBE+U)</h1><p class="subtitle">从一个 POSCAR 出发的独立 DFT 算例:两种胞、两条高对称路径、$U_{\mathrm{Co}\text{-}3d}$ 敏感性</p><div class="meta"><span class="pill">Standalone DFT</span><span class="pill">7 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<header><div class="header-inner"><h1>PdCoO$_2$ delafossite:能带结构(PBE 与 PBE+U)</h1><p class="subtitle">从一个 POSCAR 出发的独立 DFT 算例:两种胞、两条高对称路径、$U_{\mathrm{Co}\text{-}3d}$ 敏感性</p><div class="meta"><span class="pill">Standalone DFT</span><span class="pill">8 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
 <main>
-<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 结构识别</a><a href="#sec-2">2. 计算设置</a><a href="#sec-3">3. 能带</a><a href="#sec-4">4. 三条读数</a><a href="#sec-5">5. 两道自检</a><a href="#sec-7">7. 该不该加 U:线性响应给出的答案</a><a href="#sec-8">8. 成本与可复现</a></div></section>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 结构识别</a><a href="#sec-2">2. 计算设置</a><a href="#sec-3">3. 能带</a><a href="#sec-4">4. 三条读数</a><a href="#sec-5">5. 两道自检</a><a href="#sec-7">7. 该不该加 U:线性响应给出的答案</a><a href="#sec-9">9. Wannier 化:16 个 MLWF 复现整个 $p$-$d$ 流形</a><a href="#sec-10">10. 成本与可复现</a></div></section>
 <blockquote><p>本页与本站其余内容(缺陷 $T$-矩阵下折叠)相互独立,是一次单独的能带计算。 输入与脚本在 <code>~/edi_tmatrix/pdcoo2/</code>,计算在 Anvil highmem 单节点完成。</p></blockquote>
 <section id="sec-1"><h2>1. 结构识别</h2>
 <p>给定的 POSCAR 是 <strong>R$\bar 3$m 菱方原胞</strong>(4 原子 = 1 化学式单位):</p>
@@ -60,10 +60,36 @@ $$U=\left(\chi_0^{-1}-\chi^{-1}\right)_{\rm Co,Co}$$
 <blockquote><p><strong>一个实用陷阱</strong>(值得记下):<code>hp.x</code> 要求<strong>所有 Hubbard 原子排在 <code>ATOMIC_POSITIONS</code> 的最前面</strong>。 我们照 POSCAR 顺序写成 Pd-Co-O,<code>hp_init</code> 因此受控退出;而真正的提示信息被 48 个 rank 的 <code>forrtl: severe (28)</code> 堆栈完全淹没,日志里 grep 不到。是<strong>堆栈本身</strong>(<code>hp_init.f90:50 →
 &gt; hp_stop_smoothly</code>)指明这是受控退出而非崩溃,读源码那几行才找到原因。改成 Co-Pd-O 后一次通过。</p></blockquote>
 </section>
-<section id="sec-8"><h2>8. 成本与可复现</h2>
+<section id="sec-9"><h2>9. Wannier 化:16 个 MLWF 复现整个 $p$-$d$ 流形</h2>
+<h3>9a. 为什么是 16 个,而且不需要解缠</h3>
+<p>先看能带的流形结构(菱方原胞,301 点路径,相对 $E_F$):</p>
+<div class="table-wrap"><table><thead><tr><th>能带</th><th>范围 (eV)</th><th>归属</th></tr></thead><tbody><tr><td>9–10</td><td>$-20.8 \ldots -18.9$</td><td>O-2s</td></tr><tr><td><strong>11–26</strong></td><td>$\mathbf{-8.55 \ldots +2.28}$</td><td><strong>O-2p(6) + Co-3d(5) + Pd-4d(5) = 16</strong></td></tr><tr><td>24</td><td>$-0.757 \ldots +0.952$</td><td>唯一穿过 $E_F$ 的传导带</td></tr><tr><td>27+</td><td>$+3.23$ 起</td><td>自由电子式高带</td></tr></tbody></table></div>
+<p>band 10↔11 之间 <strong>10.3 eV</strong>、band 26↔27 之间 <strong>0.95 eV</strong>(均匀网格上复核为 17.16→18.11 eV)—— <strong>$p$-$d$ 流形完全孤立</strong>。于是取 <code>num_bands = num_wann = 16</code>、<code>exclude_bands = 1-10, 27-40</code>, <strong>根本不需要 disentanglement</strong>,这是数值上最稳的一档。</p>
+<p>轨道计数也自洽:16 条带 = 6+5+5,而 $E_F$ 上方那两条(25、26)正是 Co-$e_g$ —— Co$^{3+}$ 低自旋 $d^6$ 的空 $e_g$,与第 7 节的闭壳层结论相互印证。</p>
+<h3>9b. 两组投影:$\Omega_I$ 相同到 9 位</h3>
+<p><code>nscf</code> 用 $8\times8\times8=512$ 个 $k$(<code>nosym</code>/<code>noinv</code>),纯 PBE(见第 7b 节)。 两个变体只有 Pd 的投影不同:</p>
+<div class="table-wrap"><table><thead><tr><th></th><th>投影</th><th>$\Omega_I$</th><th>$\Omega_D$</th><th>$\Omega_{OD}$</th><th>$\Omega$ (Å$^2$)</th></tr></thead><tbody><tr><td><strong>A</strong></td><td>Pd:$d$(5) + Co:$d$(5) + O:$p$(6)</td><td>12.433543233</td><td>0.00999622</td><td>0.62411529</td><td><strong>13.067655</strong></td></tr><tr><td><strong>B</strong></td><td>Pd:$s$(1) + Pd:$d_{xy},d_{xz},d_{yz},d_{x^2-y^2}$(4) + Co:$d$(5) + O:$p$(6)</td><td>12.433543233</td><td>0.00999573</td><td>0.62410262</td><td><strong>13.067642</strong></td></tr></tbody></table></div>
+<p>$\Omega_I$ 是<strong>规范不变量</strong>,两者相同到 <strong>9 位有效数字</strong>;总展宽差 $1.3\times10^{-5}$ Å$^2$。 这正是孤立流形应有的行为——投影只决定优化的起点,不决定终点。 把 Pd 的 $d_{z^2}$ 换成 $s$ 仍收敛到<strong>同一个全局极小</strong>,说明这个 MLWF 解<strong>不是</strong>某个局域极小的产物。</p>
+<p>16 个 WF 平均展宽 <strong>0.817 Å$^2$</strong>、$\Omega_{OD}/\Omega=4.8\%$,中心<strong>精确落在原子位上、零漂移</strong>:</p>
+<div class="table-wrap"><table><thead><tr><th>WF</th><th>中心 $z$ (Å)</th><th>归属</th><th>展宽 (Å$^2$)</th></tr></thead><tbody><tr><td>1</td><td>0</td><td>Pd $d_{z^2}$</td><td><strong>1.528</strong></td></tr><tr><td>2–5</td><td>0</td><td>Pd $d_{xy},d_{xz},d_{yz},d_{x^2-y^2}$</td><td>0.755, 0.755, 0.948, 0.928</td></tr><tr><td>6–8</td><td>8.8715 $(=c/2)$</td><td>Co $t_{2g}$</td><td>0.546, 0.540, 0.540</td></tr><tr><td>9–10</td><td>8.8715</td><td>Co $e_g$</td><td>0.640, 0.640</td></tr><tr><td>11–13</td><td>1.98 $(=0.1112\,c)$</td><td>O(1) $2p$</td><td>1.107, 0.758, 0.759</td></tr><tr><td>14–16</td><td>15.76 $(=0.8888\,c)$</td><td>O(2) $2p$</td><td>1.107, 0.758, 0.759</td></tr></tbody></table></div>
+<p>两处<strong>未经设计、由数据自己给出</strong>的物理:</p>
+<ol><li><strong>Pd $d_{z^2}$ 的展宽 1.528 Å$^2$,是其余四个 Pd-$d$ 的两倍</strong>。它就是构成传导带的那个轨道—— 离域、与 Pd-5s 强杂化,所以最不局域。这是 PdCoO$_2$ 传导带 $s$-$d$ 杂化图像的一个直接量化印记。</li><li><strong>Co 的 5 个 $d$ 自动分成 3 + 2</strong>(0.54 三个、0.64 两个),正是八面体晶体场的 $t_{2g}$/$e_g$ 劈裂—— 而投影时并没有按对称性分开写。</li></ol>
+<h3>9c. 与 DFT 能带逐点对比</h3>
+<p><img src="../assets/pdcoo2_w90_bands.png" alt="PdCoO2 Wannier bands" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p><strong>对比方式本身需要说明</strong>:我们<strong>没有</strong>用 wannier90 自己输出的 <code>*_band.dat</code>。它的路径取点与 DFT 能带计算的 301 个点不一定重合,把两者对齐所引入的插值误差与待测量同量级。 改为直接读 <code>&lt;seed&gt;_hr.dat</code>、在<strong>DFT 的那 301 个 $k$ 点上</strong>自建 $H(\mathbf k)=\sum_{\mathbf R}e^{2\pi i\mathbf k\cdot\mathbf R}H(\mathbf R)/\deg(\mathbf R)$ (551 个 Wigner–Seitz $\mathbf R$)再对角化,<strong>逐点严格可比</strong>。</p>
+<div class="table-wrap"><table><thead><tr><th></th><th>全 16 带 RMS</th><th>$|E-E_F|<1$ eV 的 RMS</th><th>最大偏差</th><th>传导带(24)RMS</th><th>传导带最大</th></tr></thead><tbody><tr><td><strong>A</strong></td><td><strong>3.574 meV</strong></td><td><strong>2.825 meV</strong></td><td>59.15 meV</td><td><strong>2.726 meV</strong></td><td>13.31 meV</td></tr><tr><td><strong>B</strong></td><td>3.574 meV</td><td>2.825 meV</td><td>59.15 meV</td><td>2.724 meV</td><td>13.31 meV</td></tr></tbody></table></div>
+<p>$8^3$ 网格下,整个 16 带流形的插值误差 <strong>RMS 3.6 meV</strong>、费米面附近 <strong>2.8 meV</strong>, 传导带 <strong>2.7 meV</strong>(最大 13 meV)。图 (c) 中细线是全部 16 条带的逐点误差, 绝大部分在 1 meV 以下;偏差集中在能带交叉附近,加密 $k$ 网格即可继续压低。</p>
+<p><strong>一个附带的自洽检验</strong>:本次重跑的 scf 给出 $E_F=14.8809$ eV,与第 3 节那次独立计算<strong>完全相同</strong>。</p>
+<h3>9d. 两条方法论教训</h3>
+<p><strong>(i) 能带极值必须在均匀网格上量,不能在高对称路径上量。</strong> 我们也试过只保留传导带的单带($\text{num\_wann}=1$)模型,冻结窗按路径上读到的 "band 23 顶 $=-0.175$、band 25 底 $=+0.891$" 来设,结果 wannier90 在第 165 个 $k$ 点报 "冻结窗内有 2 条带而目标只有 1 条"。查 512 点均匀网格的真值:band 25 的真实最低点是 $+0.803$ eV,<strong>比路径上读到的低 88 meV</strong>——它根本不落在任何高对称线上。 高对称路径是 BZ 里的<strong>零测集</strong>,用它读极值在原理上就不成立。 (单带模型随后按需求取消,不在本页结论内;但这条教训保留。)</p>
+<p><strong>(ii) 窗口要锚在能带的绝对位置上,不能锚在 $E_F$ 上。</strong> $8^3$ nscf 的 $E_F=14.8310$ eV,比 $12^3$ scf 的 14.8809 低 <strong>50 meV</strong>(网格与展宽差异)。 把解缠窗写成 "$E_F\pm$" 会随之整体漂移 50 meV,而窗口的全部意义在于把某条带<strong>单独框住</strong>, 边距只有几十 meV。约束必须锚在它要复现的不变量上——这里是能带的相对位置,不是费米能。</p>
+</section>
+<section id="sec-10"><h2>10. 成本与可复现</h2>
 <p>四个 SCF + 四个能带计算(两种胞 × PBE/+U)在 Anvil highmem 单节点上<strong>合计不到 6 分钟</strong> (六方 SCF 80 s、菱方 SCF 45 s,能带各 30–90 s)。输入卡、SLURM 脚本与出图脚本在 <code>~/edi_tmatrix/pdcoo2/</code>;计算目录 <code>/anvil/scratch/x-rg47749/pdcoo2h</code>(六方)与 <code>.../pdcoo2r</code>(菱方)。</p>
 <p>线性响应 U 的计算在 <code>/anvil/scratch/x-rg47749/pdcoo2u</code>(<code>hp_scf.in</code> / <code>hp.in</code> / <code>mag_scf.in</code>, 输出 <code>pdcoo2u.Hubbard_parameters.dat</code>)。</p>
-<p><strong>可继续的方向</strong>:$n_q=3\times3\times3$ 的 U 收敛点、费米面(六边形柱面的直接可视化)、 投影态密度(定量验证"费米面是 Pd 的")、U+V(层间 Co–O)、或加入自旋轨道耦合。</p>
+<p>Wannier 化在 <code>/anvil/scratch/x-rg47749/pdw90</code>(输入与 SLURM 脚本同步在 <code>~/edi_tmatrix/pdcoo2/w90/</code>): scf 44 s + nscf(512 $k$)52 s + 每个变体约 3 分钟(<code>pw2wannier90.x</code> 占大头), 单节点 48 rank × 2 线程。对比出图脚本 <code>w90bands.py</code>。</p>
+<blockquote><p><strong>提交头必须写全</strong>:<code>--ntasks=48 --cpus-per-task=2 --exclusive</code> 缺一不可。 只写 <code>-n 48</code> 时 48 核上跑 96 线程、节点又被共享,scf 从 <strong>2.1 s/迭代变成 50 s/迭代</strong>, 而日志里<strong>毫无异常</strong>。唯一的发现途径是拿已知good作业的 <code>PWSCF ... WALL</code> 做对照。</p></blockquote>
+<p><strong>可继续的方向</strong>:用这套 16 带 MLWF 做<strong>费米面</strong>(六边形柱面的直接可视化)与输运; 加密 $k$ 网格把插值误差压到亚 meV;投影态密度(定量验证"费米面是 Pd 的"); $n_q=3\times3\times3$ 的 U 收敛点;或加入自旋轨道耦合。</p>
 </section>
 </main>
 <footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
