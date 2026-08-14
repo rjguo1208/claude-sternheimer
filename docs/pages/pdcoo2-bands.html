@@ -6,9 +6,9 @@
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head><body>
 <nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html">Two-level results</a><a href="../pages/methods.html">Method derivations</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/npol2-cert.html">npol=2 cert.</a><a href="../pages/soc-zoom.html">SOC zooms</a><a href="../pages/mode-d-crosscheck.html">MODE D check</a><a href="../pages/pdcoo2-bands.html" style="color:#fff;text-decoration:underline">PdCoO2 bands</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
-<header><div class="header-inner"><h1>PdCoO$_2$ delafossite:能带结构(PBE 与 PBE+U)</h1><p class="subtitle">从一个 POSCAR 出发的独立 DFT 算例:两种胞、两条高对称路径、$U_{\mathrm{Co}\text{-}3d}$ 敏感性</p><div class="meta"><span class="pill">Standalone DFT</span><span class="pill">6 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<header><div class="header-inner"><h1>PdCoO$_2$ delafossite:能带结构(PBE 与 PBE+U)</h1><p class="subtitle">从一个 POSCAR 出发的独立 DFT 算例:两种胞、两条高对称路径、$U_{\mathrm{Co}\text{-}3d}$ 敏感性</p><div class="meta"><span class="pill">Standalone DFT</span><span class="pill">7 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
 <main>
-<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 结构识别</a><a href="#sec-2">2. 计算设置</a><a href="#sec-3">3. 能带</a><a href="#sec-4">4. 三条读数</a><a href="#sec-5">5. 两道自检</a><a href="#sec-6">6. 成本与可复现</a></div></section>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 结构识别</a><a href="#sec-2">2. 计算设置</a><a href="#sec-3">3. 能带</a><a href="#sec-4">4. 三条读数</a><a href="#sec-5">5. 两道自检</a><a href="#sec-7">7. 该不该加 U:线性响应给出的答案</a><a href="#sec-8">8. 成本与可复现</a></div></section>
 <blockquote><p>本页与本站其余内容(缺陷 $T$-矩阵下折叠)相互独立,是一次单独的能带计算。 输入与脚本在 <code>~/edi_tmatrix/pdcoo2/</code>,计算在 Anvil highmem 单节点完成。</p></blockquote>
 <section id="sec-1"><h2>1. 结构识别</h2>
 <p>给定的 POSCAR 是 <strong>R$\bar 3$m 菱方原胞</strong>(4 原子 = 1 化学式单位):</p>
@@ -40,9 +40,30 @@ $$a_{\rm hex}=2.8300\ \text{Å},\qquad c_{\rm hex}=17.7430\ \text{Å}$$
 <div class="table-wrap"><table><thead><tr><th>检查</th><th>结果</th></tr></thead><tbody><tr><td>两种胞的总能 / 化学式单位(PBE)</td><td>$-645.26000$(六方,$-1935.78001/3$) vs $-645.26077$(菱方) → <strong>0.77 mRy = 10 meV</strong></td></tr><tr><td>同上($+U$)</td><td>$-645.10444$ vs $-645.10407$ → <strong>0.37 mRy</strong></td></tr><tr><td>穿过 $E_F$ 的带数</td><td>菱方 1 ↔ 六方 3(3 f.u. 折叠)✓</td></tr></tbody></table></div>
 <p>两种胞来自<strong>完全独立</strong>的构造(菱方直接取自 POSCAR,六方由程序生成)、不同 $k$ 网格、 不同对称性识别,总能吻合到 10 meV/f.u.;$+U$ 时更收紧到 0.37 mRy —— 说明 Hubbard 投影 在两种胞里作用于同一组 Co-3d 轨道,<strong>$+U$ 的实现也自洽</strong>。</p>
 </section>
-<section id="sec-6"><h2>6. 成本与可复现</h2>
+<section id="sec-7"><h2>7. 该不该加 U:线性响应给出的答案</h2>
+<p>第 4 节的 $+U$ 用的是常见取值 4 eV。为了把"该不该加"从经验判断变成可引用的计算量, 我们用 <strong>DFPT 线性响应</strong>(QE 的 <code>hp.x</code>,Cococcioni–de Gironcoli 定义)<strong>把 U 算了出来</strong>:</p>
+<div class="math">
+$$U=\left(\chi_0^{-1}-\chi^{-1}\right)_{\rm Co,Co}$$
+</div>
+<div class="table-wrap"><table><thead><tr><th>量</th><th>值</th></tr></thead><tbody><tr><td><strong>$U_{\mathrm{Co}\text{-}3d}$(线性响应)</strong></td><td><strong>7.95 eV</strong></td></tr><tr><td>裸响应 $\chi_0^{\rm CoCo}$</td><td>$-0.8022$ eV$^{-1}$</td></tr><tr><td>自洽响应 $\chi^{\rm CoCo}$</td><td>$-0.1085$ eV$^{-1}$</td></tr><tr><td>屏蔽比 $\chi/\chi_0$</td><td><strong>0.135</strong></td></tr></tbody></table></div>
+<p>(ortho-atomic 投影,$n_q=2\times2\times2$,<code>conv_thr_chi</code> = 1e-6,虚拟超胞 8 格点; 21 分钟墙钟。)自洽响应只有裸响应的 <strong>13.5%</strong> —— Co-3d 的占据数在微扰下被强烈钉住, <strong>这是一个货真价实的局域壳层</strong>,而且算出的 U 比常用的 4 eV <strong>高一倍</strong>。</p>
+<h3>7a. 磁基态检验</h3>
+<p>"闭壳层"是本页全部论证的前提,所以它应当被<strong>证实而不是假定</strong>。自旋极化 SCF (<code>nspin</code> = 2,Co 初始磁矩 0.4)的结果:</p>
+<div class="table-wrap"><table><thead><tr><th>量</th><th>值</th></tr></thead><tbody><tr><td>总磁矩 / 绝对磁矩</td><td>$0.00$ / $0.00$ $\mu_B$/cell</td></tr><tr><td>自旋极化解总能</td><td>$-645.26075840$ Ry</td></tr><tr><td>非磁解总能</td><td>$-645.26076524$ Ry</td></tr><tr><td>差</td><td>$7\times10^{-8}$ Ry $\approx 0.1$ μeV</td></tr></tbody></table></div>
+<p>从有限磁矩出发,自洽<strong>精确塌回非磁解</strong>。低自旋 $d^6$ 的 $t_{2g}^6e_g^0$ 闭壳层确立。</p>
+<h3>7b. 综合判断:U 很大,但不该用在输运上</h3>
+<p>三条事实必须放在一起读:</p>
+<ol><li>$U_{\rm Co}$ = 7.95 eV —— Co-3d <strong>确实局域</strong>;</li><li>磁矩严格为 0 —— 关联壳层是<strong>闭合</strong>的,而 DFT+U 的 $\frac{U}{2}\mathrm{Tr}[\mathbf n(1-\mathbf n)]$ 对幂等占据矩阵<strong>恒为零</strong>,只剩下"占据态整体下移、空态上移"的刚性移动;</li><li>$U$ = 4 eV 时 $E_F$ 只移 3 meV、费米面处的 Pd 带几乎不动(第 4 节)。</li></ol>
+<p>把 U 从 4 提到 7.95 eV,只会把 Co-3d 占据带再压低约一倍(~2 eV 而非 ~1 eV), <strong>费米面附近依然不动</strong>。所以:</p>
+<blockquote><p><strong>算输运、费米面、电子-声子:用纯 PBE。</strong> <strong>要定位 Co-3d 占据态(XPS/XAS/RIXS 对比):用 $U=7.95$ eV —— 这个自洽算出的值,而不是猜的 4 eV。</strong> 需要更严谨时应考虑 U+V(<code>hp.x</code> 也能给 Co–O 的层间 V)或 HSE/GW。</p></blockquote>
+<p><strong>未收敛项</strong>:上述 U 是 $n_q=2\times2\times2$ 的结果。HP 的 U 对 q 网格有收敛性, 若要引用应补一个 $3\times3\times3$ 的点(约 1 小时)。</p>
+<blockquote><p><strong>一个实用陷阱</strong>(值得记下):<code>hp.x</code> 要求<strong>所有 Hubbard 原子排在 <code>ATOMIC_POSITIONS</code> 的最前面</strong>。 我们照 POSCAR 顺序写成 Pd-Co-O,<code>hp_init</code> 因此受控退出;而真正的提示信息被 48 个 rank 的 <code>forrtl: severe (28)</code> 堆栈完全淹没,日志里 grep 不到。是<strong>堆栈本身</strong>(<code>hp_init.f90:50 →
+&gt; hp_stop_smoothly</code>)指明这是受控退出而非崩溃,读源码那几行才找到原因。改成 Co-Pd-O 后一次通过。</p></blockquote>
+</section>
+<section id="sec-8"><h2>8. 成本与可复现</h2>
 <p>四个 SCF + 四个能带计算(两种胞 × PBE/+U)在 Anvil highmem 单节点上<strong>合计不到 6 分钟</strong> (六方 SCF 80 s、菱方 SCF 45 s,能带各 30–90 s)。输入卡、SLURM 脚本与出图脚本在 <code>~/edi_tmatrix/pdcoo2/</code>;计算目录 <code>/anvil/scratch/x-rg47749/pdcoo2h</code>(六方)与 <code>.../pdcoo2r</code>(菱方)。</p>
-<p><strong>可继续的方向</strong>:费米面(六边形柱面的直接可视化)、投影态密度(定量验证"费米面是 Pd 的")、 $U$ 扫描(2/4/6 eV 看 Co-3d 带位置的移动)、或加入自旋轨道耦合。</p>
+<p>线性响应 U 的计算在 <code>/anvil/scratch/x-rg47749/pdcoo2u</code>(<code>hp_scf.in</code> / <code>hp.in</code> / <code>mag_scf.in</code>, 输出 <code>pdcoo2u.Hubbard_parameters.dat</code>)。</p>
+<p><strong>可继续的方向</strong>:$n_q=3\times3\times3$ 的 U 收敛点、费米面(六边形柱面的直接可视化)、 投影态密度(定量验证"费米面是 Pd 的")、U+V(层间 Co–O)、或加入自旋轨道耦合。</p>
 </section>
 </main>
 <footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
