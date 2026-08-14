@@ -29,6 +29,7 @@ NOTE_KNORM = os.path.join(ROOT, "content", "note_kprime_norm.md")
 NOTE_NPOL2 = os.path.join(ROOT, "content", "npol2cert.md")
 NOTE_SOCZOOM = os.path.join(ROOT, "content", "soczoom.md")
 NOTE_MODED   = os.path.join(ROOT, "content", "moded.md")
+NOTE_PDCOO2  = os.path.join(ROOT, "content", "pdcoo2.md")
 NOTE_RESULTS = os.path.join(ROOT, "content", "note_tmatrix_results.md")
 NOTE_LADDER = os.path.join(ROOT, "content", "note_sternheimer_ladder.md")
 NOTE_KOSTER = os.path.join(ROOT, "content", "note_koster_slater.md")
@@ -269,7 +270,7 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            '%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
                                       a("pages/sternheimer-ladder.html", "Rest-space ladder", "ladder"),
                                       a("pages/deflated-ladder.html", "Deflated ladder", "deflated"),
@@ -282,6 +283,7 @@ def _topnav(active, prefix=""):
                                       a("pages/npol2-cert.html", "npol=2 cert.", "npol2"),
                                       a("pages/soc-zoom.html", "SOC zooms", "soczoom"),
                                       a("pages/mode-d-crosscheck.html", "MODE D check", "moded"),
+                                      a("pages/pdcoo2-bands.html", "PdCoO2 bands", "pdcoo2"),
                                       a("pages/note-kprime-normalization.html", "Note: k&prime;-norm", "note")))
 
 def page_shell(title, head_html, nav_html, body_html, css_href):
@@ -430,6 +432,27 @@ def build_moded():
     out = page_shell(SITE_TITLE + " \u2014 MODE D cross-check",
                      header, _topnav("moded", prefix="../"), body, "../assets/style.css")
     with open(os.path.join(PAGES_DIR, "mode-d-crosscheck.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
+
+def build_pdcoo2():
+    with open(NOTE_PDCOO2, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=True)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">{s}</p>'
+              '<div class="meta"><span class="pill">Standalone DFT</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], s=r.get("subtitle") or "", n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " \u2014 PdCoO2 band structure",
+                     header, _topnav("pdcoo2", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "pdcoo2-bands.html"), "w", encoding="utf-8") as f:
         f.write(out)
     return r
 
@@ -606,6 +629,14 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
+    ("PdCoO$_2$ delafossite 能带:PBE vs PBE+U,两种胞交叉验证", "Standalone DFT",
+     "2026-08-14", "ok", "Verified",
+     "从一个 POSCAR 出发的独立算例(与本站的缺陷 T-矩阵主线无关)。菱方原胞(4 原子,RHL1 路径)与"
+     "程序构造的六方常规胞(12 原子,Γ-M-K-Γ-A-L-H-A)双路径;<b>只有一条 Pd 带穿过 E$_F$</b>"
+     "(六方胞里折叠成 3 条,自洽)、Γ→A 方向几乎完全平——超高电导与准二维性的能带解释。"
+     "<b>+U(Co-3d 4 eV)只动 −1.5..−4 eV 的 Co-3d 占据带,E$_F$ 仅移 3 meV</b>:输运物理对 U 不敏感。"
+     "两种胞的总能/f.u. 吻合到 10 meV(+U 时 0.37 mRy)。",
+     '<a href="pages/pdcoo2-bands.html">Open the PdCoO$_2$ bands &rarr;</a>'),
     ("MODE D(折叠自由电子尾部)交叉检验:DOS 对拍 MODE C + 自由电子能量空间收敛", "Cross-check",
      "2026-08-13", "ok", "Verified",
      "合作者 cz 贡献的 OPW/折叠自由电子尾部(EDI `opw-tail`)在 6×6 非 SOC **三个体系**(理想 V$_S$、弛豫 V$_S$、弛豫 O$_S$)上的独立复现与"
@@ -927,6 +958,7 @@ def main():
     build_npol2cert()
     build_soczoom()
     build_moded()
+    build_pdcoo2()
     build_deflated()
     build_tlres()
     build_methods()
