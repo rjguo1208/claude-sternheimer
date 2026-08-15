@@ -207,7 +207,7 @@ $\Sigma_W(k,\omega)$ 本身都在路径 k 上直接求值,无需任何网格。
 
 ### 7e. 高分辨版(601 k × 2001 $\omega$,$\eta=2$ meV)
 
-![PdCoO2 Gamma-L HD zoom](../assets/pdcoo2_spec_GLzoomHD.png)
+![PdCoO2 Gamma-L HD zoom](../assets/pdcoo2_spec_GLzoomHD_log.png)
 
 把 7d 的分辨率全面加密(k 点 ×3、$\omega$ 步长 1 meV、显示 $\eta$ 降到 2 meV,
 使本征线宽完全主导;**色标为对数**,覆盖三个量级)后:
