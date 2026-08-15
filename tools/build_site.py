@@ -659,7 +659,9 @@ CATALOG = [
      "→ 陪集 DOS 对拍空位超胞 Γ 真值:<b>积分偏差 0.37%(门泳道本底 0.13%),QP 能级中位 0.1 meV,"
      "未配对的 5 条恰为被移除 Pd 的 4d 计数</b>。顺带用 q 块指纹定位并修掉 fold_col 的硬 2D bug"
      "(q3 槽位碰撞 + 缺 g3 缠绕相位;qe-edt v2.2):16 个 q3=+1/2 块碰巧 +1.000 精确的不对称模式"
-     "唯一指向三行代码。2D 运行逐位不受影响。",
+     "唯一指向三行代码。2D 运行逐位不受影响。<b>6³ 生产链已跑通</b>(SVD 秩 288/3456=8.3%,"
+     "herm ~3e-15)并完成 <b>Wannier 衰减验证</b>:V/T 第一壳内衰减两个量级(簇方法资格证),"
+     "盒角系统误差已量化,且发现 <b>T 在 E$_F$ 处 ×5 的本地共振</b>。",
      '<a href="pages/pdvac-coset.html">Open the 3D validation &rarr;</a>'),
     ("PdCoO$_2$ delafossite 能带:PBE vs PBE+U,两种胞交叉验证", "Standalone DFT",
      "2026-08-14", "ok", "Verified",
