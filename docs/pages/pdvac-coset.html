@@ -68,7 +68,12 @@ $$\text{常数}=216.00000000=N_k,\qquad \text{rel-std}=2.9\times10^{-13},\qquad
 <p>主机能带(细线)与谱强度脊线逐点重合;<strong>展宽集中在 $E_F$ 穿越处</strong>,同一条 Pd 带在 几百 meV 之外锐利如初——$E_F$ 共振(§6a)的谱学指纹。定量($n_d=0.5\%$/Pd 位):</p>
 <div class="table-wrap"><table><thead><tr><th>量</th><th>值</th></tr></thead><tbody><tr><td>$\Gamma(E_F)$(三个费米穿越点)</td><td>中位 <strong>23.9 meV</strong>(18.8–25.1)</td></tr><tr><td>$\tau=\hbar/\Gamma$</td><td><strong>27 fs</strong></td></tr><tr><td>$\ell=v_F\tau$($v_F\sim7.5\times10^5$ m/s)</td><td><strong>~20 nm</strong></td></tr></tbody></table></div>
 <p>Pd 空位是共振增强的强散射体:0.5% 空位就把这个以超长自由程著称的材料打到 $\ell\sim20$ nm——与"PdCoO$_2$ 的超高电导依赖 Pd 层近乎无缺陷"的实验共识定性一致。 $\Gamma\propto n_d$,其它浓度线性换算;$\Sigma_W/n_d$ 全量存盘 (<code>pd_spec_sig.npz</code>),换浓度重出图约 1 分钟。</p>
-<h3>7c. 成本</h3>
+<h3>7c. Γ→Z 的 $E_F\pm1$ eV zoom:$c$ 轴不携带费米穿越</h3>
+<p><img src="../assets/pdcoo2_spec_GZzoom.png" alt="PdCoO2 Gamma-Z zoom" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p>聚焦 $(E_F-1,E_F+1)$ eV、只取 Γ→Z(层间/$c$ 轴方向;201 点,$\omega$ 步 2.5 meV, $\eta=5$ meV,$G_0$ 网格加密到 $40^3$)。结果本身就是一条物理陈述:</p>
+<ol><li><strong>这一段没有任何能带穿过 $E_F$</strong>——传导带沿 Γ→Z 从 $-0.76$ 升到 $-0.27$ eV (其最小值恰在 Γ),上半窗口全空。这是<strong>准二维性的谱学版本</strong>:费米面是 垂直于 $c$ 轴的六边形柱面,$E_F$ 穿越全部发生在面内方向(全路径图的 Γ-L、X|Q、P 附近)。</li><li><strong>带在此段全程锐利</strong>——它们位于 $\omega\approx-0.3\ldots-0.8$ eV, 离 $T(\omega)$ 的 $E_F$ 共振远,只拿到离壳的小展宽。与全路径图中 "展宽集中在 $E_F$ 穿越处"互为印证:共振散射的能量选择性,在同一份 $\Sigma_W(k,\omega)$ 数据里从两个正交的切面上读出来。</li></ol>
+<p>技术注:$G_0$ 的 $40^3$ 均匀网格是<strong>主机传播子 BZ 积分的求积格点</strong> ($T$ 的多重散射闭合要经全 BZ 的中间态),不是插值——$H_W(k)$ 与 $\Sigma_W(k,\omega)$ 本身都在路径 k 上直接求值,无需任何网格。</p>
+<h3>7d. 成本</h3>
 <p>门 0 + $32^3$ $G_0$ + 434 $\omega$ × 301 $k$ 全程 <strong>305 s</strong>(6 worker × 8 线程的 $\omega$ 级扇出;首版三算符 einsum 实现需 ~45 h,唯一 $\Delta R$-GEMM 重构 + 并行合计 ~530×)。 注意事项:共振幅度带 ~10% 的有限盒不确定度(§6a 的 2×2×2 盒角效应),压低须 3×3×3。</p>
 </section>
 <section id="sec-8"><h2>8. 成本与可复现</h2>
