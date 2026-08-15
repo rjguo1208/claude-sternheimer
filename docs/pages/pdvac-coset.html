@@ -6,9 +6,9 @@
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head><body>
 <nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html">Two-level results</a><a href="../pages/methods.html">Method derivations</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/npol2-cert.html">npol=2 cert.</a><a href="../pages/soc-zoom.html">SOC zooms</a><a href="../pages/mode-d-crosscheck.html">MODE D check</a><a href="../pages/pdcoo2-bands.html">PdCoO2 bands</a><a href="../pages/pdvac-coset.html" style="color:#fff;text-decoration:underline">Pd-vac 3D</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
-<header><div class="header-inner"><h1>PdCoO$_2$ Pd 空位:三维 $T$-矩阵管线的端到端验证</h1><p class="subtitle">2×2×2 陪集 DOS 对拍空位超胞真值(0.1 meV);顺带修掉 fold\_col 的 3D 折叠 bug</p><div class="meta"><span class="pill">3D validation</span><span class="pill">7 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<header><div class="header-inner"><h1>PdCoO$_2$ Pd 空位:三维 $T$-矩阵管线的端到端验证</h1><p class="subtitle">2×2×2 陪集 DOS 对拍空位超胞真值(0.1 meV);顺带修掉 fold\_col 的 3D 折叠 bug</p><div class="meta"><span class="pill">3D validation</span><span class="pill">8 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
 <main>
-<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 为什么 2×2×2 的陪集比对是"真值",不是近似</a><a href="#sec-2">2. 管线与逐级的门</a><a href="#sec-3">3. 结果:两条泳道的 DOS 对比</a><a href="#sec-4">4. fold\_col 的 3D bug:症状、指纹、三行铁证</a><a href="#sec-5">5. 三维化过程中攒下的教训</a><a href="#sec-6">6. Wannier 衰减验证:簇方法的资格证</a><a href="#sec-7">7. 成本与可复现</a></div></section>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 为什么 2×2×2 的陪集比对是"真值",不是近似</a><a href="#sec-2">2. 管线与逐级的门</a><a href="#sec-3">3. 结果:两条泳道的 DOS 对比</a><a href="#sec-4">4. fold\_col 的 3D bug:症状、指纹、三行铁证</a><a href="#sec-5">5. 三维化过程中攒下的教训</a><a href="#sec-6">6. Wannier 衰减验证:簇方法的资格证</a><a href="#sec-7">7. 谱函数:$A(k,\omega)$ 沿能带路径</a><a href="#sec-8">8. 成本与可复现</a></div></section>
 <blockquote><p>本页是 EDT 管线<strong>第一次跑三维体系</strong>的完整记录:MoS$_2$ 的全部生产运行都在 <code>nk3 = 1</code>(二维带真空),换到体相金属 PdCoO$_2$ 后,一条从未被行使过的代码路径 立刻发病。诊断、修复(qe-edt v2.2)与端到端验证都在 2×2×2 复现器上完成。 主机与结构背景见 PdCoO$_2$ 能带页;缺陷 = <strong>理想 Pd 空位</strong>(未弛豫,中性)。</p></blockquote>
 <section id="sec-1"><h2>1. 为什么 2×2×2 的陪集比对是"真值",不是近似</h2>
 <p>把主机 $k$ 网格取成与超胞同尺寸($2^3$),周期阵列支就<strong>是</strong>空位超胞本身: 盒子里一个缺陷加上盒子周期像,恰好构成那个 31 原子的超胞问题;链的 $\Sigma^R(\omega)$ 又把平面波补空间<strong>完整</strong>装进来。于是陪集组装的</p>
@@ -50,10 +50,32 @@ map_ip(ik2,kg2) = 1 + (-g1) + 2*(-g2)                 ! g3 缺席</code></pre>
 <h3>6a. 三条结论</h3>
 <ol><li><strong>局域性成立</strong>:$V(0)=0.38$ eV → 第一壳(2.83 Å)<strong>1%</strong> → 10 Å 外 ~0.03%, 两个数量级的衰减发生在第一壳内;$T$ 的衰减跟随 $V$ ($T=V+VG_0V+\cdots$ 每一项双腿钉在 $V$ 的支持域上,数据证实了这个论证)。</li><li><strong>一项已量化的系统误差</strong>:展开标签 17.74 Å 处的"回升"是 $2\times2\times2$ cube 的 <strong>角瓦块</strong>——经超胞周期回绕它物理上离缺陷只有 ~6.8 Å,孤立盒变换把这份权重放到了 展开位置。绝对值 $V$ ~1.3e-2、$T$ ~0.02 eV,随 $\omega$ 几乎不动。 这是<strong>有限超胞的指纹</strong>,压低它的唯一途径是 $3\times3\times3$ cube(输入已在盘上)。</li><li><strong>物理预告:$E_F$ 处的本地共振</strong>。$T$ 的缺陷本座范数 $0.028\to\mathbf{0.135}\to0.037$ eV ($E_F\pm0.5$ eV 对比 $E_F$,<strong>×5</strong>),而 $V$ 几乎不随 $\omega$ 变(0.37–0.38)—— 增强全部来自多重散射 $[1-G_0V]^{-1}$,且只发生在本座。Pd 空位在 $E_F$ 附近 有共振,谱函数与输运里将直接可见(强能量依赖的散射率)。</li></ol>
 </section>
-<section id="sec-7"><h2>7. 成本与可复现</h2>
+<section id="sec-7"><h2>7. 谱函数:$A(k,\omega)$ 沿能带路径</h2>
+<p>管线的终点站。$T$ <strong>直接在 Wannier 对基</strong>中组装($R_c=10$ Å 簇,97 站像 / 1552 维, $G_0$ 由 hr.dat 插值到 $32^3$ 密网格、按 595 个唯一 $\Delta R$ 做 GEMM—— 与 MoS$_2$ 的 kubo/kpath 代码同构),然后</p>
+<div class="math">
+$$\Sigma_W(k,\omega)=n_d\sum_{RR'}e^{-ikR}\,T_{RR'}(\omega)\,e^{ikR'},\qquad
+A(k,\omega)=-\tfrac1\pi\,\mathrm{Im\,Tr}\big[\omega+i\eta-H_W(k)-\Sigma_W\big]^{-1}$$
+</div>
+<h3>7a. 门 0:代数恒等式,先于一切物理</h3>
+<p>全站点簇 + 与链同一 $6^3$ 网格的 $G_0$ 时,簇路线与能带基直接公式是同一线性代数—— 逐 $k$ 块比值必须是平坦常数,且常数有理论预言值 $N_k$。实测:</p>
+<div class="math">
+$$\text{常数}=216.00000000=N_k,\qquad \text{rel-std}=2.9\times10^{-13},\qquad
+\text{错误符号对照组: }4.2$$
+</div>
+<p>这道门在调试中先后拦下<strong>三个独立的约定错误</strong>(对照路线的基混用;$\Sigma(k)$ 收缩相位符号; $G_0$ 相位取向——后者一阶精确、二阶起漂移,靠逐阶二分定位)。每一个都会让谱函数 悄悄错掉而图上看不出来;现在每个约定都由恒等式判定,归一化由预言值断言。</p>
+<h3>7b. 结果</h3>
+<p><img src="../assets/pdcoo2_spec_kpath.png" alt="PdCoO2 spectral function" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p>主机能带(细线)与谱强度脊线逐点重合;<strong>展宽集中在 $E_F$ 穿越处</strong>,同一条 Pd 带在 几百 meV 之外锐利如初——$E_F$ 共振(§6a)的谱学指纹。定量($n_d=0.5\%$/Pd 位):</p>
+<div class="table-wrap"><table><thead><tr><th>量</th><th>值</th></tr></thead><tbody><tr><td>$\Gamma(E_F)$(三个费米穿越点)</td><td>中位 <strong>23.9 meV</strong>(18.8–25.1)</td></tr><tr><td>$\tau=\hbar/\Gamma$</td><td><strong>27 fs</strong></td></tr><tr><td>$\ell=v_F\tau$($v_F\sim7.5\times10^5$ m/s)</td><td><strong>~20 nm</strong></td></tr></tbody></table></div>
+<p>Pd 空位是共振增强的强散射体:0.5% 空位就把这个以超长自由程著称的材料打到 $\ell\sim20$ nm——与"PdCoO$_2$ 的超高电导依赖 Pd 层近乎无缺陷"的实验共识定性一致。 $\Gamma\propto n_d$,其它浓度线性换算;$\Sigma_W/n_d$ 全量存盘 (<code>pd_spec_sig.npz</code>),换浓度重出图约 1 分钟。</p>
+<h3>7c. 成本</h3>
+<p>门 0 + $32^3$ $G_0$ + 434 $\omega$ × 301 $k$ 全程 <strong>305 s</strong>(6 worker × 8 线程的 $\omega$ 级扇出;首版三算符 einsum 实现需 ~45 h,唯一 $\Delta R$-GEMM 重构 + 并行合计 ~530×)。 注意事项:共振幅度带 ~10% 的有限盒不确定度(§6a 的 2×2×2 盒角效应),压低须 3×3×3。</p>
+</section>
+<section id="sec-8"><h2>8. 成本与可复现</h2>
 <p>全部诊断与验证在 Anvil highmem 单节点:2³ 复现器每条链 <strong>~15 s</strong>(16 步全宽 128), chi 指纹作业 ~2 分钟,修复后重建 15 s(增量)。计算目录 <code>/anvil/scratch/x-rg47749/pd2k</code> (链、cube、born、指纹与 DOS 脚本),超胞 <code>/anvil/scratch/x-rg47749/pdsc</code>。 代码修复:qe-edt <strong>v2.2</strong>,commit <code>c118a67</code>(<code>src/edt_twolevel.f90</code> 的 <code>build_qcanon</code>), 生产二进制 <code>edt_r42q3.x</code>。</p>
 <p>6³ 生产链:作业 19936426(4h25m;R0 全宽构建 2×72 min + SVD + 16 步 × 394 s), <code>lanczos_pdv222_k6xp.dat</code> 249.6 MB,herm($A$) 全程 ~3e-15;<strong>SVD 秩 288/3456 = 8.3%</strong> ——内禀秩由缺陷局域支持域决定、与 k 网格无关(2³ 时 112/128:基组比内禀秩还小,压不动; 预言 12³ 仍 ~290)。衰减验证:<code>pd_wdecay.py</code>(完整矩阵已存,重分壳零成本)。</p>
-<p><strong>下一步</strong>:谱函数组装($T(k,\omega)\to\Sigma^{ed}=n_dT\to A(k,\omega)$,RHL1 路径; 6³ 粗 k 上先对拍活性空间直接公式,再上密网格)。</p>
+<p>谱函数:<code>pd_kpath_spec.py</code>(门 0 内置;$\omega$ 并行 <code>SPEC_NWORK</code>; $\Sigma_W/n_d$ 与 $A(k,\omega)$ 存盘于 <code>$A/pdedt/pd_spec_*.npz/npy</code>)。</p>
+<p><strong>下一步</strong>:$n_d$/温度扫描与 Kubo 输运(复用 <code>pd_spec_sig.npz</code>); 3×3×3 超胞把共振幅度的有限盒不确定度压到百分位;弛豫空位几何。</p>
 </section>
 </main>
 <footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.

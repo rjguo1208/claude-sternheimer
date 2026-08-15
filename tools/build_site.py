@@ -661,7 +661,9 @@ CATALOG = [
      "(q3 槽位碰撞 + 缺 g3 缠绕相位;qe-edt v2.2):16 个 q3=+1/2 块碰巧 +1.000 精确的不对称模式"
      "唯一指向三行代码。2D 运行逐位不受影响。<b>6³ 生产链已跑通</b>(SVD 秩 288/3456=8.3%,"
      "herm ~3e-15)并完成 <b>Wannier 衰减验证</b>:V/T 第一壳内衰减两个量级(簇方法资格证),"
-     "盒角系统误差已量化,且发现 <b>T 在 E$_F$ 处 ×5 的本地共振</b>。",
+     "盒角系统误差已量化,且发现 <b>T 在 E$_F$ 处 ×5 的本地共振</b>。"
+     "<b>谱函数落地</b>:A(k,ω) 沿 RHL1 路径(门 0 恒等式 = N_k 到 2.9e-13),"
+     "Γ(E$_F$) = 24 meV @ 0.5% 空位 → τ = 27 fs、ℓ ~ 20 nm——共振增强的强散射体。",
      '<a href="pages/pdvac-coset.html">Open the 3D validation &rarr;</a>'),
     ("PdCoO$_2$ delafossite 能带:PBE vs PBE+U,两种胞交叉验证", "Standalone DFT",
      "2026-08-14", "ok", "Verified",
