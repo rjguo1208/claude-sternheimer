@@ -82,7 +82,11 @@ $$\text{常数}=216.00000000=N_k,\qquad \text{rel-std}=2.9\times10^{-13},\qquad
 <p>把 7d 的分辨率全面加密(k 点 ×3、$\omega$ 步长 1 meV、显示 $\eta$ 降到 2 meV, 使本征线宽完全主导;<strong>色标为对数</strong>,覆盖三个量级)后:</p>
 <ul><li><strong>共振窗口清晰成型</strong>:$\omega\in(-0.1,+0.2)$ eV 内谱峰黯淡、窗口外恢复为 发丝级锐线——能量选择性成为图上无可争辩的特征;</li><li><strong>线宽读数收敛</strong>:HD 的 12 个穿越态给 $\Gamma(E_F)$ 中位 <strong>17.01 meV</strong>, 与低分辨版(4 个态,$\eta=5$ meV)的 16.99 逐位一致——对 k/ω 分辨率与 $\eta$ 均已收敛,<strong>这是可引用的数</strong>;</li><li>$-0.3\ldots-0.5$ eV 的避免交叉在 1 meV 网格下完全分辨;</li><li>对数色标下<strong>共振窗口的洛伦兹尾翼完整可见</strong>(穿越点周围的弥散晕)—— 线形本身(不只是峰位)成为可读的对象。</li></ul>
 <p>(601×2001 的全 $\Sigma_W/n_d$ 在盘,换缺陷浓度重出图为秒级。ω 并行 6 worker,39 分钟。)</p>
-<h3>7f. 成本</h3>
+<h3>7f. 三段 HD zoom(Γ→L→B$_1$|B→Z):展宽不只发生在 $E_F$</h3>
+<p><img src="../assets/pdcoo2_spec_GLBZzoomHD_log.png" alt="PdCoO2 GLBZ HD zoom" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p>同 HD 参数(602 k,1 meV $\omega$ 步,$\eta=2$ meV,对数色标)铺到三段路径:</p>
+<ol><li><strong>两个陡峭费米穿越</strong>(Γ-L 与 B-Z 段各一),穿越处的洛伦兹晕大小肉眼可辨地不同—— 本段 7 个穿越态 $\Gamma(E_F)$ 中位 16.2、范围 <strong>12.6–17.5 meV</strong>;合并全路径其它 穿越点(~24–25 meV),<strong>费米面散射率各向异性约 2 倍</strong>;</li><li><strong>最醒目的新特征:L 点附近 $-0.4$ eV 的平带顶有一大团弥散晕</strong>(L–B$_1$ 之间 $+0.7$ eV 带同样可见展宽)。机制:$\mathrm{Im}\,\Sigma(\omega)$ 同时追踪 <strong>共振</strong>($E_F$,§6a)与<strong>主机态密度峰</strong>——van Hove/带极值处末态相空间大, 离开共振窗也拿到大 $\Gamma$。线性色标下这几乎不可见,对数色标把线形变成 一等公民;</li><li>B$_1$|B 断点处谱结构近乎无缝衔接(两点对称等价)——组装相位约定的又一次自证。</li></ol>
+<h3>7g. 成本</h3>
 <p>门 0 + $32^3$ $G_0$ + 434 $\omega$ × 301 $k$ 全程 <strong>305 s</strong>(6 worker × 8 线程的 $\omega$ 级扇出;首版三算符 einsum 实现需 ~45 h,唯一 $\Delta R$-GEMM 重构 + 并行合计 ~530×)。 注意事项:共振幅度带 ~10% 的有限盒不确定度(§6a 的 2×2×2 盒角效应),压低须 3×3×3。</p>
 </section>
 <section id="sec-8"><h2>8. 成本与可复现</h2>
