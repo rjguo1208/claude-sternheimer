@@ -77,7 +77,12 @@ $$\text{常数}=216.00000000=N_k,\qquad \text{rel-std}=2.9\times10^{-13},\qquad
 <p><img src="../assets/pdcoo2_spec_GLzoom.png" alt="PdCoO2 Gamma-L zoom" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
 <p>与 7c 同参数,换到<strong>有费米穿越</strong>的面内段(RHL1 的 $L=(\tfrac12,0,0)$; 全路径图上第一个穿越所在)。三条读数:</p>
 <ol><li><strong>陡峭的 Pd 传导带在穿越 $E_F$ 处变暗、变宽</strong>:$E_F\pm0.15$ eV 窗口内谱峰 从 ~40 掉到 ~15 states/eV($A_{\rm peak}\propto1/\Gamma$,共振区 $\Gamma$ 增强、 峰高塌落),离开窗口同一条带立刻恢复锐利——$T(\omega)$ 共振(§6a 的 ×5)的 能量选择性在一条带上一眼读出;</li><li><strong>$\Gamma(E_F)$ = 中位 17.0 meV</strong>(16.2–17.5,4 个穿越态;2.5 meV $\omega$ 网格 + $40^3$ $G_0$,比全路径跑的分辨率更高)→ $\tau\approx39$ fs @ 0.5% 空位;</li><li><strong>散射率沿费米面各向异性 ~40%</strong>:此段 17 meV vs 全路径其它穿越点 ~24 meV—— 不同 $k$ 处的费米面态与缺陷共振的耦合强度不同。这是输运的实质输入: 各向异性 $\tau(k)$ 意味着 SERTA 与完整解(含顶点修正/IBTE)会出现可测差别。</li></ol>
-<h3>7e. 成本</h3>
+<h3>7e. 高分辨版(601 k × 2001 $\omega$,$\eta=2$ meV)</h3>
+<p><img src="../assets/pdcoo2_spec_GLzoomHD.png" alt="PdCoO2 Gamma-L HD zoom" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p>把 7d 的分辨率全面加密(k 点 ×3、$\omega$ 步长 1 meV、显示 $\eta$ 降到 2 meV, 使本征线宽完全主导)后:</p>
+<ul><li><strong>共振窗口清晰成型</strong>:$\omega\in(-0.1,+0.2)$ eV 内谱峰黯淡、窗口外恢复为 发丝级锐线——能量选择性成为图上无可争辩的特征;</li><li><strong>线宽读数收敛</strong>:HD 的 12 个穿越态给 $\Gamma(E_F)$ 中位 <strong>17.01 meV</strong>, 与低分辨版(4 个态,$\eta=5$ meV)的 16.99 逐位一致——对 k/ω 分辨率与 $\eta$ 均已收敛,<strong>这是可引用的数</strong>;</li><li>$-0.3\ldots-0.5$ eV 的避免交叉在 1 meV 网格下完全分辨。</li></ul>
+<p>(601×2001 的全 $\Sigma_W/n_d$ 在盘,换缺陷浓度重出图为秒级。ω 并行 6 worker,39 分钟。)</p>
+<h3>7f. 成本</h3>
 <p>门 0 + $32^3$ $G_0$ + 434 $\omega$ × 301 $k$ 全程 <strong>305 s</strong>(6 worker × 8 线程的 $\omega$ 级扇出;首版三算符 einsum 实现需 ~45 h,唯一 $\Delta R$-GEMM 重构 + 并行合计 ~530×)。 注意事项:共振幅度带 ~10% 的有限盒不确定度(§6a 的 2×2×2 盒角效应),压低须 3×3×3。</p>
 </section>
 <section id="sec-8"><h2>8. 成本与可复现</h2>
