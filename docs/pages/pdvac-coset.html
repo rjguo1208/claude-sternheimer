@@ -1,0 +1,52 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sternheimer Electron-Defect T-matrix — PdCoO2 Pd-vacancy coset validation</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head><body>
+<nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html">Two-level results</a><a href="../pages/methods.html">Method derivations</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/npol2-cert.html">npol=2 cert.</a><a href="../pages/soc-zoom.html">SOC zooms</a><a href="../pages/mode-d-crosscheck.html">MODE D check</a><a href="../pages/pdcoo2-bands.html">PdCoO2 bands</a><a href="../pages/pdvac-coset.html" style="color:#fff;text-decoration:underline">Pd-vac 3D</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
+<header><div class="header-inner"><h1>PdCoO$_2$ Pd 空位:三维 $T$-矩阵管线的端到端验证</h1><p class="subtitle">2×2×2 陪集 DOS 对拍空位超胞真值(0.1 meV);顺带修掉 fold\_col 的 3D 折叠 bug</p><div class="meta"><span class="pill">3D validation</span><span class="pill">6 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<main>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 为什么 2×2×2 的陪集比对是"真值",不是近似</a><a href="#sec-2">2. 管线与逐级的门</a><a href="#sec-3">3. 结果:两条泳道的 DOS 对比</a><a href="#sec-4">4. fold\_col 的 3D bug:症状、指纹、三行铁证</a><a href="#sec-5">5. 三维化过程中攒下的教训</a><a href="#sec-6">6. 成本与可复现</a></div></section>
+<blockquote><p>本页是 EDT 管线<strong>第一次跑三维体系</strong>的完整记录:MoS$_2$ 的全部生产运行都在 <code>nk3 = 1</code>(二维带真空),换到体相金属 PdCoO$_2$ 后,一条从未被行使过的代码路径 立刻发病。诊断、修复(qe-edt v2.2)与端到端验证都在 2×2×2 复现器上完成。 主机与结构背景见 PdCoO$_2$ 能带页;缺陷 = <strong>理想 Pd 空位</strong>(未弛豫,中性)。</p></blockquote>
+<section id="sec-1"><h2>1. 为什么 2×2×2 的陪集比对是"真值",不是近似</h2>
+<p>把主机 $k$ 网格取成与超胞同尺寸($2^3$),周期阵列支就<strong>是</strong>空位超胞本身: 盒子里一个缺陷加上盒子周期像,恰好构成那个 31 原子的超胞问题;链的 $\Sigma^R(\omega)$ 又把平面波补空间<strong>完整</strong>装进来。于是陪集组装的</p>
+<div class="math">
+$$G(\omega)=\Big[(\omega+i\eta)-\varepsilon_a-\tfrac{V_{AA}+\Sigma^R(\omega)}{N_k}\Big]^{-1},\qquad
+\mathrm{DOS}(\omega)=-\tfrac1\pi\,\mathrm{Im\,Tr}\,G$$
+</div>
+<p>(128 维 = 8 陪集 × 16 带)必须逐条能级复现<strong>空位超胞在 $\Gamma$ 点的 DFT 谱</strong>—— 没有任何可调参数,唯一的常数是 core 对齐位移(见 §2)。这正是 MoS$_2$ 当年 "陪集分解 = 周期阵列支可比超胞真值"的验证阶梯,在三维上重走一遍。</p>
+</section>
+<section id="sec-2"><h2>2. 管线与逐级的门</h2>
+<div class="table-wrap"><table><thead><tr><th>步骤</th><th>要点</th><th>门(实测)</th></tr></thead><tbody><tr><td>超胞 SCF</td><td>2×2×2 菱方(32/31 原子),FFT <strong>强制</strong> $150^3=2\times75^3$;金属超胞用 <code>local-TF</code> 混合(Broyden $\beta=0.3$ 在 0.6 Ry 处震荡不收敛)</td><td>完美超胞总能/f.u. 与原胞独立计算吻合到 $1\times10^{-8}$ Ry;空位胞保留全部 <strong>12 个对称操作</strong>(Pd 在 3a 位,位点群 = 晶体点群 $D_{3d}$)</td></tr><tr><td>$\Delta V$</td><td><code>extract_pot.x</code>(ityp 列约定 + 8 位精度;stock <code>pp.x</code> 是 Z 列 + 5 位)</td><td>峰值 310.8 eV,<strong>4 Å 内衰减 5 个数量级</strong>,胞边界 rms 6 meV(0.002% 峰值)——金属屏蔽,无长程尾</td></tr><tr><td>对齐</td><td>3D 无真空,用 <code>pot_align=&#x27;core&#x27;</code>(最远原子实心球平均)</td><td>与独立的"最外壳层均值"法吻合到 <strong>8 meV</strong>(1.309 vs 1.317 eV)</td></tr><tr><td>born 块</td><td>EDT 自包含(<code>born_only</code>),全带 1–40</td><td>厄米性 $1.3\times10^{-15}$,全部 $q_3$ 类一致;<strong>独立平面波积分器</strong>逐元素仲裁:三个置换对称 $q$ 通道比值 7 位相同,残余 8–12% 恰为积分器故意略去的 KB 非局域部分</td></tr><tr><td>MODE C 链</td><td><code>edt_r42q3.x</code>,<code>svd_tol=0</code>,16 块</td><td>算符自检 $1.9\times10^{-14}$;herm($A$) 首步 $1.5\times10^{-11}$、后续 <strong>$\sim6\times10^{-15}$</strong>;col 与 legacy 两种 fold 的链:VAA 逐位相同、$A/B$ 块相对 $\le1.2\times10^{-8}$</td></tr></tbody></table></div>
+<p>对齐常数进谱的方式:EDT 的 $\Delta V$ 携带 shift $=\langle V_p\rangle_{\rm core}-\langle V_d\rangle_{\rm core} =+0.0962$ Ry,即陪集谱落在<strong>完美晶格的绝对能标</strong>上,比较时把空位超胞真值整体 $+1.3094$ eV——这不是拟合参数,是管线自己打印的数。</p>
+</section>
+<section id="sec-3"><h2>3. 结果:两条泳道的 DOS 对比</h2>
+<p><img src="../assets/pdcoo2_coset_dos.png" alt="PdCoO2 coset DOS vs supercell truth" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p><strong>(a) 门泳道</strong>(无缺陷):纯主机陪集(8 $k$ × 16 带的 $\varepsilon_a$ 展宽)对拍<strong>完美</strong>超胞 $\Gamma$ 的 DFT 谱。这条泳道没有物理内容——它只检验折叠恒等式与两次独立 SCF 的一致性, 给出比较方法的<strong>本底</strong>:积分相对 $|\Delta\mathrm{DOS}|=0.0013$。</p>
+<p><strong>(b) 物理泳道</strong>:MODE C 陪集组装对拍<strong>空位</strong>超胞 $\Gamma$ 真值。空位对谱的重排很剧烈 ((a) 与 (b) 的峰结构明显不同),而每一个峰、每一处肩都被复现:</p>
+<div class="table-wrap"><table><thead><tr><th>量</th><th>值</th></tr></thead><tbody><tr><td>积分相对 $|\Delta\mathrm{DOS}|$</td><td><strong>0.0037</strong>(本底 0.0013)</td></tr><tr><td>QP 不动点 vs 真值(123 条可配对)</td><td>中位 <strong>0.1 meV</strong>,90 分位 0.4 meV</td></tr><tr><td>未配对能级数</td><td><strong>5 = 被移除 Pd 的 4d 轨道数</strong>(128 主机基态 vs 窗口内 123 条真值;空位把 5 个 d 态逐出流形,$T$-矩阵侧同样逐出)</td></tr></tbody></table></div>
+<p>最后一行值得强调:能级<strong>计数</strong>的差恰好等于被拔掉原子的 d 轨道数,两侧一致—— 这是方法把"移除一个原子"这件事做对了的直接证据,而不只是把留下的态摆对了位置。</p>
+</section>
+<section id="sec-4"><h2>4. fold\_col 的 3D bug:症状、指纹、三行铁证</h2>
+<p>第一次跑 6³ 链时 herm($A$) $=O(10)$(应为机器精度)、算符自检 $|{\rm proj}-M|=5.2>|M|=2.9$。 在 2×2×2 复现器(每步 0.9 s)上做<strong>单变量对照</strong>逐一排除:cube 来源(extract\_pot 与 pp.x 两种 cube 的四个门逐位相同)、edmat 补零、SVD 截断(<code>svd_tol=0</code> 仍坏)、$k$ 网格大小(2³ 也坏)。 随后两步定位:</p>
+<p><strong>独立仲裁</strong>:从头写的平面波积分器直接算 $\langle\psi_{mk_f}|\Delta V|\psi_{nk_i}\rangle$, 证明 <strong>born 路径在 3D 正确</strong>(比值 = $N_k$ 约定常数,置换对称通道 7 位一致)——嫌疑收缩到链侧。</p>
+<p><strong>$q$ 块指纹</strong>:把链的 <code>apply_dV</code> 原始输出(chi 转储)与 born 逐 $(k_f,k_i)$ 块比,得到判决性模式—— <strong>恰好 16 个 "$q_3=+\tfrac12$ 且缠绕 $g_3=0$" 的块 +1.000 精确,其余全部污染</strong>(2³ 的 8 个 $k$ 全是 TRIM 点、体系有反演,故污染呈实数比值)。这个不对称模式唯一指向 fold\_col 的因子化表:</p>
+<pre><code class="language-fortran">ALLOCATE(Vq(dffts%nnr, nkstot), phw(dffts%nnr, 4))   ! 缠绕相位只有 4 槽 = (g1,g2)
+IF (ABS(a1-qw(1))&lt;1.d-6 .AND. ABS(a2-qw(2))&lt;1.d-6) map_iq = kq   ! q3 从不检查
+map_ip(ik2,kg2) = 1 + (-g1) + 2*(-g2)                 ! g3 缺席</code></pre>
+<p>$q$ 匹配无守卫、后写者胜 → 所有 $(q_1,q_2,\cdot)$ 类的槽位被 $q_3{=}\tfrac12$ 候选最后覆盖; $g_3=-1$ 的缠绕相位 $e^{-2\pi iz}$ 整体缺失。MoS$_2$ 永远 $q_3\equiv0,g_3\equiv0$,2D 表恰好完备—— <strong>不是不小心,是从未被三维数据行使过</strong>。修复(qe-edt v2.2):匹配加第三分量、<code>phw</code> 扩到 8 槽($G\in\{0,-1\}^3$)、<code>map_ip</code> 加 $4\cdot(-g_3)$。修复后四门全绿(§2 表)。 legacy 模式(<code>fold_col=.false.</code>,逐对精确折叠)被独立证明在 3D 本来就正确($5\times10^{-14}$)—— 生产因此始终有一条已验证的备用路径。</p>
+</section>
+<section id="sec-5"><h2>5. 三维化过程中攒下的教训</h2>
+<div class="table-wrap"><table><thead><tr><th>教训</th><th>一句话</th></tr></thead><tbody><tr><td>cube 必须用 <code>extract_pot.x</code></td><td>stock <code>pp.x</code> 写 Gaussian 标准(Z 列)且只有 5 位有效;EDI 读取器期待 ityp 列。Z 列使 <code>count_nkb</code> 匹配不到任何物种 → <code>nkb=0</code> → ZGEMM LDC=0 + 越界 SIGSEGV</td></tr><tr><td>能带极值必须在均匀网格上量</td><td>高对称路径是 BZ 的零测集:band 25 的真实底比路径值低 88 meV,足以使解缠冻结窗吞进第二条带</td></tr><tr><td>窗口锚在绝对能量,不锚 $E_F$</td><td>金属加展宽下 $E_F$ 随 $k$ 网格漂 50–80 meV,本征值不漂</td></tr><tr><td>补零 edmat 数学上精确,但会<strong>致盲算符自检</strong></td><td>MODE C 只读 $V_{AA}$,零永不进入计算;可是自检拿全带元素做判据——生产前用全带 born 让这道闸有真数据</td></tr><tr><td>金属超胞 SCF 用 <code>local-TF</code></td><td>普通 Broyden 压不住长波长电荷晃动;原胞太小看不出来</td></tr><tr><td>herm($A$) 是链的免费硬门</td><td>$A_j=Q_j^\dagger HQ_j$ 对任意 $Q$ 厄米——它偏离机器精度只能意味着<strong>被应用的算符本身</strong>错了</td></tr></tbody></table></div>
+</section>
+<section id="sec-6"><h2>6. 成本与可复现</h2>
+<p>全部诊断与验证在 Anvil highmem 单节点:2³ 复现器每条链 <strong>~15 s</strong>(16 步全宽 128), chi 指纹作业 ~2 分钟,修复后重建 15 s(增量)。计算目录 <code>/anvil/scratch/x-rg47749/pd2k</code> (链、cube、born、指纹与 DOS 脚本),超胞 <code>/anvil/scratch/x-rg47749/pdsc</code>。 代码修复:qe-edt <strong>v2.2</strong>,commit <code>c118a67</code>(<code>src/edt_twolevel.f90</code> 的 <code>build_qcanon</code>), 生产二进制 <code>edt_r42q3.x</code>。</p>
+<p><strong>下一步</strong>:6³ 生产链(修复后重估 SVD 秩)→ 后处理簇构造与 $G_0$ 分箱的三维化 → $T(k,\omega)\to A(k,\omega)$,Pd 空位的谱函数与输运。</p>
+</section>
+</main>
+<footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.
+Static HTML; equations rendered client-side with MathJax v3. No raw wavefunctions, cubes,
+binaries, or logs are published.</footer>
+</body></html>

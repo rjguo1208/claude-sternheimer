@@ -30,6 +30,7 @@ NOTE_NPOL2 = os.path.join(ROOT, "content", "npol2cert.md")
 NOTE_SOCZOOM = os.path.join(ROOT, "content", "soczoom.md")
 NOTE_MODED   = os.path.join(ROOT, "content", "moded.md")
 NOTE_PDCOO2  = os.path.join(ROOT, "content", "pdcoo2.md")
+NOTE_PDVAC = os.path.join(ROOT, "content", "pdvac-coset.md")
 NOTE_RESULTS = os.path.join(ROOT, "content", "note_tmatrix_results.md")
 NOTE_LADDER = os.path.join(ROOT, "content", "note_sternheimer_ladder.md")
 NOTE_KOSTER = os.path.join(ROOT, "content", "note_koster_slater.md")
@@ -270,7 +271,7 @@ def _topnav(active, prefix=""):
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            '%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
                                       a("pages/sternheimer-ladder.html", "Rest-space ladder", "ladder"),
                                       a("pages/deflated-ladder.html", "Deflated ladder", "deflated"),
@@ -284,6 +285,7 @@ def _topnav(active, prefix=""):
                                       a("pages/soc-zoom.html", "SOC zooms", "soczoom"),
                                       a("pages/mode-d-crosscheck.html", "MODE D check", "moded"),
                                       a("pages/pdcoo2-bands.html", "PdCoO2 bands", "pdcoo2"),
+                                      a("pages/pdvac-coset.html", "Pd-vac 3D", "pdvac"),
                                       a("pages/note-kprime-normalization.html", "Note: k&prime;-norm", "note")))
 
 def page_shell(title, head_html, nav_html, body_html, css_href):
@@ -432,6 +434,27 @@ def build_moded():
     out = page_shell(SITE_TITLE + " \u2014 MODE D cross-check",
                      header, _topnav("moded", prefix="../"), body, "../assets/style.css")
     with open(os.path.join(PAGES_DIR, "mode-d-crosscheck.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
+
+def build_pdvac():
+    with open(NOTE_PDVAC, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=True)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">{s}</p>'
+              '<div class="meta"><span class="pill">3D validation</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], s=r.get("subtitle") or "", n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " \u2014 PdCoO2 Pd-vacancy coset validation",
+                     header, _topnav("pdvac", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "pdvac-coset.html"), "w", encoding="utf-8") as f:
         f.write(out)
     return r
 
@@ -629,6 +652,15 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
+    ("PdCoO$_2$ Pd 空位:三维 $T$-矩阵管线端到端验证(2×2×2 陪集 vs 超胞真值)", "3D validation",
+     "2026-08-14", "prod", "Verified",
+     "EDT 管线<b>第一次跑三维体系</b>。超胞 ΔV(extract_pot,4 Å 内衰减 5 个量级)→ core 对齐"
+     "(两种独立方法吻合 8 meV)→ 全带 born(独立平面波积分器仲裁)→ MODE C 链(herm ~6e-15)"
+     "→ 陪集 DOS 对拍空位超胞 Γ 真值:<b>积分偏差 0.37%(门泳道本底 0.13%),QP 能级中位 0.1 meV,"
+     "未配对的 5 条恰为被移除 Pd 的 4d 计数</b>。顺带用 q 块指纹定位并修掉 fold_col 的硬 2D bug"
+     "(q3 槽位碰撞 + 缺 g3 缠绕相位;qe-edt v2.2):16 个 q3=+1/2 块碰巧 +1.000 精确的不对称模式"
+     "唯一指向三行代码。2D 运行逐位不受影响。",
+     '<a href="pages/pdvac-coset.html">Open the 3D validation &rarr;</a>'),
     ("PdCoO$_2$ delafossite 能带:PBE vs PBE+U,两种胞交叉验证", "Standalone DFT",
      "2026-08-14", "ok", "Verified",
      "从一个 POSCAR 出发的独立算例(与本站的缺陷 T-矩阵主线无关)。菱方原胞(4 原子,RHL1 路径)与"
@@ -984,6 +1016,7 @@ def main():
     build_soczoom()
     build_moded()
     build_pdcoo2()
+    build_pdvac()
     build_deflated()
     build_tlres()
     build_methods()
