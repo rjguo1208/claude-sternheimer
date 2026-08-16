@@ -273,7 +273,47 @@ $\mathrm{Im}\,\Sigma$ 处处有限(在壳 $\Gamma$ 最小 0.01 meV 但非零),�
 $\omega$ 级扇出;首版三算符 einsum 实现需 ~45 h,唯一 $\Delta R$-GEMM 重构 + 并行合计 ~530×)。
 注意事项:共振幅度带 ~10% 的有限盒不确定度(§6a 的 2×2×2 盒角效应),压低须 3×3×3。
 
-## 8. 成本与可复现
+## 8. 输运:剩余电阻率斜率 vs 电子辐照实验
+
+$T$-矩阵的第一个定量实验对表。实验侧(2.5 MeV 电子辐照引入 Pd Frenkel pair,
+$\sigma_{\rm FP}=315$ barn,Fig. 9 浓度窗 0–20 ppm):$\Delta\rho\propto c$,
+斜率 $\approx9$–$10\times10^3$ n$\Omega\,$cm/%,且与**无自由参数的 2D unitary
+散射预言**吻合;最纯样品 $\rho_0=8.1$ n$\Omega\,$cm 对应本征缺陷 ~10 ppm。
+
+### 8a. 方法:算斜率,不碰小数
+
+稀释极限下 $\Sigma=n_d T$ 且 $T$ 与浓度无关 $\Rightarrow\Gamma_k(c)=c\,\gamma_k$,
+$\rho_{\rm def}(c)=c\times[\text{FS 积分}]^{-1}$——**斜率在 $c\to0$ 解析提取**,
+从不数值构造 10 ppm 下 0.03 meV 的小线宽。$T\to0$ 的 $\delta$ 函数用逐 $k_z$ 切片的
+marching-triangles 费米线积分(96×96×12 网格,7208 段,在壳残差中位 0.75 meV),
+**无温度窗、无展宽**;只取面内速度($\sigma_{xx},\sigma_{yy}$ 分开,$v_z$ 不进入);
+$\tau=\hbar/(2|\mathrm{Im}\,\Sigma|)$(布居衰减率,FWHM 约定全程一致)。SERTA
+($\tau_{qp}$,无顶点修正)。FS 上 $\gamma_k\in[0.30,4.07]$ eV/单位浓度(中位 1.82)。
+
+### 8b. 结果
+
+![PdCoO2 rho vs c](../assets/pdcoo2_rho_vs_c.png)
+
+| 量 | n$\Omega\,$cm/% |
+|---|---|
+| 本工作,SERTA $V_{\rm Pd}$($\sigma_{xx}$ / $\sigma_{yy}$) | **4 422 / 4 723**(六角各向同性检验:差 6.6% = 网格噪声) |
+| 2D unitary 极限(**我们自己的** $n=1.056$ e/胞,Luttinger 计数) | **9 207** |
+| 实验(FP) | 9 000–10 000 |
+
+三条结论:
+
+1. **unitary 上限正中实验带**——零自由参数($\hbar/e^2$ × 层间距 × 我们的载流子数)
+   独立复现了"实验位于 unitary 极限"的判断;
+2. **我们的 Pd 空位在 SERTA 下达到 unitary 的 ~48%**,即实验斜率的一半、同量级——
+   第一性原理把 Pd 空位定量放到了近 unitary 强散射体的位置;10 ppm 本征浓度下
+   $\sigma\approx2.3\times10^{10}$ S/m,与最纯样品的 $1.2\times10^{10}$ 自洽;
+3. **因子 ~2 缺口的候选**(按嫌疑排序):顶点修正($\tau_{tr}$ vs $\tau_{qp}$——FS 上
+   $\gamma$ 跨 0.3–4.1 eV 的强各向异性说明 $(1-\cos\theta)$ 权重不可忽略;若散射为
+   各向同性 unitary s 波则严格为零,故这是判决性检验)、实验为 **Frenkel pair** 而我们
+   只算空位(间隙在层外、较弱但非零)、有限盒 ±10%(§6a)、未弛豫几何。
+   寿命约定的因子 2 已排除(三处独立实现互相咬合;错用振幅衰减率会使斜率减半而非翻倍)。
+
+## 9. 成本与可复现
 
 全部诊断与验证在 Anvil highmem 单节点:2³ 复现器每条链 **~15 s**(16 步全宽 128),
 chi 指纹作业 ~2 分钟,修复后重建 15 s(增量)。计算目录 `/anvil/scratch/x-rg47749/pd2k`
@@ -289,5 +329,8 @@ chi 指纹作业 ~2 分钟,修复后重建 15 s(增量)。计算目录 `/anvil/s
 谱函数:`pd_kpath_spec.py`(门 0 内置;$\omega$ 并行 `SPEC_NWORK`;
 $\Sigma_W/n_d$ 与 $A(k,\omega)$ 存盘于 `$A/pdedt/pd_spec_*.npz/npy`)。
 
-**下一步**:$n_d$/温度扫描与 Kubo 输运(复用 `pd_spec_sig.npz`);
-3×3×3 超胞把共振幅度的有限盒不确定度压到百分位;弛豫空位几何。
+SERTA 斜率:`pd_serta.py`(一次 $E_F$ 簇解 + FS 线积分,全程 ~2 分钟)。
+
+**下一步**:IBTE 顶点修正(光学定理为门,判决 50% 缺口的归属);间隙 $T$-矩阵
+(2×2×2 弛豫 pilot 在跑)与弛豫空位(3×3×3 SG15 在跑)补齐 Frenkel-pair 合成斜率;
+有限温 $\rho(T)$(检验 $\Gamma(\omega)$ 不对称导致的非常数-$\tau$ 行为)。

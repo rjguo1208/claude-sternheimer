@@ -6,9 +6,9 @@
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head><body>
 <nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html">Two-level results</a><a href="../pages/methods.html">Method derivations</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/npol2-cert.html">npol=2 cert.</a><a href="../pages/soc-zoom.html">SOC zooms</a><a href="../pages/mode-d-crosscheck.html">MODE D check</a><a href="../pages/pdcoo2-bands.html">PdCoO2 bands</a><a href="../pages/pdvac-coset.html" style="color:#fff;text-decoration:underline">Pd-vac 3D</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
-<header><div class="header-inner"><h1>PdCoO$_2$ Pd 空位:三维 $T$-矩阵管线的端到端验证</h1><p class="subtitle">2×2×2 陪集 DOS 对拍空位超胞真值(0.1 meV);顺带修掉 fold\_col 的 3D 折叠 bug</p><div class="meta"><span class="pill">3D validation</span><span class="pill">8 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
+<header><div class="header-inner"><h1>PdCoO$_2$ Pd 空位:三维 $T$-矩阵管线的端到端验证</h1><p class="subtitle">2×2×2 陪集 DOS 对拍空位超胞真值(0.1 meV);顺带修掉 fold\_col 的 3D 折叠 bug</p><div class="meta"><span class="pill">3D validation</span><span class="pill">9 sections</span><span class="pill">Generated 2026-05-28</span></div></div></header>
 <main>
-<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 为什么 2×2×2 的陪集比对是"真值",不是近似</a><a href="#sec-2">2. 管线与逐级的门</a><a href="#sec-3">3. 结果:两条泳道的 DOS 对比</a><a href="#sec-4">4. fold\_col 的 3D bug:症状、指纹、三行铁证</a><a href="#sec-5">5. 三维化过程中攒下的教训</a><a href="#sec-6">6. Wannier 衰减验证:簇方法的资格证</a><a href="#sec-7">7. 谱函数:$A(k,\omega)$ 沿能带路径</a><a href="#sec-8">8. 成本与可复现</a></div></section>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-1">1. 为什么 2×2×2 的陪集比对是"真值",不是近似</a><a href="#sec-2">2. 管线与逐级的门</a><a href="#sec-3">3. 结果:两条泳道的 DOS 对比</a><a href="#sec-4">4. fold\_col 的 3D bug:症状、指纹、三行铁证</a><a href="#sec-5">5. 三维化过程中攒下的教训</a><a href="#sec-6">6. Wannier 衰减验证:簇方法的资格证</a><a href="#sec-7">7. 谱函数:$A(k,\omega)$ 沿能带路径</a><a href="#sec-8">8. 输运:剩余电阻率斜率 vs 电子辐照实验</a><a href="#sec-9">9. 成本与可复现</a></div></section>
 <blockquote><p>本页是 EDT 管线<strong>第一次跑三维体系</strong>的完整记录:MoS$_2$ 的全部生产运行都在 <code>nk3 = 1</code>(二维带真空),换到体相金属 PdCoO$_2$ 后,一条从未被行使过的代码路径 立刻发病。诊断、修复(qe-edt v2.2)与端到端验证都在 2×2×2 复现器上完成。 主机与结构背景见 PdCoO$_2$ 能带页;缺陷 = <strong>理想 Pd 空位</strong>(未弛豫,中性)。</p></blockquote>
 <section id="sec-1"><h2>1. 为什么 2×2×2 的陪集比对是"真值",不是近似</h2>
 <p>把主机 $k$ 网格取成与超胞同尺寸($2^3$),周期阵列支就<strong>是</strong>空位超胞本身: 盒子里一个缺陷加上盒子周期像,恰好构成那个 31 原子的超胞问题;链的 $\Sigma^R(\omega)$ 又把平面波补空间<strong>完整</strong>装进来。于是陪集组装的</p>
@@ -95,11 +95,22 @@ $$\text{常数}=216.00000000=N_k,\qquad \text{rel-std}=2.9\times10^{-13},\qquad
 <h3>7h. 成本</h3>
 <p>门 0 + $32^3$ $G_0$ + 434 $\omega$ × 301 $k$ 全程 <strong>305 s</strong>(6 worker × 8 线程的 $\omega$ 级扇出;首版三算符 einsum 实现需 ~45 h,唯一 $\Delta R$-GEMM 重构 + 并行合计 ~530×)。 注意事项:共振幅度带 ~10% 的有限盒不确定度(§6a 的 2×2×2 盒角效应),压低须 3×3×3。</p>
 </section>
-<section id="sec-8"><h2>8. 成本与可复现</h2>
+<section id="sec-8"><h2>8. 输运:剩余电阻率斜率 vs 电子辐照实验</h2>
+<p>$T$-矩阵的第一个定量实验对表。实验侧(2.5 MeV 电子辐照引入 Pd Frenkel pair, $\sigma_{\rm FP}=315$ barn,Fig. 9 浓度窗 0–20 ppm):$\Delta\rho\propto c$, 斜率 $\approx9$–$10\times10^3$ n$\Omega\,$cm/%,且与<strong>无自由参数的 2D unitary 散射预言</strong>吻合;最纯样品 $\rho_0=8.1$ n$\Omega\,$cm 对应本征缺陷 ~10 ppm。</p>
+<h3>8a. 方法:算斜率,不碰小数</h3>
+<p>稀释极限下 $\Sigma=n_d T$ 且 $T$ 与浓度无关 $\Rightarrow\Gamma_k(c)=c\,\gamma_k$, $\rho_{\rm def}(c)=c\times[\text{FS 积分}]^{-1}$——<strong>斜率在 $c\to0$ 解析提取</strong>, 从不数值构造 10 ppm 下 0.03 meV 的小线宽。$T\to0$ 的 $\delta$ 函数用逐 $k_z$ 切片的 marching-triangles 费米线积分(96×96×12 网格,7208 段,在壳残差中位 0.75 meV), <strong>无温度窗、无展宽</strong>;只取面内速度($\sigma_{xx},\sigma_{yy}$ 分开,$v_z$ 不进入); $\tau=\hbar/(2|\mathrm{Im}\,\Sigma|)$(布居衰减率,FWHM 约定全程一致)。SERTA ($\tau_{qp}$,无顶点修正)。FS 上 $\gamma_k\in[0.30,4.07]$ eV/单位浓度(中位 1.82)。</p>
+<h3>8b. 结果</h3>
+<p><img src="../assets/pdcoo2_rho_vs_c.png" alt="PdCoO2 rho vs c" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<div class="table-wrap"><table><thead><tr><th>量</th><th>n$\Omega\,$cm/%</th></tr></thead><tbody><tr><td>本工作,SERTA $V_{\rm Pd}$($\sigma_{xx}$ / $\sigma_{yy}$)</td><td><strong>4 422 / 4 723</strong>(六角各向同性检验:差 6.6% = 网格噪声)</td></tr><tr><td>2D unitary 极限(<strong>我们自己的</strong> $n=1.056$ e/胞,Luttinger 计数)</td><td><strong>9 207</strong></td></tr><tr><td>实验(FP)</td><td>9 000–10 000</td></tr></tbody></table></div>
+<p>三条结论:</p>
+<ol><li><strong>unitary 上限正中实验带</strong>——零自由参数($\hbar/e^2$ × 层间距 × 我们的载流子数) 独立复现了"实验位于 unitary 极限"的判断;</li><li><strong>我们的 Pd 空位在 SERTA 下达到 unitary 的 ~48%</strong>,即实验斜率的一半、同量级—— 第一性原理把 Pd 空位定量放到了近 unitary 强散射体的位置;10 ppm 本征浓度下 $\sigma\approx2.3\times10^{10}$ S/m,与最纯样品的 $1.2\times10^{10}$ 自洽;</li><li><strong>因子 ~2 缺口的候选</strong>(按嫌疑排序):顶点修正($\tau_{tr}$ vs $\tau_{qp}$——FS 上 $\gamma$ 跨 0.3–4.1 eV 的强各向异性说明 $(1-\cos\theta)$ 权重不可忽略;若散射为 各向同性 unitary s 波则严格为零,故这是判决性检验)、实验为 <strong>Frenkel pair</strong> 而我们 只算空位(间隙在层外、较弱但非零)、有限盒 ±10%(§6a)、未弛豫几何。 寿命约定的因子 2 已排除(三处独立实现互相咬合;错用振幅衰减率会使斜率减半而非翻倍)。</li></ol>
+</section>
+<section id="sec-9"><h2>9. 成本与可复现</h2>
 <p>全部诊断与验证在 Anvil highmem 单节点:2³ 复现器每条链 <strong>~15 s</strong>(16 步全宽 128), chi 指纹作业 ~2 分钟,修复后重建 15 s(增量)。计算目录 <code>/anvil/scratch/x-rg47749/pd2k</code> (链、cube、born、指纹与 DOS 脚本),超胞 <code>/anvil/scratch/x-rg47749/pdsc</code>。 代码修复:qe-edt <strong>v2.2</strong>,commit <code>c118a67</code>(<code>src/edt_twolevel.f90</code> 的 <code>build_qcanon</code>), 生产二进制 <code>edt_r42q3.x</code>。</p>
 <p>6³ 生产链:作业 19936426(4h25m;R0 全宽构建 2×72 min + SVD + 16 步 × 394 s), <code>lanczos_pdv222_k6xp.dat</code> 249.6 MB,herm($A$) 全程 ~3e-15;<strong>SVD 秩 288/3456 = 8.3%</strong> ——内禀秩由缺陷局域支持域决定、与 k 网格无关(2³ 时 112/128:基组比内禀秩还小,压不动; 预言 12³ 仍 ~290)。衰减验证:<code>pd_wdecay.py</code>(完整矩阵已存,重分壳零成本)。</p>
 <p>谱函数:<code>pd_kpath_spec.py</code>(门 0 内置;$\omega$ 并行 <code>SPEC_NWORK</code>; $\Sigma_W/n_d$ 与 $A(k,\omega)$ 存盘于 <code>$A/pdedt/pd_spec_*.npz/npy</code>)。</p>
-<p><strong>下一步</strong>:$n_d$/温度扫描与 Kubo 输运(复用 <code>pd_spec_sig.npz</code>); 3×3×3 超胞把共振幅度的有限盒不确定度压到百分位;弛豫空位几何。</p>
+<p>SERTA 斜率:<code>pd_serta.py</code>(一次 $E_F$ 簇解 + FS 线积分,全程 ~2 分钟)。</p>
+<p><strong>下一步</strong>:IBTE 顶点修正(光学定理为门,判决 50% 缺口的归属);间隙 $T$-矩阵 (2×2×2 弛豫 pilot 在跑)与弛豫空位(3×3×3 SG15 在跑)补齐 Frenkel-pair 合成斜率; 有限温 $\rho(T)$(检验 $\Gamma(\omega)$ 不对称导致的非常数-$\tau$ 行为)。</p>
 </section>
 </main>
 <footer>Generated 2026-05-28 from <code>research.md</code> in the HPC working directory.

@@ -663,7 +663,9 @@ CATALOG = [
      "herm ~3e-15)并完成 <b>Wannier 衰减验证</b>:V/T 第一壳内衰减两个量级(簇方法资格证),"
      "盒角系统误差已量化,且发现 <b>T 在 E$_F$ 处 ×5 的本地共振</b>。"
      "<b>谱函数落地</b>:A(k,ω) 沿 RHL1 路径(门 0 恒等式 = N_k 到 2.9e-13),"
-     "Γ(E$_F$) = 24 meV @ 0.5% 空位 → τ = 27 fs、ℓ ~ 20 nm——共振增强的强散射体。",
+     "Γ(E$_F$) = 24 meV @ 0.5% 空位 → τ = 27 fs、ℓ ~ 20 nm——共振增强的强散射体。"
+     "<b>输运对表</b>:SERTA 剩余电阻率斜率 4.4–4.7×10³ nΩ·cm/% ≈ <b>unitary 极限(9.2×10³,"
+     "自算 n)与辐照实验(9–10×10³)的一半</b>,零自由参数复现实验位于 unitary 的判断。",
      '<a href="pages/pdvac-coset.html">Open the 3D validation &rarr;</a>'),
     ("PdCoO$_2$ delafossite 能带:PBE vs PBE+U,两种胞交叉验证", "Standalone DFT",
      "2026-08-14", "ok", "Verified",
