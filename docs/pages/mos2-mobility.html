@@ -46,6 +46,15 @@
 </section>
 
 <section id="sec-3"><h2>3. K 谷 zoom 谱函数 $A(k,\omega)$</h2>
+<p><strong>soc-zoom 生产约定版(2026-08-24 重算,推荐引用)</strong>:KZOOM 路径 $K-0.30\,\overline{\Gamma K}\to K\to K+0.45\,\overline{KM}$(721 点),能窗 vz $E-E_\mathrm{VBM}\in[-0.45,+0.35]$、kz $[1.40,2.20]$(各 200 $\omega$),$\eta=5$ meV(连分数在 $z+i\eta$ 求值——否则有限链的 Ritz 极点是零宽细针),$n_d=10^{12}$ cm$^{-2}$,$A(k,\omega)=-\pi^{-1}\mathrm{Im\,Tr}\big[(\omega+i\eta-H_k-n_d N_k T_{kk}(\omega))^{-1}\big]$ 取全 22 轨道迹——带隙缺陷平带以预解式真极点显形。<strong>色标为 log</strong>(LogNorm,下限 $2\times10^{-4}\,v_\mathrm{max}$)。</p>
+<p><img src="../assets/mos2mob_kzoomA_kz.png" alt="A(k,w) conduction edge zoom, log colorbar" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p><img src="../assets/mos2mob_kzoomA_vz.png" alt="A(k,w) valence edge zoom, log colorbar" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p>读图:CB 窗的 SOC 双线(K 劈裂 ~3 meV 沿 $K\to M$ 张开)与 VB 窗 149 meV 自旋劈裂与 <a href="soc-zoom.html">SOC zooms</a> 逐一对应;V$_\mathrm{S}$ 的 VB 窗在 $\approx+0.02$ eV 处有一条微弱的带隙平带(稀释极限的诚实亮度,$n_d T$ 谱权重本就小);O$_\mathrm{S}$ 的 CB 谷底展宽最强。</p>
+<p><strong>电子-缺陷自能 $\Sigma^{ed}(k,\omega)=n_d N_k T_{kk}(\omega)$(同路径同能窗;上行 Re Tr $\Sigma$ 发散色标,下行 $-$Im Tr $\Sigma$ 对数色标)</strong>:</p>
+<p><img src="../assets/mos2mob_kzoomSig_kz.png" alt="Sigma conduction edge zoom" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p><img src="../assets/mos2mob_kzoomSig_vz.png" alt="Sigma valence edge zoom" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p>读图:$T(k,k)$ 沿路径近乎平直(点缺陷短程势特征)。VB 窗中 V$_\mathrm{S}$ 的 $+0.02$ eV 浅隙态呈教科书式共振($-$Im 亮线、Re 过零翻号的能级推斥双瓣,Re 峰 $\pm350$ meV);O$_\mathrm{S}$ 在 VBM 下方有弱共振线;Se$_\mathrm{S}$ 几乎无特征(等价电子)。CB 窗中 O$_\mathrm{S}$ 的 Re$\,\Sigma<0$ 能级吸引(其 CBM 共振从上方拉低带边)与 $-$Im 在带边同步开启,直接对应 $\mu_e$ 表中 O$_\mathrm{S}$ 垫底。这些是 $T_{nn}$ 存盘原始量的直接组装,$n_d$ 可线性换算。</p>
+<h3>3b. 早期窄窗版(逐带对角 $T_{nn}$,存档)</h3>
 <p>路径 $0.70\overline{\Gamma K}\to K\to K+0.45\overline{KM}$(261 点),$\omega$ 分辨顶点(5 meV 分箱连分数),内部 $\eta=2$ meV,宿主 $g_S$ 480² 稠密谱分箱;显示浓度 $c=1/144$(每 BvK 胞一个缺陷),$g_0$ 展宽 4 meV。$A(k,\omega)=-\pi^{-1}\,\mathrm{Im}\sum_n\big[g_{0n}+g_{0n}^2\,c\,N_k\,T_{nn}(k,\omega)\big]$;$T_{nn}(k,\omega)$ 原始量(与 $c$ 无关)已存盘,展宽与浓度可在渲染时自由重选。</p>
 <p><img src="../assets/mos2mob_Akw.png" alt="六面板 A(k,w):三缺陷 × 电子/空穴 K 谷缩放" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
 <p>读图:上排电子(CBM)、下排空穴(VBM)。K 谷价带自旋劈裂 ~150 meV 双抛物线、CB 劈裂 ~3 meV 与 <a href="soc-zoom.html">SOC zooms</a> 一致。唯一强异常在 <strong>O$_\mathrm{S}$ 电子面板</strong>:K 点 CBM 谱重被 $\Sigma$ 拉入带隙(带底下沉、增宽)——正是 $\mu_e$ 表中 O$_\mathrm{S}$ 垫底的微观根源,也与 soc-zoom §1 的 Re$\,\Sigma<0$ 能级吸引同源。</p>
