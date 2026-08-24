@@ -1,171 +1,190 @@
-# PdCoO$_2$ delafossite:能带结构(PBE 与 PBE+U)
+# PdCoO$_2$ delafossite: band structure (PBE and PBE+U)
 
-### 从一个 POSCAR 出发的独立 DFT 算例:两种胞、两条高对称路径、$U_{\mathrm{Co}\text{-}3d}$ 敏感性
+### A standalone DFT calculation starting from one POSCAR: two cells, two high-symmetry paths, and the $U_{\mathrm{Co}\text{-}3d}$ sensitivity
 
-> 本页与本站其余内容(缺陷 $T$-矩阵下折叠)相互独立,是一次单独的能带计算。
-> 输入与脚本在 `~/edi_tmatrix/pdcoo2/`,计算在 Anvil highmem 单节点完成。
+> This page is independent of the rest of the site (defect $T$-matrix downfolding); it is a separate band-structure
+> calculation. Inputs and scripts are in `~/edi_tmatrix/pdcoo2/`, and the runs were done on a single Anvil highmem node.
 
-## 1. 结构识别
+## 1. Identifying the structure
 
-给定的 POSCAR 是 **R$\bar 3$m 菱方原胞**(4 原子 = 1 化学式单位):
+The given POSCAR is an **R$\bar 3$m rhombohedral primitive cell** (4 atoms = 1 formula unit):
 
 $$a_{\rm rho}=6.1359\ \text{Å},\qquad \alpha=26.666^\circ$$
 
-由 $a_{\rm hex}=|\mathbf a_1-\mathbf a_2|$、$c_{\rm hex}=|\mathbf a_1+\mathbf a_2+\mathbf a_3|$ 换算得
+Converting via $a_{\rm hex}=|\mathbf a_1-\mathbf a_2|$ and $c_{\rm hex}=|\mathbf a_1+\mathbf a_2+\mathbf a_3|$,
 
 $$a_{\rm hex}=2.8300\ \text{Å},\qquad c_{\rm hex}=17.7430\ \text{Å}$$
 
-即 **PdCoO$_2$ delafossite** 的标准晶胞——那个以**室温面内电阻率低于金属铜**著称的准二维氧化物。
-Pd 位于 3a、Co 位于 3b(CoO$_6$ 八面体,Co$^{3+}$ 低自旋 $d^6$,故**非磁**)、O 位于 6c($z=0.1112$)。
+i.e. the standard cell of **PdCoO$_2$ delafossite** — the quasi-two-dimensional oxide famous for having a
+**room-temperature in-plane resistivity lower than metallic copper**.
+Pd sits at 3a, Co at 3b (CoO$_6$ octahedra, Co$^{3+}$ low-spin $d^6$, hence **non-magnetic**), and O at 6c ($z=0.1112$).
 
-**六方常规胞由菱方胞数值构造**(不套用 Wyckoff 表):取 $\mathbf a_1-\mathbf a_2$、$\mathbf a_2-\mathbf a_3$、
-$\mathbf a_1+\mathbf a_2+\mathbf a_3$ 为基,再用菱方平移填充并去重,得到 12 原子;结果自动落在
-$(0,0,0)$、$(2/3,1/3,1/3)$、$(1/3,2/3,2/3)$ 的 R 心平移上 —— **构造正确性由结果自证**。
+**The hexagonal conventional cell is constructed numerically from the rhombohedral one** (no Wyckoff table is
+applied): take $\mathbf a_1-\mathbf a_2$, $\mathbf a_2-\mathbf a_3$ and $\mathbf a_1+\mathbf a_2+\mathbf a_3$ as
+the basis, fill with rhombohedral translations and deduplicate, giving 12 atoms; the result lands automatically on
+the R-centring translations $(0,0,0)$, $(2/3,1/3,1/3)$, $(1/3,2/3,2/3)$ — **the construction proves its own
+correctness through the result**.
 
-## 2. 计算设置
+## 2. Computational setup
 
-| 项 | 取值 | 理由 |
+| item | value | rationale |
 |---|---|---|
-| 赝势 | PseudoDojo NC-SR v0.5 PBE stringent(Pd 18e / Co 17e / O 6e) | 与本站其它计算同一套 |
-| 截断 | `ecutwfc` = 100 Ry | Co-3d stringent 的建议量级 |
-| 占据 | `smearing`,Marzari–Vanderbilt,`degauss` = 0.02 Ry | **金属** |
-| 自旋 | `nspin` = 1 | Co$^{3+}$ 低自旋 $d^6$,实验与计算均非磁 |
-| $+U$ | `HUBBARD (ortho-atomic)`,$U_{\mathrm{Co}\text{-}3d}=4$ eV | 常用取值;与 PBE 逐点对比 |
-| SCF $k$ 网格 | 菱方 $12^3$;六方 $16\times16\times3$ | 六方胞按 $c/a=6.27$ 各向异性配比 |
-| 能带路径 | 六方 $\Gamma$-M-K-$\Gamma$-A-L-H-A(281 点);菱方 RHL1(301 点) | RHL1 参数由实际 $\alpha$ 现算:$\eta=0.8206$、$\nu=0.3397$ |
+| pseudopotentials | PseudoDojo NC-SR v0.5 PBE stringent (Pd 18e / Co 17e / O 6e) | the same set as everything else on this site |
+| cutoff | `ecutwfc` = 100 Ry | the order suggested for Co-3d stringent |
+| occupations | `smearing`, Marzari–Vanderbilt, `degauss` = 0.02 Ry | **metal** |
+| spin | `nspin` = 1 | Co$^{3+}$ low-spin $d^6$; non-magnetic in both experiment and calculation |
+| $+U$ | `HUBBARD (ortho-atomic)`, $U_{\mathrm{Co}\text{-}3d}=4$ eV | a common value; compared point by point against PBE |
+| SCF $k$ mesh | rhombohedral $12^3$; hexagonal $16\times16\times3$ | the hexagonal cell is scaled anisotropically for $c/a=6.27$ |
+| band path | hexagonal $\Gamma$-M-K-$\Gamma$-A-L-H-A (281 points); rhombohedral RHL1 (301 points) | RHL1 parameters computed from the actual $\alpha$: $\eta=0.8206$, $\nu=0.3397$ |
 
-## 3. 能带
+## 3. Bands
 
 ![PdCoO2 bands](../assets/pdcoo2_bands.png)
 
-上:六方常规胞(12 原子);下:菱方原胞(4 原子)。蓝实线 PBE,红虚线 PBE+U,$E_F$ 对齐到零。
+Top: hexagonal conventional cell (12 atoms); bottom: rhombohedral primitive cell (4 atoms). Solid blue is PBE,
+dashed red is PBE+U, and $E_F$ is aligned to zero.
 
-## 4. 三条读数
+## 4. Three readings
 
-**(i) 只有一条能带穿过费米面。** 菱方原胞统计得 **1 条**;六方胞得 3 条 —— 正是同一条带在
-3 倍胞里的折叠(自洽检验)。这条单一、宽、近自由电子的 Pd 带就是 PdCoO$_2$ 超高电导的来源,
-费米面是简单的六边形柱面。
+**(i) Only one band crosses the Fermi level.** The rhombohedral primitive cell counts **1**; the hexagonal cell
+counts 3 — exactly the same band folded into a 3× cell (a self-consistency check). That single, wide, nearly free
+electron-like Pd band is the origin of PdCoO$_2$'s extreme conductivity, and the Fermi surface is a simple
+hexagonal cylinder.
 
-**(ii) 准二维性一目了然。** $\Gamma\to$A(面间)方向该带几乎**完全平**,而 $\Gamma$-M-K-$\Gamma$
-面内色散达 $\sim 8$ eV —— 这就是面内/面间电阻率相差三个量级的能带解释。
+**(ii) The quasi-two-dimensionality is immediately visible.** Along $\Gamma\to$A (out of plane) the band is almost
+**perfectly flat**, while the in-plane dispersion along $\Gamma$-M-K-$\Gamma$ reaches $\sim 8$ eV — this is the
+band-structure explanation for the three-orders-of-magnitude anisotropy in resistivity.
 
-**(iii) $+U$ 的作用位置很干净,输运物理对它不敏感。**
+**(iii) $+U$ acts in a very clean place, and the transport physics is insensitive to it.**
 
-| 量 | PBE | PBE+U(4 eV) | 差 |
+| quantity | PBE | PBE+U (4 eV) | difference |
 |---|---|---|---|
-| $E_F$(六方) | 14.8272 eV | 14.8304 eV | **3 meV** |
-| 费米面附近的 Pd 带 | — | — | 几乎重合 |
-| Co-3d 占据带($-1.5$ 至 $-4$ eV) | — | — | 整体压低 $\sim 1$ eV 并重排 |
+| $E_F$ (hexagonal) | 14.8272 eV | 14.8304 eV | **3 meV** |
+| the Pd band near the Fermi level | — | — | essentially coincident |
+| Co-3d occupied bands ($-1.5$ to $-4$ eV) | — | — | pushed down by $\sim 1$ eV overall and rearranged |
 
-原因是结构性的:费米面附近是 **Pd-4d/5s** 特性,而 $U$ 只作用在 **Co-3d**;且 Co$^{3+}$ 低自旋
-$d^6$ 的 $t_{2g}$ 是**满带**(闭壳层),Hubbard 项对满带只给整体移动,不改变费米面附近的拓扑。
-**结论:算输运/费米面,PBE 足够;要定位 Co-3d 占据态(对比 XPS/XAS),才需要 $+U$。**
+The reason is structural: the states near the Fermi level are **Pd-4d/5s** in character, while $U$ acts only on
+**Co-3d**; and the $t_{2g}$ of Co$^{3+}$ low-spin $d^6$ is a **filled** shell (closed shell), so the Hubbard term
+only shifts a filled band rigidly and cannot change the topology near the Fermi level.
+**Conclusion: for transport and the Fermi surface, PBE suffices; $+U$ is needed only to place the Co-3d occupied
+states (for comparison with XPS/XAS).**
 
-## 5. 两道自检
+## 5. Two self-checks
 
-| 检查 | 结果 |
+| check | result |
 |---|---|
-| 两种胞的总能 / 化学式单位(PBE) | $-645.26000$(六方,$-1935.78001/3$) vs $-645.26077$(菱方) → **0.77 mRy = 10 meV** |
-| 同上($+U$) | $-645.10444$ vs $-645.10407$ → **0.37 mRy** |
-| 穿过 $E_F$ 的带数 | 菱方 1 ↔ 六方 3(3 f.u. 折叠)✓ |
+| total energy per formula unit for the two cells (PBE) | $-645.26000$ (hexagonal, $-1935.78001/3$) vs $-645.26077$ (rhombohedral) → **0.77 mRy = 10 meV** |
+| same ($+U$) | $-645.10444$ vs $-645.10407$ → **0.37 mRy** |
+| number of bands crossing $E_F$ | rhombohedral 1 ↔ hexagonal 3 (3 f.u. folding) ✓ |
 
-两种胞来自**完全独立**的构造(菱方直接取自 POSCAR,六方由程序生成)、不同 $k$ 网格、
-不同对称性识别,总能吻合到 10 meV/f.u.;$+U$ 时更收紧到 0.37 mRy —— 说明 Hubbard 投影
-在两种胞里作用于同一组 Co-3d 轨道,**$+U$ 的实现也自洽**。
+The two cells come from **completely independent** constructions (the rhombohedral one taken directly from the
+POSCAR, the hexagonal one generated programmatically), with different $k$ meshes and different symmetry
+identification, and their total energies agree to 10 meV/f.u.; with $+U$ they tighten to 0.37 mRy — which shows
+that the Hubbard projection acts on the same set of Co-3d orbitals in both cells, so **the $+U$ implementation is
+self-consistent too**.
 
-## 7. 该不该加 U:线性响应给出的答案
+## 7. Should $U$ be applied at all: the answer from linear response
 
-第 4 节的 $+U$ 用的是常见取值 4 eV。为了把"该不该加"从经验判断变成可引用的计算量,
-我们用 **DFPT 线性响应**(QE 的 `hp.x`,Cococcioni–de Gironcoli 定义)**把 U 算了出来**:
+The $+U$ in §4 used the common value of 4 eV. To turn "should it be applied" from a judgement call into a citable
+computed quantity, we **computed $U$** with **DFPT linear response** (QE's `hp.x`, the Cococcioni–de Gironcoli
+definition):
 
 $$U=\left(\chi_0^{-1}-\chi^{-1}\right)_{\rm Co,Co}$$
 
-| 量 | 值 |
+| quantity | value |
 |---|---|
-| **$U_{\mathrm{Co}\text{-}3d}$(线性响应)** | **7.95 eV** |
-| 裸响应 $\chi_0^{\rm CoCo}$ | $-0.8022$ eV$^{-1}$ |
-| 自洽响应 $\chi^{\rm CoCo}$ | $-0.1085$ eV$^{-1}$ |
-| 屏蔽比 $\chi/\chi_0$ | **0.135** |
+| **$U_{\mathrm{Co}\text{-}3d}$ (linear response)** | **7.95 eV** |
+| bare response $\chi_0^{\rm CoCo}$ | $-0.8022$ eV$^{-1}$ |
+| self-consistent response $\chi^{\rm CoCo}$ | $-0.1085$ eV$^{-1}$ |
+| screening ratio $\chi/\chi_0$ | **0.135** |
 
-(ortho-atomic 投影,$n_q=2\times2\times2$,`conv_thr_chi` = 1e-6,虚拟超胞 8 格点;
-21 分钟墙钟。)自洽响应只有裸响应的 **13.5%** —— Co-3d 的占据数在微扰下被强烈钉住,
-**这是一个货真价实的局域壳层**,而且算出的 U 比常用的 4 eV **高一倍**。
+(ortho-atomic projection, $n_q=2\times2\times2$, `conv_thr_chi` = 1e-6, 8 virtual supercell points; 21 minutes
+wall clock.) The self-consistent response is only **13.5%** of the bare one — the Co-3d occupations are strongly
+pinned under perturbation, so **this is a genuinely localized shell**, and the computed $U$ is **twice** the
+commonly used 4 eV.
 
-### 7a. 磁基态检验
+### 7a. Magnetic ground-state check
 
-"闭壳层"是本页全部论证的前提,所以它应当被**证实而不是假定**。自旋极化 SCF
-(`nspin` = 2,Co 初始磁矩 0.4)的结果:
+"Closed shell" underpins every argument on this page, so it should be **demonstrated rather than assumed**. A
+spin-polarized SCF (`nspin` = 2, Co starting moment 0.4) gives:
 
-| 量 | 值 |
+| quantity | value |
 |---|---|
-| 总磁矩 / 绝对磁矩 | $0.00$ / $0.00$ $\mu_B$/cell |
-| 自旋极化解总能 | $-645.26075840$ Ry |
-| 非磁解总能 | $-645.26076524$ Ry |
-| 差 | $7\times10^{-8}$ Ry $\approx 0.1$ μeV |
+| total / absolute magnetization | $0.00$ / $0.00$ $\mu_B$/cell |
+| total energy of the spin-polarized solution | $-645.26075840$ Ry |
+| total energy of the non-magnetic solution | $-645.26076524$ Ry |
+| difference | $7\times10^{-8}$ Ry $\approx 0.1$ μeV |
 
-从有限磁矩出发,自洽**精确塌回非磁解**。低自旋 $d^6$ 的 $t_{2g}^6e_g^0$ 闭壳层确立。
+Starting from a finite moment, self-consistency **collapses exactly back to the non-magnetic solution**. The
+low-spin $d^6$ closed shell $t_{2g}^6e_g^0$ is established.
 
-### 7b. 综合判断:U 很大,但不该用在输运上
+### 7b. Overall judgement: $U$ is large, but should not be used for transport
 
-三条事实必须放在一起读:
+Three facts have to be read together:
 
-1. $U_{\rm Co}$ = 7.95 eV —— Co-3d **确实局域**;
-2. 磁矩严格为 0 —— 关联壳层是**闭合**的,而 DFT+U 的 $\frac{U}{2}\mathrm{Tr}[\mathbf n(1-\mathbf n)]$
-   对幂等占据矩阵**恒为零**,只剩下"占据态整体下移、空态上移"的刚性移动;
-3. $U$ = 4 eV 时 $E_F$ 只移 3 meV、费米面处的 Pd 带几乎不动(第 4 节)。
+1. $U_{\rm Co}$ = 7.95 eV — Co-3d **really is localized**;
+2. the moment is strictly 0 — the correlated shell is **closed**, and DFT+U's
+   $\frac{U}{2}\mathrm{Tr}[\mathbf n(1-\mathbf n)]$ **vanishes identically** for an idempotent occupation matrix,
+   leaving only the rigid shift of occupied states down and empty states up;
+3. at $U$ = 4 eV, $E_F$ moves only 3 meV and the Pd band at the Fermi level barely moves (§4).
 
-把 U 从 4 提到 7.95 eV,只会把 Co-3d 占据带再压低约一倍(~2 eV 而非 ~1 eV),
-**费米面附近依然不动**。所以:
+Raising $U$ from 4 to 7.95 eV only pushes the Co-3d occupied bands down about twice as far (~2 eV instead of
+~1 eV) and **still leaves the region near the Fermi level untouched**. Therefore:
 
-> **算输运、费米面、电子-声子:用纯 PBE。**
-> **要定位 Co-3d 占据态(XPS/XAS/RIXS 对比):用 $U=7.95$ eV —— 这个自洽算出的值,而不是猜的 4 eV。**
-> 需要更严谨时应考虑 U+V(`hp.x` 也能给 Co–O 的层间 V)或 HSE/GW。
+> **For transport, the Fermi surface, and electron–phonon: use plain PBE.**
+> **To place the Co-3d occupied states (for XPS/XAS/RIXS comparison): use $U=7.95$ eV — the self-consistently
+> computed value, not a guessed 4 eV.**
+> For anything more rigorous, consider U+V (`hp.x` also gives the interlayer Co–O $V$) or HSE/GW.
 
-**未收敛项**:上述 U 是 $n_q=2\times2\times2$ 的结果。HP 的 U 对 q 网格有收敛性,
-若要引用应补一个 $3\times3\times3$ 的点(约 1 小时)。
+**Not converged**: the $U$ above is at $n_q=2\times2\times2$. HP's $U$ has a q-mesh convergence, so a
+$3\times3\times3$ point (about an hour) should be added before quoting it.
 
-> **一个实用陷阱**(值得记下):`hp.x` 要求**所有 Hubbard 原子排在 `ATOMIC_POSITIONS` 的最前面**。
-> 我们照 POSCAR 顺序写成 Pd-Co-O,`hp_init` 因此受控退出;而真正的提示信息被 48 个 rank 的
-> `forrtl: severe (28)` 堆栈完全淹没,日志里 grep 不到。是**堆栈本身**(`hp_init.f90:50 →
-> hp_stop_smoothly`)指明这是受控退出而非崩溃,读源码那几行才找到原因。改成 Co-Pd-O 后一次通过。
+> **A practical trap** (worth recording): `hp.x` requires **all Hubbard atoms to come first in
+> `ATOMIC_POSITIONS`**. We wrote them in POSCAR order as Pd-Co-O, so `hp_init` exited under control — but the
+> actual message was completely buried under 48 ranks' worth of `forrtl: severe (28)` stack traces and could not be
+> grepped out of the log. It was **the stack itself** (`hp_init.f90:50 → hp_stop_smoothly`) that identified this as
+> a controlled exit rather than a crash, and reading those few lines of source found the cause. Reordering to
+> Co-Pd-O passed on the first try.
 
-## 9. Wannier 化:16 个 MLWF 复现整个 $p$-$d$ 流形
+## 9. Wannierization: 16 MLWFs reproduce the entire $p$-$d$ manifold
 
-### 9a. 为什么是 16 个,而且不需要解缠
+### 9a. Why 16, and why no disentanglement is needed
 
-先看能带的流形结构(菱方原胞,301 点路径,相对 $E_F$):
+First the manifold structure of the bands (rhombohedral primitive cell, 301-point path, relative to $E_F$):
 
-| 能带 | 范围 (eV) | 归属 |
+| bands | range (eV) | assignment |
 |---|---|---|
 | 9–10 | $-20.8 \ldots -18.9$ | O-2s |
 | **11–26** | $\mathbf{-8.55 \ldots +2.28}$ | **O-2p(6) + Co-3d(5) + Pd-4d(5) = 16** |
-| 24 | $-0.757 \ldots +0.952$ | 唯一穿过 $E_F$ 的传导带 |
-| 27+ | $+3.23$ 起 | 自由电子式高带 |
+| 24 | $-0.757 \ldots +0.952$ | the only conduction band crossing $E_F$ |
+| 27+ | from $+3.23$ | free-electron-like high bands |
 
-band 10↔11 之间 **10.3 eV**、band 26↔27 之间 **0.95 eV**(均匀网格上复核为 17.16→18.11 eV)——
-**$p$-$d$ 流形完全孤立**。于是取 `num_bands = num_wann = 16`、`exclude_bands = 1-10, 27-40`,
-**根本不需要 disentanglement**,这是数值上最稳的一档。
+The gap between bands 10↔11 is **10.3 eV** and between 26↔27 is **0.95 eV** (cross-checked on a uniform mesh as
+17.16→18.11 eV) — **the $p$-$d$ manifold is completely isolated**. So we take `num_bands = num_wann = 16` with
+`exclude_bands = 1-10, 27-40` and **need no disentanglement at all**, which is the numerically most stable regime.
 
-轨道计数也自洽:16 条带 = 6+5+5,而 $E_F$ 上方那两条(25、26)正是 Co-$e_g$ ——
-Co$^{3+}$ 低自旋 $d^6$ 的空 $e_g$,与第 7 节的闭壳层结论相互印证。
+The orbital counting is self-consistent too: 16 bands = 6+5+5, and the two above $E_F$ (25, 26) are exactly the
+Co-$e_g$ — the empty $e_g$ of Co$^{3+}$ low-spin $d^6$, corroborating the closed-shell conclusion of §7.
 
-### 9b. 两组投影:$\Omega_I$ 相同到 9 位
+### 9b. Two sets of projections: $\Omega_I$ agrees to 9 digits
 
-`nscf` 用 $8\times8\times8=512$ 个 $k$(`nosym`/`noinv`),纯 PBE(见第 7b 节)。
-两个变体只有 Pd 的投影不同:
+The `nscf` uses $8\times8\times8=512$ $k$-points (`nosym`/`noinv`) with plain PBE (see §7b). The two variants
+differ only in the Pd projection:
 
-| | 投影 | $\Omega_I$ | $\Omega_D$ | $\Omega_{OD}$ | $\Omega$ (Å$^2$) |
+| | projection | $\Omega_I$ | $\Omega_D$ | $\Omega_{OD}$ | $\Omega$ (Å$^2$) |
 |---|---|---|---|---|---|
-| **A** | Pd:$d$(5) + Co:$d$(5) + O:$p$(6) | 12.433543233 | 0.00999622 | 0.62411529 | **13.067655** |
-| **B** | Pd:$s$(1) + Pd:$d_{xy},d_{xz},d_{yz},d_{x^2-y^2}$(4) + Co:$d$(5) + O:$p$(6) | 12.433543233 | 0.00999573 | 0.62410262 | **13.067642** |
+| **A** | Pd: $d$(5) + Co: $d$(5) + O: $p$(6) | 12.433543233 | 0.00999622 | 0.62411529 | **13.067655** |
+| **B** | Pd: $s$(1) + Pd: $d_{xy},d_{xz},d_{yz},d_{x^2-y^2}$(4) + Co: $d$(5) + O: $p$(6) | 12.433543233 | 0.00999573 | 0.62410262 | **13.067642** |
 
-$\Omega_I$ 是**规范不变量**,两者相同到 **9 位有效数字**;总展宽差 $1.3\times10^{-5}$ Å$^2$。
-这正是孤立流形应有的行为——投影只决定优化的起点,不决定终点。
-把 Pd 的 $d_{z^2}$ 换成 $s$ 仍收敛到**同一个全局极小**,说明这个 MLWF 解**不是**某个局域极小的产物。
+$\Omega_I$ is a **gauge invariant**, and the two agree to **9 significant figures**; the total spreads differ by
+$1.3\times10^{-5}$ Å$^2$. This is exactly how an isolated manifold should behave — the projection sets the starting
+point of the optimization, not its endpoint. Swapping Pd's $d_{z^2}$ for an $s$ still converges to **the same global
+minimum**, showing this MLWF solution is **not** the product of some local minimum.
 
-16 个 WF 平均展宽 **0.817 Å$^2$**、$\Omega_{OD}/\Omega=4.8\%$,中心**精确落在原子位上、零漂移**:
+The 16 WFs have a mean spread of **0.817 Å$^2$**, $\Omega_{OD}/\Omega=4.8\%$, and centres landing **exactly on the
+atomic sites with zero drift**:
 
-| WF | 中心 $z$ (Å) | 归属 | 展宽 (Å$^2$) |
+| WF | centre $z$ (Å) | assignment | spread (Å$^2$) |
 |---|---|---|---|
 | 1 | 0 | Pd $d_{z^2}$ | **1.528** |
 | 2–5 | 0 | Pd $d_{xy},d_{xz},d_{yz},d_{x^2-y^2}$ | 0.755, 0.755, 0.948, 0.928 |
@@ -174,66 +193,78 @@ $\Omega_I$ 是**规范不变量**,两者相同到 **9 位有效数字**;总展�
 | 11–13 | 1.98 $(=0.1112\,c)$ | O(1) $2p$ | 1.107, 0.758, 0.759 |
 | 14–16 | 15.76 $(=0.8888\,c)$ | O(2) $2p$ | 1.107, 0.758, 0.759 |
 
-两处**未经设计、由数据自己给出**的物理:
+Two pieces of physics that were **not designed in, but produced by the data itself**:
 
-1. **Pd $d_{z^2}$ 的展宽 1.528 Å$^2$,是其余四个 Pd-$d$ 的两倍**。它就是构成传导带的那个轨道——
-   离域、与 Pd-5s 强杂化,所以最不局域。这是 PdCoO$_2$ 传导带 $s$-$d$ 杂化图像的一个直接量化印记。
-2. **Co 的 5 个 $d$ 自动分成 3 + 2**(0.54 三个、0.64 两个),正是八面体晶体场的 $t_{2g}$/$e_g$ 劈裂——
-   而投影时并没有按对称性分开写。
+1. **Pd $d_{z^2}$ has a spread of 1.528 Å$^2$, twice that of the other four Pd-$d$.** It is precisely the orbital
+   that makes up the conduction band — delocalized, strongly hybridized with Pd-5s, and therefore the least
+   localized. This is a direct quantitative fingerprint of the $s$-$d$ hybridization picture of PdCoO$_2$'s
+   conduction band.
+2. **Co's five $d$ orbitals split automatically into 3 + 2** (three at 0.54, two at 0.64), exactly the octahedral
+   crystal-field $t_{2g}$/$e_g$ splitting — even though the projections were not written out by symmetry.
 
-### 9c. 与 DFT 能带逐点对比
+### 9c. Point-by-point comparison against the DFT bands
 
 ![PdCoO2 Wannier bands](../assets/pdcoo2_w90_bands.png)
 
-**对比方式本身需要说明**:我们**没有**用 wannier90 自己输出的 `*_band.dat`。它的路径取点与
-DFT 能带计算的 301 个点不一定重合,把两者对齐所引入的插值误差与待测量同量级。
-改为直接读 `<seed>_hr.dat`、在**DFT 的那 301 个 $k$ 点上**自建
+**The comparison method itself needs explaining**: we did **not** use wannier90's own `*_band.dat`. Its path
+sampling does not necessarily coincide with the 301 points of the DFT band calculation, and the interpolation error
+introduced by aligning the two is the same size as the quantity being measured. Instead we read `<seed>_hr.dat`
+directly and built
 $H(\mathbf k)=\sum_{\mathbf R}e^{2\pi i\mathbf k\cdot\mathbf R}H(\mathbf R)/\deg(\mathbf R)$
-(551 个 Wigner–Seitz $\mathbf R$)再对角化,**逐点严格可比**。
+(551 Wigner–Seitz $\mathbf R$ vectors) **at the DFT's own 301 $k$-points**, then diagonalized — **rigorously
+comparable point by point**.
 
-| | 全 16 带 RMS | $|E-E_F|<1$ eV 的 RMS | 最大偏差 | 传导带(24)RMS | 传导带最大 |
+| | RMS over all 16 bands | RMS for $|E-E_F|<1$ eV | max deviation | conduction band (24) RMS | conduction band max |
 |---|---|---|---|---|---|
 | **A** | **3.574 meV** | **2.825 meV** | 59.15 meV | **2.726 meV** | 13.31 meV |
 | **B** | 3.574 meV | 2.825 meV | 59.15 meV | 2.724 meV | 13.31 meV |
 
-$8^3$ 网格下,整个 16 带流形的插值误差 **RMS 3.6 meV**、费米面附近 **2.8 meV**,
-传导带 **2.7 meV**(最大 13 meV)。图 (c) 中细线是全部 16 条带的逐点误差,
-绝大部分在 1 meV 以下;偏差集中在能带交叉附近,加密 $k$ 网格即可继续压低。
+On an $8^3$ mesh, the interpolation error over the whole 16-band manifold is **3.6 meV RMS**, **2.8 meV** near the
+Fermi level, and **2.7 meV** for the conduction band (13 meV maximum). The thin lines in panel (c) are the
+point-by-point errors of all 16 bands, mostly below 1 meV; the deviations concentrate near band crossings and can be
+pushed lower by refining the $k$ mesh.
 
-**一个附带的自洽检验**:本次重跑的 scf 给出 $E_F=14.8809$ eV,与第 3 节那次独立计算**完全相同**。
+**An incidental self-consistency check**: this rerun's scf gives $E_F=14.8809$ eV, **exactly the same** as the
+independent calculation in §3.
 
-### 9d. 两条方法论教训
+### 9d. Two methodological lessons
 
-**(i) 能带极值必须在均匀网格上量,不能在高对称路径上量。**
-我们也试过只保留传导带的单带($\text{num\_wann}=1$)模型,冻结窗按路径上读到的
-"band 23 顶 $=-0.175$、band 25 底 $=+0.891$" 来设,结果 wannier90 在第 165 个 $k$ 点报
-"冻结窗内有 2 条带而目标只有 1 条"。查 512 点均匀网格的真值:band 25 的真实最低点是
-$+0.803$ eV,**比路径上读到的低 88 meV**——它根本不落在任何高对称线上。
-高对称路径是 BZ 里的**零测集**,用它读极值在原理上就不成立。
-(单带模型随后按需求取消,不在本页结论内;但这条教训保留。)
+**(i) Band extrema must be measured on a uniform mesh, never along a high-symmetry path.**
+We also tried a single-band model retaining only the conduction band ($\text{num\_wann}=1$), with the frozen window
+set from the path readings "band 23 top $=-0.175$, band 25 bottom $=+0.891$" — and wannier90 reported at the 165th
+$k$-point that the frozen window contained 2 bands while the target had only 1. Checking the true values on the
+512-point uniform mesh: band 25's actual minimum is $+0.803$ eV, **88 meV lower than the path reading** — it simply
+does not lie on any high-symmetry line. A high-symmetry path is a **set of measure zero** in the BZ, so reading
+extrema from it is invalid in principle.
+(The single-band model was subsequently dropped as unnecessary and is not part of this page's conclusions, but the
+lesson stands.)
 
-**(ii) 窗口要锚在能带的绝对位置上,不能锚在 $E_F$ 上。**
-$8^3$ nscf 的 $E_F=14.8310$ eV,比 $12^3$ scf 的 14.8809 低 **50 meV**(网格与展宽差异)。
-把解缠窗写成 "$E_F\pm$" 会随之整体漂移 50 meV,而窗口的全部意义在于把某条带**单独框住**,
-边距只有几十 meV。约束必须锚在它要复现的不变量上——这里是能带的相对位置,不是费米能。
+**(ii) Windows must be anchored to absolute band positions, not to $E_F$.**
+The $8^3$ nscf gives $E_F=14.8310$ eV, **50 meV below** the $12^3$ scf's 14.8809 (mesh and smearing differences).
+Writing a disentanglement window as "$E_F\pm$" makes it drift bodily by those 50 meV, while the entire purpose of
+the window is to bracket **one specific band** with margins of only tens of meV. A constraint must be anchored to
+the invariant it is meant to reproduce — here the relative band positions, not the Fermi energy.
 
-## 10. 成本与可复现
+## 10. Cost and reproducibility
 
-四个 SCF + 四个能带计算(两种胞 × PBE/+U)在 Anvil highmem 单节点上**合计不到 6 分钟**
-(六方 SCF 80 s、菱方 SCF 45 s,能带各 30–90 s)。输入卡、SLURM 脚本与出图脚本在
-`~/edi_tmatrix/pdcoo2/`;计算目录 `/anvil/scratch/x-rg47749/pdcoo2h`(六方)与 `.../pdcoo2r`(菱方)。
+Four SCF runs plus four band calculations (two cells × PBE/+U) take **under 6 minutes in total** on a single Anvil
+highmem node (hexagonal SCF 80 s, rhombohedral SCF 45 s, bands 30–90 s each). Input cards, SLURM scripts and
+plotting scripts are in `~/edi_tmatrix/pdcoo2/`; the run directories are
+`/anvil/scratch/x-rg47749/pdcoo2h` (hexagonal) and `.../pdcoo2r` (rhombohedral).
 
-线性响应 U 的计算在 `/anvil/scratch/x-rg47749/pdcoo2u`(`hp_scf.in` / `hp.in` / `mag_scf.in`,
-输出 `pdcoo2u.Hubbard_parameters.dat`)。
+The linear-response $U$ calculation lives in `/anvil/scratch/x-rg47749/pdcoo2u` (`hp_scf.in` / `hp.in` /
+`mag_scf.in`, output `pdcoo2u.Hubbard_parameters.dat`).
 
-Wannier 化在 `/anvil/scratch/x-rg47749/pdw90`(输入与 SLURM 脚本同步在 `~/edi_tmatrix/pdcoo2/w90/`):
-scf 44 s + nscf(512 $k$)52 s + 每个变体约 3 分钟(`pw2wannier90.x` 占大头),
-单节点 48 rank × 2 线程。对比出图脚本 `w90bands.py`。
+The wannierization lives in `/anvil/scratch/x-rg47749/pdw90` (inputs and SLURM scripts mirrored in
+`~/edi_tmatrix/pdcoo2/w90/`): scf 44 s + nscf (512 $k$) 52 s + about 3 minutes per variant (`pw2wannier90.x`
+dominating), on a single node with 48 ranks × 2 threads. Comparison/plot script: `w90bands.py`.
 
-> **提交头必须写全**:`--ntasks=48 --cpus-per-task=2 --exclusive` 缺一不可。
-> 只写 `-n 48` 时 48 核上跑 96 线程、节点又被共享,scf 从 **2.1 s/迭代变成 50 s/迭代**,
-> 而日志里**毫无异常**。唯一的发现途径是拿已知good作业的 `PWSCF ... WALL` 做对照。
+> **The submission header must be complete**: `--ntasks=48 --cpus-per-task=2 --exclusive`, all three of them.
+> With only `-n 48`, 96 threads run on 48 cores and the node is shared as well, taking the scf from
+> **2.1 s/iteration to 50 s/iteration** — with **nothing unusual in the log at all**. The only way to find it is
+> to compare `PWSCF ... WALL` against a known-good job.
 
-**可继续的方向**:用这套 16 带 MLWF 做**费米面**(六边形柱面的直接可视化)与输运;
-加密 $k$ 网格把插值误差压到亚 meV;投影态密度(定量验证"费米面是 Pd 的");
-$n_q=3\times3\times3$ 的 U 收敛点;或加入自旋轨道耦合。
+**Directions to continue**: use this 16-band MLWF set for the **Fermi surface** (direct visualization of the
+hexagonal cylinder) and for transport; refine the $k$ mesh to push the interpolation error into the sub-meV range;
+projected density of states (to verify quantitatively that the Fermi surface is Pd's); a $U$ convergence point at
+$n_q=3\times3\times3$; or add spin–orbit coupling.

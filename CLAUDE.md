@@ -80,6 +80,11 @@ Stdlib-only Markdown→HTML converter. Key invariant: it **protects** fenced cod
 > `<nav>` is a frozen snapshot that drifts every time a page is added
 > (`docs/pages/mos2-mobility.html` is the one such page today — its nav has to be refreshed
 > by hand, or it should be given a `content/` source and a `build_*()` like everything else).
+> Its English prose likewise lives **only in that HTML**: it was translated in place by
+> exact-match substitution on the text runs between tags, because reverse-engineering the
+> markdown loses data (the builder writes bare `<` from math like `Re Σ<0` straight into the
+> page, which any tag-stripping regex eats). Giving it a real `content/` source is still the
+> right fix, but it has to be authored, not extracted.
 
 ## 5. Recipe: add a new test (the common request)
 
