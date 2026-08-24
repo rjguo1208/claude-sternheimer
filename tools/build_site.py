@@ -285,6 +285,7 @@ def _topnav(active, prefix=""):
                                       a("pages/results.html", "Results", "results"),
                                       a("pages/npol2-cert.html", "npol=2 cert.", "npol2"),
                                       a("pages/soc-zoom.html", "SOC zooms", "soczoom"),
+                                      a("pages/mos2-mobility.html", "MoS₂ 迁移率", "mos2"),
                                       a("pages/mode-d-crosscheck.html", "MODE D check", "moded"),
                                       a("pages/pdcoo2-bands.html", "PdCoO2 bands", "pdcoo2"),
                                       a("pages/pdvac-coset.html", "Pd-vac 3D", "pdvac"),
@@ -677,6 +678,12 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
+    ('MoS$_2$ 缺陷限制迁移率：四层级散射理论对照 + K 谷 zoom 谱函数', 'Production',
+     '2026-08-23', 'prod', 'Headline',
+     # hand-inserted into docs/index.html before this was registered here,
+     # which is why a plain rebuild of the site silently dropped it once
+     '同一 144b22 链上的 {full $T$, Born} × {$\\Sigma$ 保留, 丢弃} 12 格矩阵（三缺陷 × e/h，300 K $\\eta\\to0$ IBTE，$n=10^{10}$、$n_d=10^{12}$ cm$^{-2}$）。<b>Born 对深势阱错 1–2 个数量级</b>（V$_\\mathrm{S}$ 空穴 53×，严格二阶 190×）；<b>$\\Sigma$ 的角色随缺陷翻转</b>：V$_\\mathrm{S}$ 屏蔽（19.9→13.3 eV）、O$_\\mathrm{S}$ 在 CBM 造共振（$\\Sigma$=42 eV 比裸顶点大 4 倍，丢 $\\Sigma$ 后 $\\mu_e$ 假涨 72×）、Se$_\\mathrm{S}$ 近乎抵消（残余 0.3–0.6 eV）；唯有 full $T$+$\\Sigma$ 全面自洽。附 K 谷 zoom $A(k,\\omega)$（O$_\\mathrm{S}$ CBM 谱重被拉入带隙）、<b>edmat/降折矩阵 Wannier 衰减验证</b>（15 对象全 LOCALIZED，峰/底 10⁴–10⁷；链 VAA ≡ edmat 活性块逐位 0.0）与 Se$_\\mathrm{S}$ 空穴 2.2× 顶点修正等。',
+     '<a href="pages/mos2-mobility.html">Open the mobility page &rarr;</a>'),
     ("PtCoO$_2$ full chain ($S0\\to S11$): is that factor of 2 a method systematic, or material-dependent?", "Production",
      "2026-08-23", "prod", "Headline",
      "The PdCoO$_2$ chain <b>ported verbatim to PtCoO$_2$</b> (same code, same production "
