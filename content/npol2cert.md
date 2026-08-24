@@ -1,136 +1,153 @@
-# npol=2 认证:翻倍测试的裁决与谱系
+# npol=2 certification: the verdict on the doubling test, and its provenance
 
-## 0. 摘要
+## 0. Summary
 
-MODE C 下折叠链的 npol=2(旋量)移植在翻倍测试(noncolin=T、lspinorb=F、标量赝势)中
-未能复现"能级精确 ×2",触发了一次完整的司法式裁决。两幕结论:第一幕,**EDT 的
-npol=2 实现无罪**——三个独立规范不变判据全部机器精度通过;第二幕(按对仪器化转储后
-的大反转),**EDI 的计算引擎同样无罪(逐对 $10^{-12}$ 精确),真凶是文件接口:
-EDI-direct 的 .bin 在每个 $(k_i,k_f)$ 块内写 $(\mathrm{bra},\mathrm{ket})$,
-而 EDT 读取约定是 $(\mathrm{ket},\mathrm{bra})$——纯带轴转置**,数值判决
-$\max|E_\mathrm{EDI}-T_\mathrm{EDT}^{T(\mathrm{bands})}|=8.7\times10^{-14}$。
-修复:EDI 写入端转置(格式版本 20260702→20260809);EDT 侧则把 born 块 $M_{AA}$
-移植进本体(npol=2),SOC 生产线自给自足。终判:旋量对简并 **0.0000 meV**,
-跨宿主 VBM 门控 ≤4.9 meV(宿主孪生底噪),链-vs-born 闭环 $4.6\times10^{-11}$,
-修复后 EDI-vs-EDT 同波函数全矩阵 $\sim10^{-13}$。
+The npol=2 (spinor) port of the MODE C downfolding chain failed to reproduce "levels exactly ×2" in the doubling
+test (noncolin=T, lspinorb=F, scalar pseudopotentials), which triggered a full forensic investigation. Two acts,
+two conclusions. Act one: **EDT's npol=2 implementation is innocent** — all three independent gauge-invariant
+criteria pass at machine precision. Act two (a reversal, after pair-by-pair instrumented dumps): **EDI's compute
+engine is innocent too (exact pair by pair to $10^{-12}$); the real culprit is the file interface** — EDI-direct's
+.bin writes $(\mathrm{bra},\mathrm{ket})$ within each $(k_i,k_f)$ block, while EDT's read convention is
+$(\mathrm{ket},\mathrm{bra})$ — **a pure band-axis transpose**, with the numerical verdict
+$\max|E_\mathrm{EDI}-T_\mathrm{EDT}^{T(\mathrm{bands})}|=8.7\times10^{-14}$.
+Fix: transpose on the EDI write side (format version 20260702→20260809); on the EDT side, the born block $M_{AA}$
+was ported into EDT proper (npol=2), making the SOC production line self-sufficient. Final verdict: spinor-pair
+degeneracy **0.0000 meV**, cross-host VBM-gated agreement ≤4.9 meV (the host-twin noise floor), chain-vs-born
+closure $4.6\times10^{-11}$, and after the fix EDI-vs-EDT on the same wavefunctions agrees over the full matrix
+at $\sim10^{-13}$.
 
-## 1. 翻倍测试与最初的失败
+## 1. The doubling test and the initial failure
 
-翻倍测试构造:同一 MoS$_2$ V$_\mathrm{S}$ 6×6 体系,宿主用 noncolin=T、lspinorb=F 与
-**标量赝势**重算(d66nc)。此时 $H$ 自旋对角、无磁化,物理与标量计算完全相同:
-下折叠有效哈密顿量的每个能级都应精确出现两次。首次运行(EDI-direct 提供 born 块
-$M_{AA}$)结果 FAIL:能级既不成对也不对应,链的算符恒等测试
-$\max|P^\dagger(\Delta V\,\Psi)-M|$ 高达 $8.7\times10^{-1}$(标量情形为 $10^{-14}$ 量级)。
+Construction of the doubling test: the same MoS$_2$ V$_\mathrm{S}$ 6×6 system, with the host recomputed using
+noncolin=T, lspinorb=F and **scalar pseudopotentials** (d66nc). Then $H$ is spin-diagonal with no magnetization,
+so the physics is identical to the scalar calculation: every level of the downfolded effective Hamiltonian should
+appear exactly twice. The first run (with EDI-direct supplying the born block $M_{AA}$) FAILED: the levels neither
+paired up nor corresponded, and the chain's operator identity test $\max|P^\dagger(\Delta V\,\Psi)-M|$ reached
+$8.7\times10^{-1}$ (the scalar case is of order $10^{-14}$).
 
-## 2. 三方分解:局域臂与 KB 臂分开审
+## 2. Three-way decomposition: try the local arm and the KB arm separately
 
-用两个探针钩子把 apply_dV 拆开:`EDT_NOKB=1` 关闭 KB(非局域)通道得纯局域投影,
-再以独立编写的 numpy 平面波积分器(裁判,零依赖重实现:补零 ifftn、$e^{iq\cdot r}$ 相位、
-双旋量分量求和)对 160 个复矩阵元逐一对账:
+Two probe hooks split apply_dV apart: `EDT_NOKB=1` disables the KB (nonlocal) channel to leave the pure local
+projection, and an independently written numpy plane-wave integrator (the referee — a zero-dependency
+reimplementation: zero-padded ifftn, $e^{iq\cdot r}$ phases, sum over both spinor components) reconciles all 160
+complex matrix elements one by one:
 
-| 审计对象 | 判据 | 结果 |
+| audited object | criterion | result |
 |---|---|---|
-| EDT 旋量局域 fold | $\|P_\mathrm{nokb}\|/\|裁判\|$ | 52/52 元素比值 **1.000**(全部 3% 内) |
-| EDT 旋量 KB | $\|P_\mathrm{full}-P_\mathrm{nokb}\|/\|M_\mathrm{EDI}-裁判\|$ | 中位 0.36,p10=0,散布 0.13–1.3 |
+| EDT spinor local fold | $\|P_\mathrm{nokb}\|/\|\mathrm{referee}\|$ | 52/52 element ratios **1.000** (all within 3%) |
+| EDT spinor KB | $\|P_\mathrm{full}-P_\mathrm{nokb}\|/\|M_\mathrm{EDI}-\mathrm{referee}\|$ | median 0.36, p10=0, spread 0.13–1.3 |
 
-局域臂当场无罪(且裁判与 EDT 互验)。KB 臂的"罪证"随后被证明是冤案——分母
-$M_\mathrm{EDI}-裁判$ 本身被污染。
+The local arm was acquitted on the spot (and the referee and EDT cross-verify each other). The KB arm's apparent
+"evidence of guilt" was later shown to be a wrongful conviction — the denominator
+$M_\mathrm{EDI}-\mathrm{referee}$ was itself contaminated.
 
-## 3. 关键证据:混合旋量与简并对平行性
+## 3. The key evidence: mixed spinors and degenerate-pair parallelism
 
-d66nc 的本征态是**重度混合旋量**(纯度 0.51–0.99:Davidson 在简并对内任意 SU(2) 混合,
-纯旋量假设不成立)。对无 SO 的自旋对角算符,真实矩阵元满足
+d66nc's eigenstates are **heavily mixed spinors** (purity 0.51–0.99: Davidson mixes arbitrarily in SU(2) within a
+degenerate pair, so a pure-spinor assumption does not hold). For a spin-diagonal operator with no SO, the true
+matrix elements satisfy
 
 $$\langle m|\mathcal{O}|n\rangle = \langle\chi_m|\chi_n\rangle\,\mathcal{O}_{\mathrm{orb}}(m,n),$$
 
-于是对简并对 $(m_1,m_2)$(同轨道、正交旋量),**KB 部分的 2-矢量
-$[K(m_1,n),K(m_2,n)]$ 必须与局域 2-矢量 $[L(m_1,n),L(m_2,n)]$ 复比例平行**
-(都 $\propto[\langle\chi_{m_1}|\chi_n\rangle,\langle\chi_{m_2}|\chi_n\rangle]$)。
-这是规范不变的终极判据——对 per-k 幺正与简并混合完全免疫:
+so for a degenerate pair $(m_1,m_2)$ (same orbital, orthogonal spinors) the **KB 2-vector
+$[K(m_1,n),K(m_2,n)]$ must be complex-proportional (parallel) to the local 2-vector
+$[L(m_1,n),L(m_2,n)]$** (both $\propto[\langle\chi_{m_1}|\chi_n\rangle,\langle\chi_{m_2}|\chi_n\rangle]$).
+This is the ultimate gauge-invariant criterion — completely immune to per-k unitaries and to degenerate mixing:
 
-| 被审 KB | 平行度 $|\cos|$ | 通过率 (>0.99) |
+| KB under audit | parallelism $|\cos|$ | pass rate (>0.99) |
 |---|---|---|
-| EDT($P_\mathrm{full}-P_\mathrm{nokb}$) | 中位 **1.0000**,p10 1.000 | **25/25** |
-| EDI($M_\mathrm{EDI}-裁判$) | 中位 0.977,p10 0.759 | 44% |
+| EDT ($P_\mathrm{full}-P_\mathrm{nokb}$) | median **1.0000**, p10 1.000 | **25/25** |
+| EDI ($M_\mathrm{EDI}-\mathrm{referee}$) | median 0.977, p10 0.759 | 44% |
 
-同时,"EDI 总残差"$M_\mathrm{EDI}^{\rm file}-(裁判+K_\mathrm{EDT})$ 高达 0.50
-(而 $\max|M|=0.42$)且与局域幅度相关(0.69)——此刻的证据链指向"EDI 矩阵元
-局域+KB 皆不可信",据此把 born 块移植进了 EDT(§4)。**但这一定罪的机制随后被
-推翻**(§7):按对仪器化转储证明 EDI 引擎逐对精确,坏的是文件接口的带轴约定。
-(审读中顺带发现的 `ed_coarse_full_q` noncolin 分支 $\sigma_1$-only 缩并是
-真实的代码错误并已修复,但它属于插值路径,不在本案传播链上。)
+At the same time the "EDI total residual" $M_\mathrm{EDI}^{\rm file}-(\mathrm{referee}+K_\mathrm{EDT})$ reached 0.50
+(against $\max|M|=0.42$) and correlated with the local amplitude (0.69) — at that point the chain of evidence
+pointed at "EDI matrix elements, local and KB alike, are untrustworthy", and on that basis the born block was
+ported into EDT (§4). **But the mechanism behind that conviction was later overturned** (§7): pair-by-pair
+instrumented dumps proved the EDI engine exact pair by pair, and the fault lay in the file interface's band-axis
+convention. (An audit incidentally turned up a $\sigma_1$-only contraction in the `ed_coarse_full_q` noncolin
+branch, a genuine code bug now fixed, but it lives on the interpolation path and was not in this case's
+propagation chain.)
 
-**方法论教训(记录在案)**:(1) 此前对 EDI 的 SV"平反"(中位数 6.5e-3)之所以
-成立又不可信,根本原因是**奇异值对转置不变**——SV 类判据对这类接口错误天然全盲;
-(2) 全矩阵 Hermiticity 使 $|M^T|$ 与 $|M|$ 幅度谱相同,"中位比值 1.0000 而
-p10/p90 大散布"正是转置的指纹;(3) **永远看全分布,永远补逐元素复数级对账。**
+**Methodological lessons (on the record)**: (1) the earlier singular-value "exoneration" of EDI (median 6.5e-3)
+held yet was untrustworthy for one root reason — **singular values are invariant under transpose**, so SV-class
+criteria are natively blind to this class of interface error; (2) full-matrix Hermiticity makes the amplitude
+spectra of $|M^T|$ and $|M|$ identical, and "median ratio 1.0000 with a large p10/p90 spread" is precisely the
+fingerprint of a transpose; (3) **always look at the whole distribution, and always add an element-by-element
+complex-level reconciliation.**
 
-## 4. 修复:born 块进 EDT,noncolin 全流程去 EDI 化
+## 4. The fix: born block into EDT, the whole noncolin path de-EDI-ed
 
-把 `vtilde_block_mpi`(born 路径,`born_only=.true.`)移植 npol=2:源矢量 $S$、
-bec/coeff 数组加自旋维,fold 加分量循环($\Delta V_\mathrm{loc}$ 自旋对角),
-KB 走与 apply_dV 相同的 `make_coeff_nc`(dvan 自旋对角 / dvan_so 2×2),
-bra 侧逐分量收缩;npol=1 逐位不变。验证梯(kbval):
+`vtilde_block_mpi` (the born path, `born_only=.true.`) was ported to npol=2: spin dimensions added to the source
+vector $S$ and to the bec/coeff arrays, a component loop added in the fold ($\Delta V_\mathrm{loc}$ is
+spin-diagonal), KB routed through the same `make_coeff_nc` as apply_dV (dvan spin-diagonal / dvan_so 2×2), and the
+bra side contracted component by component; npol=1 is bit-for-bit unchanged. The verification ladder (kbval):
 
-| 关卡 | 结果 |
+| gate | result |
 |---|---|
-| 标量 born 回归(r9 vs 存档) | **逐位相同**(8,296,152 B) |
-| nc born(40 带 × 36 k,$N_A=1440$) | Hermiticity $1.1\times10^{-14}$ |
-| 链-vs-born 闭环 unit test | $\mathbf{4.6\times10^{-11}}$(对 EDI edmat 时 0.87) |
-| SV-翻倍审计,**全部** 1260 离对角块 | 中位 3.5e-3,p90 7.8e-3,max 1.1e-2(双 SCF 宿主差水平,无坏尾) |
+| scalar born regression (r9 vs archive) | **bit-identical** (8,296,152 B) |
+| nc born (40 bands × 36 k, $N_A=1440$) | Hermiticity $1.1\times10^{-14}$ |
+| chain-vs-born closure unit test | $\mathbf{4.6\times10^{-11}}$ (0.87 against the EDI edmat) |
+| SV doubling audit, **all** 1260 off-diagonal blocks | median 3.5e-3, p90 7.8e-3, max 1.1e-2 (the level of a two-SCF host difference, no bad tail) |
 
-## 5. 终判:双门框架
+## 5. Final verdict: a two-gate framework
 
-原"0.2 meV 内精确 ×2"隐含**同一哈密顿量**假设。实际上标量宿主(dout66f)与
-noncolin 宿主(d66nc)是两次独立 SCF,QE 的 noncolin-XC($m\to0$ 路径)使原始本征值
-差 3–52 meV、VBM 差 10.8 meV——异宿主上 0.2 meV 原则上不可达。正确框架:
+The original "exactly ×2 to within 0.2 meV" implicitly assumed **the same Hamiltonian**. In reality the scalar host
+(dout66f) and the noncolin host (d66nc) are two independent SCF runs, and QE's noncolin XC (the $m\to0$ path) makes
+the raw eigenvalues differ by 3–52 meV and the VBM by 10.8 meV — 0.2 meV is unreachable in principle across
+different hosts. The correct framework:
 
-| 门 | 性质 | 结果 |
+| gate | nature | result |
 |---|---|---|
-| 旋量对简并 $\max|e_{2j}-e_{2j-1}|$ | 同宿主,**精确** | **0.0000 meV — PASS** |
-| 各自 VBM 门控后 scalar-vs-nc | 跨宿主,受孪生底噪限 | ≤4.86 meV — PASS |
+| spinor-pair degeneracy $\max|e_{2j}-e_{2j-1}|$ | same host, **exact** | **0.0000 meV — PASS** |
+| scalar-vs-nc after gating on each VBM | cross-host, limited by twin noise | ≤4.86 meV — PASS |
 
-叠加 §2–§4 的机器精度内证,npol=2 EDT(链 + born)达到生产认证。
-验收与取证脚本存于 qe-edt 仓库 `post/`:`doubling_accept.py`、`parallel_test.py`、
-`analyze_split.py`、`svdouble2.py`。
+Together with the machine-precision internal evidence of §2–§4, npol=2 EDT (chain + born) reaches production
+certification. Acceptance and forensic scripts live in the qe-edt repository under `post/`: `doubling_accept.py`,
+`parallel_test.py`, `analyze_split.py`, `svdouble2.py`.
 
-## 6. 对 SOC 生产的直接后果
+## 6. Direct consequences for SOC production
 
-- SOC(lspinorb=T)链一律使用 **EDT 自产 born edmat**(`do_full_block=.true.,
-  born_only=.true.`),禁止投喂 EDI-direct 的 noncolin/SOC edmat。
-- 顺带发现旧 SOC O$_\mathrm{S}$ 超胞是**未弛豫几何**(O 替位 $z$ 差 1.0 bohr),
-  与非 SOC 生产线(弛豫)不一致——四只 SOC 超胞(洁净、O$_\mathrm{S}$、V$_\mathrm{S}$、
-  Se$_\mathrm{S}$)已按战役几何重算排队。
-- 50 vs 100 Ry 收敛检查:SOC 劈裂本身 50 Ry 已收敛(K-VB 149.0 meV、K-CB 3.0 meV,
-  差 <0.1 meV),但活性窗绝对能量漂移 max 16 meV → SOC 栈维持 100 Ry。
+- SOC (lspinorb=T) chains always use **EDT's own born edmat** (`do_full_block=.true., born_only=.true.`);
+  feeding them an EDI-direct noncolin/SOC edmat is forbidden.
+- An incidental find: the old SOC O$_\mathrm{S}$ supercell used **unrelaxed geometry** (the O substitutional $z$
+  off by 1.0 bohr), inconsistent with the non-SOC production line (relaxed) — all four SOC supercells (clean,
+  O$_\mathrm{S}$, V$_\mathrm{S}$, Se$_\mathrm{S}$) are queued for recomputation on the campaign geometry.
+- 50 vs 100 Ry convergence check: the SOC splittings themselves are converged at 50 Ry (K-VB 149.0 meV, K-CB
+  3.0 meV, differing by <0.1 meV), but absolute energies in the active window drift by up to 16 meV → the SOC stack
+  stays at 100 Ry.
 
-## 7. 第二幕:按对仪器化转储与接口真凶
+## 7. Act two: pair-by-pair instrumented dumps and the interface culprit
 
-把 EDI 装上 `EDI_DBG_PAIR` 探针(对指定 $(k_i,k_f)$ 对转储装配前的
-$m_\mathrm{loc}$ 与 $m_\mathrm{nl}$ 矩阵),与裁判/已认证的 EDT KB 三方对账:
+Fitting EDI with an `EDI_DBG_PAIR` probe (dumping the pre-assembly $m_\mathrm{loc}$ and $m_\mathrm{nl}$ matrices
+for a specified $(k_i,k_f)$ pair) allowed a three-way reconciliation against the referee and the already-certified
+EDT KB:
 
-| 对账(对 $(k_1,k_{29})$,80 元素) | 结果 |
+| reconciliation (pair $(k_1,k_{29})$, 80 elements) | result |
 |---|---|
-| EDI $m_\mathrm{loc}$ vs 独立裁判 | $6.9\times10^{-12}$ |
-| EDI $m_\mathrm{nl}$ vs EDT KB(已认证) | $9.5\times10^{-14}$ |
-| 但整装 .bin vs EDT-born 全矩阵 | max 1.68 |
+| EDI $m_\mathrm{loc}$ vs independent referee | $6.9\times10^{-12}$ |
+| EDI $m_\mathrm{nl}$ vs EDT KB (certified) | $9.5\times10^{-14}$ |
+| but assembled .bin vs the EDT-born full matrix | max 1.68 |
 
-数值全对、摆放全错 → 罪在装配/写盘。7 种轴假设一次扫描:
+Every number right, every placement wrong → the fault is in assembly/writing. A single sweep over 7 axis
+hypotheses:
 
 $$\max\bigl|E_\mathrm{EDI} - T_\mathrm{EDT}^{T(\mathrm{bands})}\bigr| = 8.7\times10^{-14}$$
 
-——块内带轴纯转置(无 $k$ 交换、无共轭)。修复为 EDI 写入端转置 + 格式版本
-20260809(edi_v8d);**所有 20260702 版的 EDI-direct .bin 都携带带转置**,须重
-生成或读时转置(conv.py 产的同版本号文件是 EDT 约定,不受影响)。同批修复:
-B8($q_\mathrm{cryst}$ 改用 NSCF 表示,防 $e^{i\Delta G\cdot r}$ 假相位)与
-full_q $\sigma_1$-only。修复后终极闭环(edi_v8d,同一组波函数):
+— a pure band-axis transpose within the block (no $k$ exchange, no conjugation). Fixed by transposing on the EDI
+write side, with format version 20260809 (edi_v8d); **every 20260702-version EDI-direct .bin carries the band
+transpose** and must be regenerated or transposed on read (files with that same version number produced by conv.py
+follow the EDT convention and are unaffected). Fixed in the same batch: B8 ($q_\mathrm{cryst}$ now taken in the
+NSCF representation, preventing spurious $e^{i\Delta G\cdot r}$ phases) and the full_q $\sigma_1$-only bug. The
+final closure after the fix (edi_v8d, same set of wavefunctions):
 
-| 闭环 | 修复前 | 修复后 |
+| closure | before the fix | after |
 |---|---|---|
-| noncolin:EDI .bin vs EDT-born 全矩阵(40 带 × 36 k) | max 1.68 | **max $8.7\times10^{-14}$,median $2.1\times10^{-16}$** |
-| 标量:EDT 链 unit test vs EDI edmat(跨码) | 1.677 | $\mathbf{1.86\times10^{-14}}$ |
+| noncolin: EDI .bin vs EDT-born full matrix (40 bands × 36 k) | max 1.68 | **max $8.7\times10^{-14}$, median $2.1\times10^{-16}$** |
+| scalar: EDT chain unit test vs EDI edmat (cross-code) | 1.677 | $\mathbf{1.86\times10^{-14}}$ |
 
-两个独立实现互相验证到机器精度——整个战役最强的跨码闭环。
+Two independent implementations verifying each other to machine precision — the strongest cross-code closure of
+the whole campaign.
 
-**总教训**:跨码对不上时,第一步不是审引擎,而是**按对仪器化转储把
-"引擎 vs 接口"分离**——两个各自正确的引擎完全可以隔着一个转置互相"定罪"。
+**Overall lesson**: when two codes disagree, the first move is not to audit the engines but to **separate "engine"
+from "interface" with pair-by-pair instrumented dumps** — two individually correct engines can perfectly well
+convict each other across a single transpose.

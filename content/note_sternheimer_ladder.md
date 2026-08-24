@@ -1,210 +1,211 @@
-# Rest-space Sternheimer 阶梯:为什么二阶不够,以及逐阶求解高阶 dressing
+# The rest-space Sternheimer ladder: why second order is not enough, and solving the higher-order dressing term by term
 
-EDT 的 active/rest 下折叠把 dressed 势写成 $\tilde V(\omega)=M+\Sigma(\omega)$:$M$ 是 active 子空间里的裸耦合,$\Sigma$ 把 rest 子空间(被折叠掉的高能带)的虚跃迁折回 active。目前代码里的 $\Sigma$ 只取到**二阶(Born)** —— 用裸 host 传播子 $G^0_{QQ}$、丢掉缺陷势在 rest 内部的多次散射 $\Delta V_{QQ}$。在 MoS$_2$ 的 S-vacancy 上,这个近似把 conduction 派生的 $e$ 能级**过度屏蔽**了约 $1.1$ eV(见[结果页](results.html#sec-3) 的 Fig 13–15)。
+EDT's active/rest downfolding writes the dressed potential as $\tilde V(\omega)=M+\Sigma(\omega)$: $M$ is the bare coupling within the active subspace, and $\Sigma$ folds the virtual transitions through the rest subspace (the high-energy bands that were folded out) back into the active space. The $\Sigma$ currently in the code goes only to **second order (Born)** — it uses the bare host propagator $G^0_{QQ}$ and discards the multiple scattering of the defect potential inside the rest space, $\Delta V_{QQ}$. On the MoS$_2$ S-vacancy this approximation **over-screens** the conduction-derived $e$ level by about $1.1$ eV (see Figs 13–15 on the [results page](results.html#sec-3)).
 
-本页做三件事:(i) 推导精确的 Feshbach rest 自能;(ii) 说明**为什么二阶不是一个好近似**;(iii) 给出**逐阶 Sternheimer 阶梯**的完整公式与实现方案(含非局域部分的接法)。记号:投影 $P$(active)、$Q=1-P$(rest);host 哈密顿量 $H_0$,缺陷势 $\Delta V=V_{\rm defect}-V_{\rm host}$;块记号 $\Delta V_{PQ}\equiv P\,\Delta V\,Q$ 等。
+This page does three things: (i) derives the exact Feshbach rest self-energy; (ii) explains **why second order is not a good approximation**; and (iii) gives the complete formulae and implementation plan for the **order-by-order Sternheimer ladder** (including how the nonlocal part attaches). Notation: projectors $P$ (active) and $Q=1-P$ (rest); host Hamiltonian $H_0$, defect potential $\Delta V=V_{\rm defect}-V_{\rm host}$; block notation $\Delta V_{PQ}\equiv P\,\Delta V\,Q$ and so on.
 
-## 1. 记号与精确下折叠(Feshbach)
+## 1. Notation and the exact downfolding (Feshbach)
 
-host 以 Bloch 态为本征基,$H_0|n\mathbf k\rangle=\varepsilon_{n\mathbf k}|n\mathbf k\rangle$。active 与 rest **都**由 host Bloch 态张成,所以 $H_0$ 在两块之间**不耦合**:
-$$P H_0 Q=0\quad(\text{Bloch 态是 }H_0\text{ 的本征态}),$$
-$P$–$Q$ 之间的耦合**只来自** $\Delta V$。记 active 块裸耦合 $M\equiv\Delta V_{PP}$。
+The host is diagonal in its Bloch eigenbasis, $H_0|n\mathbf k\rangle=\varepsilon_{n\mathbf k}|n\mathbf k\rangle$. Active and rest are **both** spanned by host Bloch states, so $H_0$ does **not** couple the two blocks:
+$$P H_0 Q=0\quad(\text{Bloch states are eigenstates of }H_0),$$
+and the $P$–$Q$ coupling comes **only** from $\Delta V$. Write the active-block bare coupling as $M\equiv\Delta V_{PP}$.
 
-解定态方程 $(H_0+\Delta V-\omega)|\psi\rangle=0$,把 $|\psi\rangle=|\psi_P\rangle+|\psi_Q\rangle$ 代入,从 $Q$ 分量方程消去 $|\psi_Q\rangle$:
+Solving the stationary equation $(H_0+\Delta V-\omega)|\psi\rangle=0$, substituting $|\psi\rangle=|\psi_P\rangle+|\psi_Q\rangle$ and eliminating $|\psi_Q\rangle$ from the $Q$-component equation:
 $$|\psi_Q\rangle=(\omega-H_{QQ})^{-1}\,\Delta V_{QP}\,|\psi_P\rangle,\qquad
 H_{QQ}\equiv Q(H_0+\Delta V)Q=H_0^{QQ}+\Delta V_{QQ},$$
-得到 active 子空间里的有效哈密顿量
+gives the effective Hamiltonian in the active subspace
 $$\boxed{\,H_{\rm eff}(\omega)=P H_0 P+\underbrace{M+\Sigma(\omega)}_{\tilde V(\omega)}\,},\qquad
 \Sigma(\omega)=\Delta V_{PQ}\,\big(\omega-H_0^{QQ}-\Delta V_{QQ}\big)^{-1}\,\Delta V_{QP}. \tag{1.1}$$
 
-$\Sigma(\omega)$ 就是 rest dressing。**注意分母里含 $\Delta V_{QQ}$** —— 缺陷势在 rest 子空间里的多次散射,精确的 $\Sigma$ 把它取到**全阶**。这个 $\tilde V$ 正是 active-space $T$-matrix $T_{PP}=[1-\tilde V G^A]^{-1}\tilde V$ 的输入,所以 $\Sigma$ 的精度决定整条流水线。缺陷能级 = 自洽本征值 $\det[\omega-H_{\rm eff}(\omega)]=0$。
+$\Sigma(\omega)$ is the rest dressing. **Note that the denominator contains $\Delta V_{QQ}$** — the multiple scattering of the defect potential within the rest subspace, which the exact $\Sigma$ keeps to **all orders**. This $\tilde V$ is precisely the input to the active-space $T$-matrix $T_{PP}=[1-\tilde V G^A]^{-1}\tilde V$, so the accuracy of $\Sigma$ determines the whole pipeline. The defect levels are the self-consistent eigenvalues of $\det[\omega-H_{\rm eff}(\omega)]=0$.
 
-## 2. 二阶(Born)近似为什么会过度屏蔽
+## 2. Why the second-order (Born) approximation over-screens
 
-目前代码把分母里的 $\Delta V_{QQ}$ 丢掉,用裸 host 传播子
+The current code drops $\Delta V_{QQ}$ from the denominator and uses the bare host propagator
 $$G^0_{QQ}(\omega)\equiv\big(\omega-H_0^{QQ}\big)^{-1}=Q(\omega-H_0)^{-1}Q,\qquad
 \Sigma^{(2)}(\omega)=\Delta V_{PQ}\,G^0_{QQ}(\omega)\,\Delta V_{QP}. \tag{2.1}$$
 
-把 (1.1) 的精确 resolvent 按 Dyson 展开,
+Dyson-expanding the exact resolvent of (1.1),
 $$\big(\omega-H_0^{QQ}-\Delta V_{QQ}\big)^{-1}=\sum_{p\ge0}\big(G^0_{QQ}\,\Delta V_{QQ}\big)^p G^0_{QQ},$$
-于是
+gives
 $$\Sigma(\omega)=\sum_{p\ge0}\Sigma^{(2+p)},\qquad
 \Sigma^{(2+p)}=\Delta V_{PQ}\,G^0_{QQ}\big(\Delta V_{QQ}\,G^0_{QQ}\big)^p\,\Delta V_{QP}. \tag{2.2}$$
-二阶只保留 $p=0$,把所有含 $\Delta V_{QQ}$ 的 rest 内多次散射($p\ge1$)全扔掉。
+Second order keeps only $p=0$, throwing away every rest-internal multiple scattering that contains $\Delta V_{QQ}$ ($p\ge1$).
 
-**(a) 收敛性。** 级数 (2.2) 收敛 $\iff$ 谱半径
+**(a) Convergence.** The series (2.2) converges $\iff$ the spectral radius
 $$\rho\equiv\rho\!\big(G^0_{QQ}(\omega)\,\Delta V_{QQ}\big)<1,\qquad
 \frac{\lVert\Sigma^{(m+1)}\rVert}{\lVert\Sigma^{(m)}\rVert}\xrightarrow{\,m\to\infty\,}\rho.$$
-只有 $\rho\ll1$ 时二阶才靠谱。S-vacancy 是个**深势**(缺陷 cube 势阱 $\sim-28$ Ry),$\Delta V_{QQ}$ 很强,$\rho\sim\mathcal O(1)$ —— 级数远未收敛,二阶截断可以差一个 $\mathcal O(1)$ 倍。
+Second order is only trustworthy when $\rho\ll1$. The S-vacancy is a **deep potential** (the defect cube well is $\sim-28$ Ry), so $\Delta V_{QQ}$ is strong and $\rho\sim\mathcal O(1)$ — the series is far from converged, and truncating at second order can be off by an $\mathcal O(1)$ factor.
 
-**(b) 物理图像:中间传播没被屏蔽。** 用 resolvent 恒等式 $G_{QQ}=G^0_{QQ}+G^0_{QQ}\Delta V_{QQ}G_{QQ}$,二阶的误差是
+**(b) Physical picture: the intermediate propagation is unscreened.** Using the resolvent identity $G_{QQ}=G^0_{QQ}+G^0_{QQ}\Delta V_{QQ}G_{QQ}$, second order's error is
 $$\Sigma-\Sigma^{(2)}=\Delta V_{PQ}\,G^0_{QQ}\,\Delta V_{QQ}\,G_{QQ}\,\Delta V_{QP},$$
-它对 $\Delta V_{QQ}$ 是**一阶**的、并不小。$\Sigma^{(2)}$ 把 rest 里的中间态当作**自由 host 能带**($G^0$)传播;但这些 rest 态本身被强缺陷势 $\Delta V_{QQ}$ 强烈散射。对 conduction 派生的 $e$(三条 Mo 悬挂键的反键组合),它对 rest conduction 流形($\varepsilon_q>\varepsilon_e$)的二阶耦合
+which is **first order** in $\Delta V_{QQ}$ and not small. $\Sigma^{(2)}$ treats the intermediate rest states as propagating like **free host bands** ($G^0$); but those rest states are themselves strongly scattered by the deep defect potential $\Delta V_{QQ}$. For the conduction-derived $e$ (the antibonding combination of the three Mo dangling bonds), its second-order coupling to the rest conduction manifold ($\varepsilon_q>\varepsilon_e$),
 $$\Sigma^{(2)}_{ee}=\sum_{q\in Q}\frac{|\langle e|\Delta V|q\rangle|^2}{\varepsilon_e-\varepsilon_q}<0$$
-是强吸引的(分母为负)。用裸 $G^0$ 时这份吸引**没有被屏蔽**,把 $e$ 拉得过深;把 $\Delta V_{QQ}$ 加回去 = 让中间 rest 态在缺陷场里重新排布,高阶项会部分抵消这份裸吸引。
+is strongly attractive (negative denominators). With a bare $G^0$ that attraction is **unscreened** and pulls $e$ far too deep; putting $\Delta V_{QQ}$ back means letting the intermediate rest states rearrange in the defect field, and the higher-order terms partly cancel that bare attraction.
 
-**(c) 与数据对照。** explicit 把这些 conduction 带直接放进 $P$、完全不做 rest dressing,给出 $e$ 在 VBM 上方 $+1.35$ eV(Fig 14);二阶 dressed 给的是 $+0.36$ eV(Fig 15)。也就是说**全阶求和必须把 $e$ 从 $+0.36$ 抬回到 $\sim+1.2\text{–}1.35$**(DFT 给 $+1.19$)—— 高阶项净额减少了约 $1$ eV 的过度束缚。这正是"二阶过度屏蔽"的定量含义。
+**(c) Comparison with the data.** Explicit puts these conduction bands directly into $P$ with no rest dressing at all, and gives $e$ at $+1.35$ eV above the VBM (Fig 14); second-order dressed gives $+0.36$ eV (Fig 15). In other words, **the all-order resummation has to lift $e$ from $+0.36$ back to $\sim+1.2\text{–}1.35$** (DFT gives $+1.19$) — the higher-order terms net out about $1$ eV of excess binding. That is the quantitative meaning of "second order over-screens".
 
-> 另一个**独立**的、与之叠加的近似:代码在单一静态参考 $\omega_0=\varepsilon_{\rm VBM}$ 处取 $\Sigma$,而不是在能级自身能量处自洽。对离 $\omega_0$ 很远的 $e$,即使是二阶项也估在了错误的频率上。本页的阶梯解决的是**截断阶数**这一层;频率依赖那一层要么在能级能量处求 $\Sigma(\omega)$,要么扫全 $\Sigma_{\rm rest}(\omega)$。
+> A second and **independent** approximation stacks on top of this: the code evaluates $\Sigma$ at a single static reference $\omega_0=\varepsilon_{\rm VBM}$ rather than self-consistently at each level's own energy. For $e$, which is far from $\omega_0$, even the second-order term is evaluated at the wrong frequency. The ladder on this page addresses the **truncation order**; the frequency-dependence layer requires either evaluating $\Sigma(\omega)$ at the level energy or sweeping the full $\Sigma_{\rm rest}(\omega)$.
 
-## 3. Sternheimer 阶梯:逐阶公式推导
+## 3. The Sternheimer ladder: order-by-order derivation
 
-Sternheimer 的核心是**不显式做 rest 能带求和**,而是解一个(投影)线性方程。对每个 active 源 $|b\rangle$,定义一阶 rest 响应
+Sternheimer's central idea is to **avoid the explicit rest-band sum** and solve a (projected) linear equation instead. For each active source $|b\rangle$, define the first-order rest response
 $$|\chi^0_b\rangle\equiv G^0_{QQ}\,\Delta V_{QP}\,|b\rangle
 \;\Longleftrightarrow\;
 Q(\omega-H_0)Q\,|\chi^0_b\rangle=Q\,\Delta V\,|b\rangle,\quad|\chi^0_b\rangle\in Q. \tag{3.1}$$
-(QE 里用投影 CG 解,$H_0$ 由 `h_psi` 给出。)二阶自能就是 $\Sigma^{(2)}_{ab}=\langle a|\Delta V|\chi^0_b\rangle$。
+(In QE this is solved by projected CG, with $H_0$ supplied by `h_psi`.) The second-order self-energy is then $\Sigma^{(2)}_{ab}=\langle a|\Delta V|\chi^0_b\rangle$.
 
-**高阶响应的递推。** 把 (2.2) 里 $\big(G^0_{QQ}\Delta V_{QQ}\big)^p$ 一层层拆开,定义
+**Recursion for the higher-order responses.** Peeling $\big(G^0_{QQ}\Delta V_{QQ}\big)^p$ in (2.2) apart layer by layer, define
 $$|\chi^p_b\rangle\equiv\big(G^0_{QQ}\,\Delta V_{QQ}\big)^p|\chi^0_b\rangle
 \;\Longleftrightarrow\;
 Q(\omega-H_0)Q\,|\chi^p_b\rangle=Q\,\Delta V\,Q\,|\chi^{p-1}_b\rangle,\quad p\ge1. \tag{3.2}$$
-**关键**:每一阶用的是**同一个**算符 $Q(\omega-H_0)Q$,只换右端项(把上一阶响应再被 $\Delta V_{QQ}$ 散射一次)。CG 设置完全复用,每加一阶只多"算一次右端 + 解一次"。
+**The key point**: every order uses **the same** operator $Q(\omega-H_0)Q$ and only changes the right-hand side (scattering the previous order's response once more by $\Delta V_{QQ}$). The CG setup is reused verbatim, and each extra order costs only "build one right-hand side + one solve".
 
-**自能各阶用响应表达(对称配对)。** 在实轴上 $G^0_{QQ}$ 厄米,$\langle a|\Delta V_{PQ}G^0_{QQ}=\langle\chi^0_a|$;把 (2.2) 的链条从中间任意劈开:
+**Expressing each order of the self-energy through the responses (symmetric pairing).** On the real axis $G^0_{QQ}$ is Hermitian, so $\langle a|\Delta V_{PQ}G^0_{QQ}=\langle\chi^0_a|$; splitting the chain of (2.2) at any intermediate point,
 $$\boxed{\;\Sigma^{(2)}_{ab}=\langle a|\Delta V|\chi^0_b\rangle,\qquad
 \Sigma^{(2+p)}_{ab}=\langle\chi^i_a|\,\Delta V_{QQ}\,|\chi^j_b\rangle,\quad i+j=p-1\ \ (p\ge1).\;} \tag{3.3}$$
-(带展宽 $\eta$ 时 $G^0$ 非厄米,改用不对称式 $\Sigma^{(2+p)}_{ab}=\langle a|\Delta V|\chi^p_b\rangle$,或分别解左/右响应。)
+(With a broadening $\eta$, $G^0$ is non-Hermitian; use the asymmetric form $\Sigma^{(2+p)}_{ab}=\langle a|\Delta V|\chi^p_b\rangle$, or solve the left and right responses separately.)
 
-**成本结构:一次 solve 买两阶,奇数阶白送。** 由 (3.3),手上有响应 $\chi^0,\ldots,\chi^{S-1}$($S$ 次 solve)就能精确到 $2S+1$ 阶:
+**Cost structure: one solve buys two orders, and the odd orders come free.** By (3.3), having the responses $\chi^0,\ldots,\chi^{S-1}$ ($S$ solves) gives exactness to order $2S+1$:
 
-| 已解响应 | solve 数 $S$ | 可达自能阶 | 该 solve 的"白送"项 |
+| responses solved | number of solves $S$ | self-energy order reachable | the "free" term from that solve |
 |---|---|---|---|
 | $\chi^0$ | $1$ | $\Sigma^{(2)},\ \Sigma^{(3)}$ | $\Sigma^{(3)}=\langle\chi^0|\Delta V_{QQ}|\chi^0\rangle$ |
 | $+\,\chi^1$ | $2$ | $\Sigma^{(4)},\ \Sigma^{(5)}$ | $\Sigma^{(5)}=\langle\chi^1|\Delta V_{QQ}|\chi^1\rangle$ |
 | $+\,\chi^2$ | $3$ | $\Sigma^{(6)},\ \Sigma^{(7)}$ | $\Sigma^{(7)}=\langle\chi^2|\Delta V_{QQ}|\chi^2\rangle$ |
-| $\ \ \vdots$ | $S$ | 精确到 $\Sigma^{(2S+1)}$ | $\langle\chi^{S-1}|\Delta V_{QQ}|\chi^{S-1}\rangle$ |
+| $\ \ \vdots$ | $S$ | exact to $\Sigma^{(2S+1)}$ | $\langle\chi^{S-1}|\Delta V_{QQ}|\chi^{S-1}\rangle$ |
 
-特别地,**三阶 $\Sigma^{(3)}=\langle\chi^0_a|\Delta V_{QQ}|\chi^0_b\rangle$ 不需要任何新 solve** —— 把已经算好的二阶响应再缩并一次即可,是"白送"的。这给了最便宜的二阶可靠性检验:若 $r_3\equiv\lVert\Sigma^{(3)}\rVert/\lVert\Sigma^{(2)}\rVert$ 已经不小,二阶就不可信。
+In particular, **third order $\Sigma^{(3)}=\langle\chi^0_a|\Delta V_{QQ}|\chi^0_b\rangle$ needs no new solve at all** — it is one extra contraction of the second-order responses already computed, i.e. free. That gives the cheapest possible reliability test for second order: if $r_3\equiv\lVert\Sigma^{(3)}\rVert/\lVert\Sigma^{(2)}\rVert$ is already not small, second order cannot be trusted.
 
-**全阶端点(resummation)。** $S\to\infty$ 等价于直接解含 $\Delta V_{QQ}$ 的完整 Feshbach 方程
+**The all-order endpoint (resummation).** $S\to\infty$ is equivalent to solving the complete Feshbach equation with $\Delta V_{QQ}$ included directly,
 $$Q(\omega-H_0-\Delta V)Q\,|X_b\rangle=Q\,\Delta V\,|b\rangle,\qquad \Sigma_{ab}=\langle a|\Delta V|X_b\rangle, \tag{3.4}$$
-即把 $\Delta V_{QQ}$ 放进 CG 的算符里、一次解到全阶(完整推导、matvec 与复解法见 §6)。逐阶阶梯的价值在于:它把这个非微扰解**展开成可监控的序列**,既能在 $\rho<1$ 时按需截断,又能用 $\Sigma^{(3)},\Sigma^{(5)},\ldots$ 的大小直接读出 $\rho$、判断该不该信二阶。
+i.e. putting $\Delta V_{QQ}$ into the CG operator and solving to all orders in one go (full derivation, matvec and complex solver in §6). The value of the order-by-order ladder is that it **expands this non-perturbative solution into a monitorable sequence**: it can be truncated on demand when $\rho<1$, and the magnitudes of $\Sigma^{(3)},\Sigma^{(5)},\ldots$ read off $\rho$ directly and tell you whether second order deserves trust.
 
-## 4. 非局域部分的接法与实现方案
+## 4. How the nonlocal part attaches, and the implementation plan
 
-递推 (3.2) 的右端是 $Q\,\Delta V\,Q\,|\chi^{p-1}\rangle$ —— 要把缺陷势作用到一个 rest 波函数上。$\Delta V$ 分局域与非局域两块:
+The right-hand side of the recursion (3.2) is $Q\,\Delta V\,Q\,|\chi^{p-1}\rangle$ — the defect potential applied to a rest wavefunction. $\Delta V$ splits into local and nonlocal parts:
 $$\Delta V=\Delta V_{\rm loc}(\mathbf r)+\Delta V_{\rm nl},\qquad
 \Delta V_{\rm nl}=\sum_{IJ}|\beta_I\rangle\,\Delta D_{IJ}\,\langle\beta_J|.$$
-$\Delta V_{\rm nl}$ 是 KB **可分离**的(对 vacancy 主要是 $-$ 被移除原子的投影子);$\Delta V_{\rm loc}$ 是对齐后的超胞局域势差(cube)。把 $\Delta V$ 作用到 $|\chi^{p-1}\rangle$ 的步骤:
+$\Delta V_{\rm nl}$ is KB **separable** (for a vacancy it is essentially minus the removed atom's projector); $\Delta V_{\rm loc}$ is the aligned supercell local potential difference (the cube). Applying $\Delta V$ to $|\chi^{p-1}\rangle$:
 
 ```text
-给定 rest 响应 |chi^{p-1}>:
-1. 局域:  FFT |chi^{p-1}> 到超胞实空间网格 -> 逐点乘 dV_loc(r) -> FFT 回 G 空间
-2. 非局域: 对每个投影子 J 算 c_J = <beta_J | chi^{p-1}>
-           组装 sum_{I,J} |beta_I> dD_{IJ} c_J            (可分离, 便宜)
-3. 相加 -> dV|chi^{p-1}>
-4. 投影到 Q:  |R> = (1-P) dV|chi^{p-1}>
-              = dV|chi^{p-1}> - sum_{a in P} |a><a| dV|chi^{p-1}>
-5. 解 Sternheimer:  Q(w - H0)Q |chi^p> = |R>     (投影 CG, 复用二阶的算符)
+given the rest response |chi^{p-1}>:
+1. local:     FFT |chi^{p-1}> to the supercell real-space grid -> multiply pointwise by dV_loc(r) -> FFT back to G space
+2. nonlocal:  for each projector J compute c_J = <beta_J | chi^{p-1}>
+              assemble sum_{I,J} |beta_I> dD_{IJ} c_J            (separable, cheap)
+3. add -> dV|chi^{p-1}>
+4. project onto Q:  |R> = (1-P) dV|chi^{p-1}>
+                        = dV|chi^{p-1}> - sum_{a in P} |a><a| dV|chi^{p-1}>
+5. solve Sternheimer:  Q(w - H0)Q |chi^p> = |R>     (projected CG, reusing second order's operator)
 ```
 
-两点实现要害:
+Two implementation essentials:
 
-- **局域部分把 $\mathbf k$ 通道耦起来。** 二阶 solve (3.1) 对每个 $\mathbf k$ 是**解耦**的(固定 source 下右端逐 $\mathbf k$ 独立)。但缺陷破坏平移对称,$\Delta V_{\rm loc}$ 通过超胞 FFT 把不同 $\mathbf k$ 连起来:高阶右端 $\Delta V Q|\chi^{p-1}\rangle$ 会把一个 $\mathbf k$ 的响应散射到别的 $\mathbf k$。所以**三阶以上不再是逐 $\mathbf k$ 独立的 solve**,需要这套超胞 FFT 场机器 —— 这是新增的主要工程量。非局域部分则始终是可分离的投影子求和,便宜、与 $\mathbf k$ 解耦。
-- **缩并复用右端。** (3.3) 里 $\Sigma^{(2+p)}_{ab}=\langle\chi^i_a|\Delta V_{QQ}|\chi^j_b\rangle=\langle\chi^i_a|\big(\Delta V|\chi^j_b\rangle\big)$,而 $\Delta V|\chi^j_b\rangle$ 正是算 $\chi^{j+1}$ 时已经造好的右端向量。所以自能缩并不额外花一次 $\Delta V$ 作用,只是向量内积。
+- **The local part couples the $\mathbf k$ channels.** The second-order solve (3.1) is **decoupled** in $\mathbf k$ (at fixed source, the right-hand side is independent per $\mathbf k$). But the defect breaks translational symmetry, and $\Delta V_{\rm loc}$ connects different $\mathbf k$ through the supercell FFT: the higher-order right-hand side $\Delta V Q|\chi^{p-1}\rangle$ scatters one $\mathbf k$'s response into others. So **third order and above are no longer per-$\mathbf k$ independent solves**, and this supercell FFT field machinery is needed — the main new engineering effort. The nonlocal part remains a separable projector sum throughout: cheap and $\mathbf k$-decoupled.
+- **Reuse the right-hand sides for the contractions.** In (3.3), $\Sigma^{(2+p)}_{ab}=\langle\chi^i_a|\Delta V_{QQ}|\chi^j_b\rangle=\langle\chi^i_a|\big(\Delta V|\chi^j_b\rangle\big)$, and $\Delta V|\chi^j_b\rangle$ is exactly the right-hand-side vector already built when computing $\chi^{j+1}$. So the self-energy contractions cost no extra $\Delta V$ application, just vector inner products.
 
-## 5. 收敛判据、与 explicit 计算的对应、下一步
+## 5. Convergence criteria, the correspondence with explicit calculations, and next steps
 
-**怎么用阶梯判断二阶。** 实跑顺序:先白送地算 $\Sigma^{(3)}$,看比值 $r_3=\lVert\Sigma^{(3)}\rVert/\lVert\Sigma^{(2)}\rVert$。
+**How to use the ladder to judge second order.** The practical order of operations: compute $\Sigma^{(3)}$ for free first, then look at the ratio $r_3=\lVert\Sigma^{(3)}\rVert/\lVert\Sigma^{(2)}\rVert$.
 
-| $r_3$ | 含义 | 做法 |
+| $r_3$ | meaning | what to do |
 |---|---|---|
-| $\ll1$ | 二阶可信 | $\tilde V\approx M+\Sigma^{(2)}$,收工 |
-| $\lesssim1$ | 收敛慢 | 逐阶往上($+1$ solve 到五阶,再看 $r_5$) |
-| $\gtrsim1$ | Born **发散** | 逐阶救不回 —— 改用全阶 Feshbach (3.4),或把这些带搬进 active 显式处理 |
+| $\ll1$ | second order is trustworthy | $\tilde V\approx M+\Sigma^{(2)}$, done |
+| $\lesssim1$ | slow convergence | climb order by order ($+1$ solve to fifth order, then look at $r_5$) |
+| $\gtrsim1$ | Born **diverges** | going order by order cannot save it — switch to the all-order Feshbach (3.4), or move these bands into the active space and treat them explicitly |
 
-**实测 $r_3$(用 explicit $M$,精确,含全 $k$ 耦合)。** 取 $P$ = bands 7–17(block 的 active 窗口)、$Q$ = bands 18–28(近 gap conduction rest),物理势 $W=M/N_k$,直接矩阵代数算 $\Sigma^{(2)}=W_{PQ}\,g\,W_{QP}$、$\Sigma^{(3)}=W_{PQ}\,g\,W_{QQ}\,g\,W_{QP}$:
+**Measured $r_3$ (using the explicit $M$, exact, with the full $k$ coupling).** Taking $P$ = bands 7–17 (the block's active window), $Q$ = bands 18–28 (the near-gap conduction rest), and the physical potential $W=M/N_k$, direct matrix algebra gives $\Sigma^{(2)}=W_{PQ}\,g\,W_{QP}$ and $\Sigma^{(3)}=W_{PQ}\,g\,W_{QQ}\,g\,W_{QP}$:
 
 | $\omega$ | $\lVert\Sigma^{(2)}\rVert_F$ | $\lVert\Sigma^{(3)}\rVert_F$ | $r_3$ | $\rho(W_{QQ}g)$ |
 |---|---|---|---|---|
-| $\omega_0=\varepsilon_{\rm VBM}$(block 静态参考) | $8.72$ eV | $3.22$ eV | $\mathbf{0.37}$ | $0.60$ |
-| $\omega\approx\varepsilon_e$($e$ 自身能量) | $10.35$ eV | $4.64$ eV | $\mathbf{0.45}$ | $0.70$ |
+| $\omega_0=\varepsilon_{\rm VBM}$ (the block's static reference) | $8.72$ eV | $3.22$ eV | $\mathbf{0.37}$ | $0.60$ |
+| $\omega\approx\varepsilon_e$ ($e$'s own energy) | $10.35$ eV | $4.64$ eV | $\mathbf{0.45}$ | $0.70$ |
 
-$\rho<1$ 但 $r_3\approx0.4$ —— Born 级数**收敛却很慢**(三阶还剩二阶的 $40\%$),正落在上表 **"$\lesssim1$,续阶"** 那一档:二阶不可信。
+$\rho<1$ but $r_3\approx0.4$ — the Born series **converges, but very slowly** (third order still carries $40\%$ of second order), landing squarely in the **"$\lesssim1$, keep climbing"** row above: second order is not trustworthy.
 
-**逐阶确实在收敛,且自洽可验。** 同一套数据下 $e$ 能级(相对 VBM,静态 $\Sigma(\omega_0)$)随阶数:
+**The ladder really does converge, and it can be verified self-consistently.** On the same data, the $e$ level (relative to the VBM, static $\Sigma(\omega_0)$) as a function of order:
 
-| 处理 | $e$(相对 VBM) |
+| treatment | $e$ (relative to VBM) |
 |---|---|
-| 裸 $M$(P=7–17,无 rest) | $+1.49$ |
-| $+\,\Sigma^{(2)}(\omega_0)$ | $+1.30$(二阶 overshoot) |
-| $+\,\Sigma^{(2)}+\Sigma^{(3)}(\omega_0)$ | $+1.40$(白送三阶扳回) |
-| $+\,\Sigma_{\rm full}(\omega_0)$(全阶求和) | $+1.37$ |
-| 自洽 Feshbach(全阶,自洽 $\omega$) | $\mathbf{+1.35}$ |
-| explicit all-band 7–28(目标) | $+1.35$ ✓ |
+| bare $M$ (P=7–17, no rest) | $+1.49$ |
+| $+\,\Sigma^{(2)}(\omega_0)$ | $+1.30$ (second-order overshoot) |
+| $+\,\Sigma^{(2)}+\Sigma^{(3)}(\omega_0)$ | $+1.40$ (the free third order pulls it back) |
+| $+\,\Sigma_{\rm full}(\omega_0)$ (all-order resummation) | $+1.37$ |
+| self-consistent Feshbach (all-order, self-consistent $\omega$) | $\mathbf{+1.35}$ |
+| explicit all-band 7–28 (target) | $+1.35$ ✓ |
 
-自洽 Feshbach **精确**复刻 explicit 的 $+1.35$,验证了下折叠框架自洽;白送的三阶项实测把二阶 overshoot 从 $+1.30$ 扳到 $+1.40$,正是该有的逐阶收敛。
+The self-consistent Feshbach reproduces explicit's $+1.35$ **exactly**, verifying that the downfolding framework is self-consistent; and the free third-order term is measured to pull the second-order overshoot from $+1.30$ back to $+1.40$, exactly the order-by-order convergence one expects.
 
-**$Q$ 截断的说明。** 这里 $Q$ 只到 band 28(explicit 数据上限),是主导的近 gap rest,二阶对它只**轻微** overshoot($+1.30$ vs $+1.35$)。但 block 用的是**全 rest 18–150**:多出的高带把 $\rho$ 推向 $1$,才给出之前那个剧烈的 $+0.36$ 过度屏蔽($e$ 从裸的 $+1.49$ 砸下来 $\sim1.1$ eV)。所以**实测的 $r_3\approx0.4$、$\rho\approx0.6$–$0.7$ 是全问题的下界** —— 全 rest 只会更靠近发散、更需要 ladder 或全阶 Feshbach。(实测脚本 `edt/run/ladder_r3.py`。)
+**A note on the $Q$ truncation.** Here $Q$ extends only to band 28 (the ceiling of the explicit data), which is the dominant near-gap rest, and second order overshoots it only **mildly** ($+1.30$ vs $+1.35$). But the block uses the **full rest, 18–150**: the extra high bands push $\rho$ toward $1$, which is what produced the drastic $+0.36$ over-screening seen earlier ($e$ dropping $\sim1.1$ eV from the bare $+1.49$). So **the measured $r_3\approx0.4$ and $\rho\approx0.6$–$0.7$ are a lower bound on the full problem** — the full rest can only be closer to divergence and needier of a ladder or of the all-order Feshbach. (Measurement script: `edt/run/ladder_r3.py`.)
 
-**代码实测(in-code 交叉验证)。** $\Sigma^{(3)}$ 白送项已落进 EDT block 代码(`do_sigma3` 开关,单态模式):保留逐 channel 的 $\chi^0$(不再算完即扔),再做一次 cross-channel 的 $\Delta V$ 双重求和 $\Sigma^{(3)}_{aa}=\sum_{k',k''}\langle\chi^0(k')|\Delta V(k'\!\leftarrow\!k'')|\chi^0(k'')\rangle$ —— **不需新的 CG solve**。对 band 14、$k=1$(full rest 18–150):
+**Measured in the code (in-code cross-validation).** The free $\Sigma^{(3)}$ term has landed in the EDT block code (the `do_sigma3` switch, single-state mode): retain the per-channel $\chi^0$ (rather than discarding it after use), then do one cross-channel double sum over $\Delta V$, $\Sigma^{(3)}_{aa}=\sum_{k',k''}\langle\chi^0(k')|\Delta V(k'\!\leftarrow\!k'')|\chi^0(k'')\rangle$ — **with no new CG solve**. For band 14, $k=1$ (full rest 18–150):
 
-| 量 | Fortran(full rest) | explicit($Q=18$–$28$) |
+| quantity | Fortran (full rest) | explicit ($Q=18$–$28$) |
 |---|---|---|
-| $\Sigma^{(2)}_{aa}$ 自洽校验 | 重建 $=$ 代码存的 `Sgblk`,7 位全同 ✓ | — |
+| $\Sigma^{(2)}_{aa}$ self-consistency check | reconstruction $=$ the code's stored `Sgblk`, identical to 7 digits ✓ | — |
 | $\Sigma^{(2)}_{aa}$ | $-0.045$ eV | $-0.014$ eV |
 | $\Sigma^{(3)}_{aa}$ | $+0.070$ eV | $+0.0053$ eV |
 | $r_{3,aa}$ | $\mathbf{1.54}$ | $0.37$ |
 
-**(1)** $\Sigma^{(2)}_{aa}$ 自洽校验**精确通过**(用保存的 $\chi^0$ 重建 $=$ 代码存的 `Sgblk`),证明 cross-channel 机器正确。**(2)** full rest 的 $r_{3,aa}=1.54>1$ —— **三阶比二阶还大,Born 级数发散**,正落在上面判据表的 **"$\gtrsim1$,发散"** 那档。这把"全 rest 更靠近发散"从推断**升级成实测**:截断 rest($r_3=0.37$)是下界,全 rest 真的越过了 $1$(远端 conduction 带让有两个 rest 求和的 $\Sigma^{(3)}$ 涨得比 $\Sigma^{(2)}$ 快得多:实测 $|\Sigma^{(3)}|$ 大 13×、$|\Sigma^{(2)}|$ 只大 3×)。所以最终结论是硬的:**全 rest 逐阶救不回,必须全阶 Feshbach(resolvent 求逆,非级数)或 explicit**;发散的是**逐阶**,explicit 的自洽 Feshbach 仍精确给 $+1.35$。(caveat:中间 $\Delta V_{QQ}$ 只取局域部分、且是单态对角 $r_{3,aa}$;但 $1.54\gg1$ 稳健。开关 `do_sigma3`,作业 `edt/run/edt_sigma3.{in,slurm}`。)
+**(1)** The $\Sigma^{(2)}_{aa}$ self-consistency check **passes exactly** (reconstructing from the saved $\chi^0$ $=$ the code's stored `Sgblk`), proving the cross-channel machinery is correct. **(2)** The full rest gives $r_{3,aa}=1.54>1$ — **third order is larger than second, so the Born series diverges**, landing in the **"$\gtrsim1$, divergent"** row of the criterion table above. This **upgrades "the full rest is closer to divergence" from an inference to a measurement**: the truncated rest ($r_3=0.37$) is a lower bound, and the full rest really does cross $1$ (the distant conduction bands make $\Sigma^{(3)}$, with its two rest sums, grow much faster than $\Sigma^{(2)}$: measured, $|\Sigma^{(3)}|$ is 13× larger while $|\Sigma^{(2)}|$ is only 3× larger). So the final conclusion is firm: **the full rest cannot be saved order by order and requires either the all-order Feshbach (resolvent inversion, not a series) or explicit treatment**; what diverges is the **order-by-order** expansion, and the explicit self-consistent Feshbach still gives exactly $+1.35$. (Caveat: the intermediate $\Delta V_{QQ}$ takes only the local part, and this is the single-state diagonal $r_{3,aa}$; but $1.54\gg1$ is robust. Switch `do_sigma3`, job `edt/run/edt_sigma3.{in,slurm}`.)
 
-**两条路通同一物理。** 同一个 $e$ 能级有两种算法:**(i)** 把 conduction 带放进 $Q$、dressing 取全阶(本页的阶梯 / 全阶 Feshbach);**(ii)** 把它们放进 $P$ 显式对角化、不 dressing(结果页的 21-band explicit)。二者在带数足够时收敛到同一答案。explicit 已经给出干净的 $a_1\oplus e$($e$ 在 $+1.35$,Fig 14),所以**阶梯收敛的目标值是已知的**,可以用来验证实现。
+**Two routes to the same physics.** The same $e$ level can be computed two ways: **(i)** put the conduction bands into $Q$ and take the dressing to all orders (this page's ladder / the all-order Feshbach); **(ii)** put them into $P$ and diagonalize explicitly with no dressing (the 21-band explicit on the results page). Given enough bands the two converge to the same answer. Explicit already gives a clean $a_1\oplus e$ ($e$ at $+1.35$, Fig 14), so **the ladder's convergence target is known** and can be used to validate the implementation.
 
-**全阶闭环(实测,direct resolvent)。** 用 explicit-60 的矩阵把 $Q=$ bands 18–70($N_Q{=}7174$,已带收敛的 rest)的全阶 dressing **直接求逆**算出($H_{QQ}$ 一次本征分解,免迭代):各阶能级 $e$(相对 VBM)= 裸 $+1.495$ → $\Sigma^{(2)}$ **$+0.732$**(灾难,$a_1$ 被挤出 gap)→ $\Sigma^{(2)}{+}\Sigma^{(3)}$ **$+1.595$**(发散级数**振荡**、矫枉过正)→ 全阶静态 $+1.223$ → **自洽 $\omega$ 全阶 $+1.205$ = explicit-60 全带值,逐位一致**(DFT $+1.19$)。该 rest 的逐阶比 $r_3{=}0.74,\ r_4{=}0.91,\ r_5{=}1.21$ —— 比值穿过 $1$,把发散标度补全($0.37$@18–28、$1.54$@全 rest 之间)。结论加固:**逐阶不可救、全阶 resummation 一举落位**;细节与谱函数见[结果页 §3](results.html#sec-3)(Fig 17)。另:$H_{QQ}$ 实测谱距 $\omega_0$ 最近 $5.5$ eV(静态 resolvent 良态)—— 此前 MINRES 停滞**不是**近零模所致,而是动能-Jacobi 预条件子对 $+11.8$ Ry 核心区的失配(恢复迭代线时应优先换预条件子)。
+**All-order closure (measured, direct resolvent).** Using the explicit-60 matrices, the all-order dressing for $Q=$ bands 18–70 ($N_Q{=}7174$, a band-converged rest) was computed by **direct inversion** (one eigendecomposition of $H_{QQ}$, no iteration): the $e$ level (relative to the VBM) order by order = bare $+1.495$ → $\Sigma^{(2)}$ **$+0.732$** (a disaster, with $a_1$ squeezed out of the gap) → $\Sigma^{(2)}{+}\Sigma^{(3)}$ **$+1.595$** (the divergent series **oscillating**, overcorrecting) → all-order static $+1.223$ → **self-consistent-$\omega$ all-order $+1.205$ = the explicit-60 all-band value, agreeing to the digit** (DFT $+1.19$). The order-by-order ratios for this rest are $r_3{=}0.74,\ r_4{=}0.91,\ r_5{=}1.21$ — the ratios cross $1$, completing the divergence scale (between $0.37$@18–28 and $1.54$@full rest). The conclusion is reinforced: **order by order is unsalvageable, and all-order resummation lands it in one step**; details and spectral functions are on the [results page §3](results.html#sec-3) (Fig 17). Also: the measured spectrum of $H_{QQ}$ comes no closer than $5.5$ eV to $\omega_0$ (a well-conditioned static resolvent) — so the earlier MINRES stagnation was **not** caused by a near-null mode, but by the mismatch between the kinetic-energy Jacobi preconditioner and the $+11.8$ Ry core region (so when reviving the iterative line, change the preconditioner first).
 
-**实现状态。** $\Sigma^{(3)}$ 白送项已落地(`do_sigma3`)。MVP 的前两步 —— ① 复用二阶 solve 拿 $\chi^0$;② 在 code 内白送地算 $\Sigma^{(3)}$、量 $r_3$ —— **已完成**(explicit 路 $r_3=0.37$–$0.45$、in-code full-rest $r_{3,aa}=1.54$ 都测出)。第三步因 $r_3>1$(全 rest 发散)直接落到 **"转全阶 Feshbach (3.4) / explicit"**:逐阶 ladder 在这个体系不收敛,生产路线就是全阶 resolvent 求逆或把带搬进 active 显式处理。验收标准(把 dressed 的 $e$ 从二阶的 $+0.36$ eV 抬回 explicit/DFT 的 $\sim+1.2\text{–}1.35$ eV)已由 21-band explicit 达成(Fig 14)。
+**Implementation status.** The free $\Sigma^{(3)}$ term is in place (`do_sigma3`). The first two MVP steps — ① reuse the second-order solve to obtain $\chi^0$; ② compute $\Sigma^{(3)}$ for free in-code and measure $r_3$ — are **complete** (both the explicit route's $r_3=0.37$–$0.45$ and the in-code full-rest $r_{3,aa}=1.54$ have been measured). Because $r_3>1$ (the full rest diverges), the third step falls straight through to **"switch to the all-order Feshbach (3.4) / explicit"**: the order-by-order ladder does not converge for this system, so the production route is all-order resolvent inversion or moving the bands into the active space and treating them explicitly. The acceptance criterion (lifting the dressed $e$ from second order's $+0.36$ eV back to explicit/DFT's $\sim+1.2\text{–}1.35$ eV) has been met by the 21-band explicit (Fig 14).
 
-## 6. 全阶 Feshbach Sternheimer:逐阶发散后的生产路线
+## 6. All-order Feshbach Sternheimer: the production route once order-by-order diverges
 
-§5 实测逐阶 ladder 在全 rest 下发散($r_3=1.54$),二阶的过度屏蔽**不能**靠加几阶救回来。出路是**不展开、直接求逆**的全阶 Feshbach —— 它同样是一个 Sternheimer 线性解,只是算符里把 $\Delta V_{QQ}$ 也放进去。这是式 (3.4) 的完整推导。
+§5 measured the order-by-order ladder to diverge on the full rest ($r_3=1.54$), so second order's over-screening **cannot** be repaired by adding a few orders. The way out is the all-order Feshbach that **does not expand but inverts directly** — still a Sternheimer linear solve, only with $\Delta V_{QQ}$ inside the operator. This is the complete derivation of eq. (3.4).
 
-**线性方程。** 把 $H_{QQ}=Q(H_0+\Delta V)Q=QHQ$ 代回式 (1.1):
+**The linear equation.** Substituting $H_{QQ}=Q(H_0+\Delta V)Q=QHQ$ back into (1.1):
 $$\Sigma(\omega)=\Delta V_{PQ}\,(\omega-QHQ)^{-1}\,\Delta V_{QP}.$$
-对每个 active 源 $|b\rangle$ 定义全阶 rest 响应 $|X_b\rangle\equiv(\omega-QHQ)^{-1}\Delta V_{QP}|b\rangle\in Q$;左乘 $(\omega-QHQ)$,用 $Q|X_b\rangle=|X_b\rangle$(故 $QHQ|X_b\rangle=QH|X_b\rangle$):
+For each active source $|b\rangle$ define the all-order rest response $|X_b\rangle\equiv(\omega-QHQ)^{-1}\Delta V_{QP}|b\rangle\in Q$; multiplying on the left by $(\omega-QHQ)$ and using $Q|X_b\rangle=|X_b\rangle$ (so $QHQ|X_b\rangle=QH|X_b\rangle$):
 $$\boxed{\,Q(\omega-H_0-\Delta V)Q\,|X_b\rangle=Q\,\Delta V\,|b\rangle\,},\qquad
 \Sigma_{ab}=\langle a|\Delta V|X_b\rangle=\langle S_a|X_b\rangle, \tag{6.1}$$
-$|S_a\rangle=Q\Delta V|a\rangle$ 是和二阶**一样**的源;对称式即 $\Sigma=S^\dagger A^{-1}S$,$A=Q(\omega-H_0-\Delta V)Q$。**精确、全阶、无截断。**
+where $|S_a\rangle=Q\Delta V|a\rangle$ is **the same** source as in second order; symmetrically, $\Sigma=S^\dagger A^{-1}S$ with $A=Q(\omega-H_0-\Delta V)Q$. **Exact, all-order, untruncated.**
 
-**和二阶 Sternheimer 的唯一区别:matvec 里多一个 $\Delta V$。**
+**The only difference from the second-order Sternheimer: one extra $\Delta V$ in the matvec.**
 
-| | 二阶(Born) | 全阶 Feshbach |
+| | second order (Born) | all-order Feshbach |
 |---|---|---|
-| 算符 $A$ | $Q(\omega-H_0)Q$ | $Q(\omega-H_0-\Delta V)Q$ |
+| operator $A$ | $Q(\omega-H_0)Q$ | $Q(\omega-H_0-\Delta V)Q$ |
 | matvec | `h_psi` $+\,Q$ | `h_psi` $-\,\Delta V+Q$ |
-| $\mathbf k$ 结构 | 块对角 → 逐 $\mathbf k$ 解耦 | $\Delta V$ 耦合 → 全 $\mathbf k$ 一个大方程 |
+| $\mathbf k$ structure | block diagonal → decoupled per $\mathbf k$ | $\Delta V$ couples them → one large equation over all $\mathbf k$ |
 
 ```text
-A|v> ,  v in Q   (每次 CG 迭代):
-  1. t = omega*v - h_psi(v)      # (omega - H0) v       [per-k, 已有]
-  2. t = t - dV(v)               # 减 dV v : 局域超胞 FFT(build_V_folded, cross-channel) + 非局域可分离
-  3. t = Q t  (apply_Qproj)      # 投回 rest
+A|v> ,  v in Q   (each CG iteration):
+  1. t = omega*v - h_psi(v)      # (omega - H0) v       [per-k, already exists]
+  2. t = t - dV(v)               # subtract dV v : local supercell FFT (build_V_folded, cross-channel) + separable nonlocal
+  3. t = Q t  (apply_Qproj)      # project back into rest
 ```
-即 §4 的 $\Delta V$ 作用例程(就是 `do_sigma3` 那套 cross-channel 机器)从"算一次 $\Sigma^{(3)}$"变成"**每步 matvec 调一次**"。
 
-**为什么收敛、逐阶却发散 —— 求逆 $\neq$ 级数。** 记 $A=A_0-B$,$A_0=Q(\omega-H_0)Q$、$B=Q\Delta V Q$。逐阶是 Neumann 级数 $A^{-1}=\sum_{p\ge0}A_0^{-1}(BA_0^{-1})^p$,收敛要 $\rho(A_0^{-1}B)=\rho(G^0\Delta V_{QQ})<1$ —— 实测 $\sim1.54$,发散。**但 $A^{-1}$ 本身存在**;Krylov/CG 直接解 $AX=S$ 的收敛只看 $A$ 的谱,不看那个 $\rho$。类比:$x=1.54$ 时 $1+x+x^2+\cdots$ 发散,而 $\tfrac{1}{1-x}=-1.85$ 良定 —— **发散的是展开方式,不是那个数**。加 $\eta>0$,$A=Q(\omega+i\eta-H)Q$ 永远可逆。
+That is, §4's $\Delta V$ application routine (the same cross-channel machinery as `do_sigma3`) goes from "compute $\Sigma^{(3)}$ once" to "**called once per matvec**".
 
-**条件数与解法。** rest 取在 $\omega_0$ 之上时 $A_0\succ0$;加 $-\Delta V_{QQ}$ 后,若没有 rest 态被拉到 $\omega$ 以下(缺陷 bound state 应已落在 $P$ 内),$A$ 仍正定 → 实 CG。若某个 rest 共振逼近 $\omega$($A$ 不定/病态)→ 上 $\omega+i\eta$ 配复解法(代码已有的 `rest_split='complex'` / `ccgsolve_all`),$\eta$ 兼作正则化;active 用 $\alpha P$ deflation 钉在 $Q$。
+**Why this converges when the order-by-order expansion does not — inversion $\neq$ series.** Write $A=A_0-B$ with $A_0=Q(\omega-H_0)Q$ and $B=Q\Delta V Q$. Order by order is the Neumann series $A^{-1}=\sum_{p\ge0}A_0^{-1}(BA_0^{-1})^p$, which needs $\rho(A_0^{-1}B)=\rho(G^0\Delta V_{QQ})<1$ — measured at $\sim1.54$, divergent. **But $A^{-1}$ itself exists**; the convergence of Krylov/CG applied directly to $AX=S$ depends only on the spectrum of $A$, not on that $\rho$. By analogy: at $x=1.54$ the series $1+x+x^2+\cdots$ diverges while $\tfrac{1}{1-x}=-1.85$ is perfectly well defined — **what diverges is the expansion, not the number**. With $\eta>0$, $A=Q(\omega+i\eta-H)Q$ is always invertible.
 
-**$\omega$ 自洽 → 精确能级。** $\Sigma(\omega)$ 依赖 $\omega$;缺陷能级是自洽根 $\det[\omega-H_0^{PP}-M-\Sigma(\omega)]=0$,迭代 $\omega$ 即得。全阶 Feshbach 在自洽 $\omega$ 下给出**精确**能级 —— 即 §5 自洽 Feshbach 复刻 explicit $+1.35$ 的那个量。
+**Conditioning and solvers.** With the rest lying above $\omega_0$, $A_0\succ0$; after adding $-\Delta V_{QQ}$, $A$ remains positive definite provided no rest state is pulled below $\omega$ (any defect bound state should already be inside $P$) → real CG. If a rest resonance approaches $\omega$ ($A$ indefinite or ill-conditioned) → go to $\omega+i\eta$ with a complex solver (the code already has `rest_split='complex'` / `ccgsolve_all`), with $\eta$ doubling as a regularizer; the active space is pinned into $Q$ with $\alpha P$ deflation.
 
-**成本与定位。** 每源一次**全 $\mathbf k$** 的 Sternheimer solve,$n_{\rm iter}$ 步、每步带一次 $\Delta V$ 作用($\Sigma^{(3)}$ 量级),全 block $N_A$ 个源 —— 它**收敛**(级数不收敛)。它与 21-band explicit 互为印证:一个把 conduction 放 $Q$ 全阶 dress、一个放 $P$ 显式不 dress —— 既然逐阶发散,这两条才是该走的路。
+**$\omega$ self-consistency → exact levels.** $\Sigma(\omega)$ depends on $\omega$; the defect levels are the self-consistent roots of $\det[\omega-H_0^{PP}-M-\Sigma(\omega)]=0$, obtained by iterating $\omega$. At self-consistent $\omega$, the all-order Feshbach gives **exact** levels — the same quantity that reproduced explicit's $+1.35$ in §5.
 
-**成本估算(实测锚定,36 ranks / 1 node)。**
+**Cost and where it sits.** One **all-$\mathbf k$** Sternheimer solve per source, $n_{\rm iter}$ steps with one $\Delta V$ application per step (the cost scale of $\Sigma^{(3)}$), over all $N_A$ sources of the block — and it **converges** (the series does not). It and the 21-band explicit corroborate each other: one puts conduction in $Q$ and dresses to all orders, the other puts it in $P$ and does not dress — and since order-by-order diverges, these two are the routes to take.
 
-| run | 规模 | 实测 WALL |
+**Cost estimate (anchored to measurements, 36 ranks / 1 node).**
+
+| run | size | measured WALL |
 |---|---|---|
-| 二阶 block(`h_psi` matvec,逐 $\mathbf k$) | $N_A=1584$,full BZ | $1$ h $59$ m |
-| explicit 21-band $M$(born_only,无 solve) | $N_A=3002$ | $46$ m |
-| 单态 $\Sigma^{(3)}$(`do_sigma3`,folded $\Delta V$) | $1$ 源 $+$ 一次 cross-channel | $10$ m |
+| second-order block (`h_psi` matvec, per $\mathbf k$) | $N_A=1584$, full BZ | $1$ h $59$ m |
+| explicit 21-band $M$ (born_only, no solve) | $N_A=3002$ | $46$ m |
+| single-state $\Sigma^{(3)}$ (`do_sigma3`, folded $\Delta V$) | $1$ source $+$ one cross-channel pass | $10$ m |
 
-全阶 Feshbach $\approx$ 二阶的 `h_psi` 部分($\sim2$ h)$+\ N_A\times n_{\rm iter}\times t_{\Delta V}$。全部成本压在每步 matvec 那个 cross-channel $\Delta V$ 上,而 $t_{\Delta V}$ **完全取决于实现**:
+The all-order Feshbach $\approx$ second order's `h_psi` part ($\sim2$ h) $+\ N_A\times n_{\rm iter}\times t_{\Delta V}$. All of the cost sits in that per-matvec cross-channel $\Delta V$, and $t_{\Delta V}$ **depends entirely on the implementation**:
 
-| $\Delta V$ 实现 | 一次 $t_{\Delta V}$(单源,全 channel) | $N_A\,n_{\rm iter}\!\sim\!10^5$ 之后 |
+| $\Delta V$ implementation | one $t_{\Delta V}$ (single source, all channels) | after $N_A\,n_{\rm iter}\!\sim\!10^5$ |
 |---|---|---|
-| folded 双重和(`do_sigma3` 现状) | $\sim5$ min($144^2$ 个超胞折叠) | **月级,不可行** |
-| supercell-FFT(需新写,一次超胞 FFT 过所有 channel) | $\sim1$–$4$ s | $\Delta V$ 部分 $\sim1$–$2$ h,**可行** |
+| folded double sum (`do_sigma3` as it stands) | $\sim5$ min ($144^2$ supercell foldings) | **months, infeasible** |
+| supercell-FFT (needs writing; one supercell FFT covers all channels) | $\sim1$–$4$ s | $\Delta V$ part $\sim1$–$2$ h, **feasible** |
 
-两者差 **$10^2$–$10^3\times$**:folded 路(我给单态 $\Sigma^{(3)}$ 用的那套)在内层每步重算 $144^2$ 个超胞折叠,放进迭代里就是月级;正确做法是把 $\Delta V$ 用**一次超胞 FFT**作用(把 $X$ 的 $144$ 个 channel 分量拼成超胞实空间 $\to$ 乘 $\Delta V(\mathbf r)\to$ 拼回,一次过所有 $\mathbf k$)。走 supercell-FFT:**单 $\omega$ $\sim3$–$4$ h**(算符不定/病态、要 BiCGStab + 更多迭代再 $\times2$–$3$),**自洽 $\omega$(缺陷能级,$\sim5$–$10$ 次)$\sim1$–$3$ 天 / node**。
+A gap of **$10^2$–$10^3\times$**: the folded route (the one used for the single-state $\Sigma^{(3)}$) recomputes $144^2$ supercell foldings at every inner step, which inside an iteration means months. The correct approach applies $\Delta V$ with **one supercell FFT** (assemble $X$'s $144$ channel components into supercell real space $\to$ multiply by $\Delta V(\mathbf r)$ $\to$ reassemble, covering all $\mathbf k$ in one pass). Via supercell-FFT: **$\sim3$–$4$ h per $\omega$** (indefinite/ill-conditioned operators requiring BiCGStab plus more iterations add another $\times2$–$3$), and **self-consistent $\omega$ (the defect levels, $\sim5$–$10$ iterations) $\sim1$–$3$ days per node**.
 
-**对比:explicit 便宜 $1$–$2$ 个量级。** explicit 21-band(实测 **$46$ min,一次过**)给同样的 $e=+1.35$,无迭代、无 $\Delta V$-in-matvec —— 比优化后的全阶 Feshbach 还便宜 $\sim10$–$50\times$。所以对**缺陷能级**,explicit 是实用生产路线;全阶 Feshbach 的不可替代性只在 (i) 要整条频率依赖的 $\Sigma(\omega)$(谱函数 self-energy)、或 (ii) active space 无法再扩大、必须把带留在 $Q$ 里全阶 dress 时 —— 且即便如此也必须走 supercell-FFT,`do_sigma3` 的 folded 路只配做**一次性**诊断。落地的代码实现计划(static-$\omega_0$、cube-anchored `apply_dV`、逐元素验收阶梯、source-parallel 布局,含 v1 验收的 post-mortem)见 [Feshbach 实现计划(v2)](feshbach-implementation.html)。
+**For comparison: explicit is $1$–$2$ orders of magnitude cheaper.** Explicit 21-band (measured at **$46$ min, one pass**) gives the same $e=+1.35$ with no iteration and no $\Delta V$-in-matvec — $\sim10$–$50\times$ cheaper even than an optimized all-order Feshbach. So for **defect levels**, explicit is the practical production route; the all-order Feshbach is irreplaceable only when (i) the full frequency-dependent $\Sigma(\omega)$ is needed (a spectral-function self-energy), or (ii) the active space cannot be enlarged any further and the bands must stay in $Q$ and be dressed to all orders — and even then it must go via supercell-FFT, with `do_sigma3`'s folded route fit only for **one-off** diagnostics. The concrete code implementation plan (static-$\omega_0$, a cube-anchored `apply_dV`, an element-by-element acceptance ladder, a source-parallel layout, and the post-mortem of the v1 acceptance) is in the [Feshbach implementation plan (v2)](feshbach-implementation.html).

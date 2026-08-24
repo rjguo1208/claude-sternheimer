@@ -1,74 +1,75 @@
-# Koster–Slater / 缺陷格林函数:求缺陷能级的高效路线
+# Koster–Slater / defect Green function: the cheap route to defect levels
 
-前面两条路都给出正确的 $a_1\oplus e$,但都贵:**explicit 21-band**(把带搬进 $P$ 显式对角化,[结果页](results.html#sec-3) Fig 14)要 $46$ min $+\,N_A^3$ 对角化;**全阶 Feshbach**(把带留 $Q$ 全阶 dress,[ladder 页](sternheimer-ladder.html#sec-6) §6)要 ~天。本页推导第三条、也是最省的:**Koster–Slater 缺陷格林函数法**(经典的 defect-GF 方法)。它**不分 $P$/$Q$、不做 rest dressing**,把缺陷能级直接写成一个**缺陷局域小块**上的久期方程 $\det[1-G_0(E)\Delta V]=0$ —— host 格林函数 $G_0$ 把能带都装在里面(所以没有过度屏蔽、也没有 ladder 的发散),而 $\Delta V$ 短程(结果页 Fig 19–21 已实测),行列式只剩**几十维**。
+The two earlier routes both give the correct $a_1\oplus e$, and both are expensive: **explicit 21-band** (move the bands into $P$ and diagonalize explicitly; [results page](results.html#sec-3) Fig 14) costs $46$ min $+\,N_A^3$ diagonalization, and **all-order Feshbach** (leave the bands in $Q$ and dress to all orders; [ladder page](sternheimer-ladder.html#sec-6) §6) costs ~days. This note derives a third and by far the cheapest: the **Koster–Slater defect Green function method** (the classic defect-GF approach). It makes **no $P$/$Q$ split and does no rest dressing**; it writes the defect levels directly as a secular equation on a **small defect-local block**, $\det[1-G_0(E)\Delta V]=0$ — the host Green function $G_0$ carries all the bands inside it (so there is no over-screening and no ladder divergence), while $\Delta V$ is short-ranged (measured on the results page, Figs 19–21), leaving a determinant of only **a few tens of dimensions**.
 
-## 1. 从大对角化到小久期方程(Lippmann–Schwinger)
+## 1. From a large diagonalization to a small secular equation (Lippmann–Schwinger)
 
-缺陷哈密顿量 $H=H_0+\Delta V$,host $H_0|n\mathbf k\rangle=\varepsilon_{n\mathbf k}|n\mathbf k\rangle$。束缚态 $H|\psi\rangle=E|\psi\rangle$ 即
+The defect Hamiltonian is $H=H_0+\Delta V$, with host $H_0|n\mathbf k\rangle=\varepsilon_{n\mathbf k}|n\mathbf k\rangle$. A bound state $H|\psi\rangle=E|\psi\rangle$ means
 $$(E-H_0)|\psi\rangle=\Delta V|\psi\rangle.$$
-对 gap 里的 $E$($E\notin\mathrm{spec}\,H_0$),$(E-H_0)$ 可逆,定义 host 推迟格林函数 $G_0(E)=(E-H_0)^{-1}$:
+For $E$ in the gap ($E\notin\mathrm{spec}\,H_0$), $(E-H_0)$ is invertible; defining the host retarded Green function $G_0(E)=(E-H_0)^{-1}$,
 $$|\psi\rangle=G_0(E)\,\Delta V\,|\psi\rangle.$$
-齐次方程有非平凡解 $\iff$
+The homogeneous equation has a nontrivial solution $\iff$
 $$\boxed{\,\det\!\big[\,1-G_0(E)\,\Delta V\,\big]=0\,}. \tag{1}$$
-等价地,缺陷散射 $T(E)=\Delta V[1-G_0(E)\Delta V]^{-1}$、全格林函数 $G=G_0+G_0TG_0$,**束缚态就是 $T$(和 $G$)的极点**,即 (1) 的根。这一步精确、无近似。
+Equivalently, with the defect scattering matrix $T(E)=\Delta V[1-G_0(E)\Delta V]^{-1}$ and the full Green function $G=G_0+G_0TG_0$, **the bound states are the poles of $T$ (and of $G$)**, i.e. the roots of (1). This step is exact — no approximation.
 
-## 2. 局域性 → 行列式只剩"缺陷块"
+## 2. Locality → the determinant shrinks to the "defect block"
 
-(1) 形式上是整个空间的行列式,但 $\Delta V$ **短程**:在 Wannier 基 $|w_{\mathbf R\alpha}\rangle$ 下 $\Delta V_{\mathbf R\alpha,\mathbf R'\beta}\neq0$ 只在缺陷区 $D$($|\mathbf R|,|\mathbf R'|\le R_{\rm cut}$)内(结果页 Fig 19–21:S-vacancy 的 Koster–Slater 在 $R_{\rm cut}=4$ 已收敛)。记 $P_D$ 为 $D$ 上投影,则 $\Delta V=P_D\,\Delta V\,P_D$,秩 $\le\dim D$。$G_0\Delta V$ 的非零本征值等于 $D\times D$ 矩阵 $g(E)\Delta V_D$ 的本征值,故 (1) 收缩到
+Formally (1) is a determinant over the whole space, but $\Delta V$ is **short-ranged**: in the Wannier basis $|w_{\mathbf R\alpha}\rangle$, $\Delta V_{\mathbf R\alpha,\mathbf R'\beta}\neq0$ only inside the defect region $D$ ($|\mathbf R|,|\mathbf R'|\le R_{\rm cut}$) — results page Figs 19–21 show the S-vacancy Koster–Slater is already converged at $R_{\rm cut}=4$. Writing $P_D$ for the projector onto $D$, $\Delta V=P_D\,\Delta V\,P_D$ with rank $\le\dim D$. The nonzero eigenvalues of $G_0\Delta V$ equal those of the $D\times D$ matrix $g(E)\Delta V_D$, so (1) contracts to
 $$\boxed{\,\det{}_D\!\big[\,1-g(E)\,\Delta V_D\,\big]=0\,},\qquad g(E)\equiv P_D\,G_0(E)\,P_D. \tag{2}$$
-$\Delta V_D$、$g(E)$ 都是 $\dim D\sim$ **几十维**,不是 $N_A=3002$。**关键:** $\Delta V_D$ 用**裸** $M^W$(结果页 Fig 18–19 已 gauge-fix、实测短程),**不是** dressed $\tilde V^W$(那个带二阶 Σ、会过度屏蔽)。
+Both $\Delta V_D$ and $g(E)$ are $\dim D\sim$ **a few tens**, not $N_A=3002$. **The key point:** $\Delta V_D$ uses the **bare** $M^W$ (gauge-fixed and measured short-ranged on the results page, Figs 18–19), **not** the dressed $\tilde V^W$ (which carries the second-order $\Sigma$ and over-screens).
 
-## 3. host 格林函数 $g(E)$:能带全在里面,而且加带便宜
+## 3. The host Green function $g(E)$: all bands are inside it, and adding bands is cheap
 
-$g(E)$ 在 Wannier 基里就是插值 host 哈密顿量的预解:
+In the Wannier basis $g(E)$ is just the resolvent of the interpolated host Hamiltonian:
 $$g(E,\mathbf k)=\big[E\,\mathbb 1-H_0^W(\mathbf k)\big]^{-1},\qquad
 g(E)_{\mathbf R\alpha,\mathbf R'\beta}=\frac1{N_k}\sum_{\mathbf k}e^{i\mathbf k\cdot(\mathbf R-\mathbf R')}\,g(E,\mathbf k)_{\alpha\beta}, \tag{3}$$
-$H_0^W(\mathbf k)$ 是 Wannier 插值的 host(EDT 已有 $H_W(\mathbf R)$;[结果页 §4](results.html#sec-4))。求逆 $g(E,\mathbf k)$ **自动含 Wannier 空间的全部能带** —— 派生出 $e$ 的 conduction 带就在其中(11 条已足以 bind 出 $e$,正如 11-band 裸 $M$ 给 $e=+1.49$)。要把能级收敛得更准($\to$ explicit 的 $+1.35$ / DFT 的 $+1.19$),只需把更多 host 带(经其在缺陷轨道上的投影)纳入 $g$ —— 代价只是多算些**本征值**的 $k$-和,远小于 explicit 为每条带付的 $N_A$ 矩阵;$k$-和还能用很细的网格、几乎免费。
+where $H_0^W(\mathbf k)$ is the Wannier-interpolated host (EDT already has $H_W(\mathbf R)$; [results page §4](results.html#sec-4)). Inverting $g(E,\mathbf k)$ **automatically includes every band in the Wannier space** — the conduction bands that produce $e$ are among them (11 bands already suffice to bind $e$, just as the 11-band bare $M$ gives $e=+1.49$). Converging the level further (toward explicit's $+1.35$ / DFT's $+1.19$) only requires folding more host bands into $g$, through their projection onto the defect orbitals — and the cost of that is extra **eigenvalue** $k$-sums, far less than the $N_A$ matrix that explicit pays per band. The $k$-sum can also use a very fine mesh almost for free.
 
-这就是它**既精确又省**的根源:**重活(全 BZ、多带)只落在便宜的 host 本征值求和上,缺陷的强散射只在几十维的 $D$ 块里精确(全 $\det$,不展开 $\Delta V$)处理。** 所以既没有二阶 dressing 的过度屏蔽,也没有 ladder 在 $\Delta V_{QQ}$ 上的发散问题 —— (2) 根本不按 $\Delta V$ 展开。gap 里 $E$ 取实、$g$ 有限;要分辨能带里的共振就用 $E+i\eta$。
+That is the source of its being **both accurate and cheap**: **the heavy lifting (full BZ, many bands) falls only on cheap host eigenvalue sums, while the strong defect scattering is treated exactly inside a $D$ block of a few tens of dimensions (the full $\det$, with no expansion in $\Delta V$).** So there is neither the over-screening of second-order dressing nor the ladder's divergence problem on $\Delta V_{QQ}$ — (2) is simply not an expansion in $\Delta V$. For $E$ in the gap, $E$ is real and $g$ is finite; to resolve resonances inside the bands, use $E+i\eta$.
 
-## 4. C₃ᵥ 对称性 → 久期式分块,irrep label 严格
+## 4. C₃ᵥ symmetry → the secular determinant block-diagonalizes, irrep labels are rigorous
 
-$D$ 的轨道(3 条 Mo 悬挂键 + 近邻)在 $C_{3v}$ 下约化含 $a_1\oplus e$。$\Delta V_D$ 与 $g(E)$ 都和点群对易,(2) 的行列式**按 irrep 分块**:
+The orbitals of $D$ (three Mo dangling bonds plus neighbours) reduce under $C_{3v}$ to contain $a_1\oplus e$. Both $\Delta V_D$ and $g(E)$ commute with the point group, so the determinant in (2) **factorizes by irrep**:
 $$\det{}_D[\,1-g\Delta V_D\,]=\prod_{\Gamma}\Big(\det{}_\Gamma[\,1-g_\Gamma\Delta V_\Gamma\,]\Big)^{d_\Gamma}.$$
-$a_1$ 根来自 $a_1$ 块(1 维),$e$ 根来自 $e$ 块($d_e=2$ → 自动二重简并)。这**严格**给出 $a_1$/$a_2$/$e$ 的 label —— 回答了之前"只靠简并度、没算特征标"那个 caveat。
+The $a_1$ root comes from the $a_1$ block (1-dimensional), the $e$ root from the $e$ block ($d_e=2$ → automatically doubly degenerate). This gives the $a_1$/$a_2$/$e$ labels **rigorously**, answering the earlier caveat that the assignment rested on degeneracy alone with no character computed.
 
-## 5. ΔDOS:同一个行列式给(Krein–Friedel)
+## 5. ΔDOS: the same determinant delivers it (Krein–Friedel)
 
-缺陷引起的态密度变化由久期行列式的相位给出:
+The defect-induced change in the density of states is given by the phase of the secular determinant:
 $$\Delta\rho(E)=-\frac1\pi\frac{d}{dE}\,\mathrm{Im}\,\ln\det{}_D\!\big[\,1-g(E+i0^+)\,\Delta V_D\,\big]
 =-\frac1\pi\frac{d}{dE}\arg\det{}_D[\cdots]. \tag{4}$$
-gap 里相位每跳 $\pi$ 对应一条束缚态(就是 (2) 的根),能带里给共振展宽。所以结果页那张 ΔDOS(Fig 15)能从这个几十维的小行列式直接得到,不必扫整块 $T$-matrix。
+Inside the gap, each jump of $\pi$ in the phase corresponds to one bound state (a root of (2)); inside the bands it gives the resonance broadening. So the ΔDOS on the results page (Fig 15) follows directly from this small determinant, with no need to sweep the full $T$-matrix.
 
-## 6. 成本与定位
+## 6. Cost and where it sits
 
-| 路线 | 缺陷能级成本 | 过度屏蔽? |
+| route | cost of the defect levels | over-screening? |
 |---|---|---|
-| 二阶 block dressing | $2$ h | **是**(发散) |
-| 全阶 Feshbach | ~$1$–$3$ 天(自洽) | 否,但贵 |
-| explicit 21-band | $46$ min $+\,N_A^3$ 对角化 | 否 |
-| **Koster–Slater (2)** | **秒级**($\dim D^3$ det $+$ host $k$-和) | **否** |
+| second-order block dressing | $2$ h | **yes** (divergent) |
+| all-order Feshbach | ~$1$–$3$ days (self-consistent) | no, but expensive |
+| explicit 21-band | $46$ min $+\,N_A^3$ diagonalization | no |
+| **Koster–Slater (2)** | **seconds** ($\dim D^3$ det $+$ host $k$-sum) | **no** |
 
-每个 $E$:host $k$-和 $\mathcal O(N_k\,n_{\rm band}\,\dim D^2)$ $+$ 行列式 $\mathcal O(\dim D^3)$,扫几十个 $E$ 或 root-find,总计**秒到分钟**,还能用更细的 $k$ 网格收敛。它**绕开**了 $P$/$Q$ 划分与 rest dressing(不展开 $\Delta V_{QQ}$,无 ladder 发散),又比 explicit 省掉整块 $M$ 与 $N_A^3$ 对角化。**地基已就位**:Wannier $M^W$ 的 gauge fix(Fig 18–19)、短程性 / $R_{\rm cut}=4$ 收敛(Fig 19–21)都在结果页验过。这是求 S-vacancy $a_1$+$e$ **最省又精确**的路线;实现与实测结果见 §7。
+Per $E$: a host $k$-sum of $\mathcal O(N_k\,n_{\rm band}\,\dim D^2)$ plus a determinant of $\mathcal O(\dim D^3)$; sweeping a few tens of $E$ points or root-finding puts the total at **seconds to minutes**, and a finer $k$ mesh can still be used for convergence. It **bypasses** the $P$/$Q$ split and the rest dressing (no expansion in $\Delta V_{QQ}$, no ladder divergence), and it also saves the full $M$ block and the $N_A^3$ diagonalization that explicit pays. **The groundwork is already in place**: the gauge fix of the Wannier $M^W$ (Figs 18–19) and its short-rangedness / $R_{\rm cut}=4$ convergence (Figs 19–21) were both verified on the results page. This is the **cheapest accurate** route to the S-vacancy $a_1$+$e$; implementation and measured results are in §7.
 
-## 7. 实现与结果:裸 $M^W$ 复刻出 $a_1+e$
+## 7. Implementation and results: the bare $M^W$ reproduces $a_1+e$
 
-按 (2) 落地,全复用现成件:$\Delta V_D=$ **裸** $M^W$(`vtilde_block.dat` 第 1 条记录,用 $U(\mathbf k)$ 旋到 Wannier、FT 到 $\mathbf R$、截到 $R_{\rm cut}=3$ 的缺陷块,dim $=539$);$g(E)=$ `mos2_hr.dat` 插值的 host $H_W(\mathbf k)$ 在 $N_f=48$ 细网格上求逆得到。扫 $E$ 过 gap,$[\,1-g(E)\Delta V_D\,]$ 的最小奇异值在能级处 dip,**同时塌的奇异值个数 = 简并度**。
+Implementing (2) reuses existing pieces throughout: $\Delta V_D=$ the **bare** $M^W$ (record 1 of `vtilde_block.dat`, rotated into Wannier with $U(\mathbf k)$, Fourier transformed to $\mathbf R$, truncated to the $R_{\rm cut}=3$ defect block, dim $=539$); $g(E)$ from inverting the host $H_W(\mathbf k)$ interpolated from `mos2_hr.dat` on an $N_f=48$ fine mesh. Sweeping $E$ across the gap, the smallest singular value of $[\,1-g(E)\Delta V_D\,]$ dips at each level, and **the number of singular values collapsing together = the degeneracy**.
 
-![Koster-Slater 从裸 M^W:上图最小奇异值在 a1(VBM 边)浅 dip、在 e(+1.50)深且二重简并(sigma1=sigma2)dip;下图 Krein-Friedel 计数阶梯。](../assets/koster_slater_levels.png)
+![Koster-Slater from the bare M^W: upper panel, the smallest singular value shows a shallow dip at a1 (VBM edge) and a deep, doubly degenerate dip (sigma1=sigma2) at e (+1.50); lower panel, the Krein-Friedel counting staircase.](../assets/koster_slater_levels.png)
 
-*Figure. Koster–Slater 从裸 $M^W$($R_{\rm cut}=3$,$N_f=48$,$\eta=0.02$ eV)。**上:** $[1-g(E)\Delta V_D]$ 的最小奇异值 $\sigma_{\min}$ 扫 $E$ —— $a_1$ 在 VBM 边一个浅 dip($\sigma_2\gg\sigma_1$,非简并),$e$ 在 $-4.44$ 一个深 dip 且 $\sigma_1=\sigma_2$(二重简并)。**下:** Krein–Friedel 计数 $\Delta N(E)$ 的阶梯。两条 dip 的位置就是缺陷能级。*
+*Figure. Koster–Slater from the bare $M^W$ ($R_{\rm cut}=3$, $N_f=48$, $\eta=0.02$ eV). **Upper:** the smallest singular value $\sigma_{\min}$ of $[1-g(E)\Delta V_D]$ swept over $E$ — $a_1$ gives a shallow dip at the VBM edge ($\sigma_2\gg\sigma_1$, non-degenerate), $e$ a deep dip at $-4.44$ with $\sigma_1=\sigma_2$ (doubly degenerate). **Lower:** the Krein–Friedel counting staircase $\Delta N(E)$. The two dip positions are the defect levels.*
 
-结果与 11-band explicit 本征值逐位吻合:
+The results agree with the 11-band explicit eigenvalues to the digit:
 
-| | Koster–Slater(裸 $M^W$) | 11-band explicit |
+| | Koster–Slater (bare $M^W$) | 11-band explicit |
 |---|---|---|
-| $a_1$(singlet) | $-5.929$($+0.01$);$\sigma_1{=}0.095,\ \sigma_2{=}0.29$ → 非简并 | $-5.926$($+0.01$) |
-| $e$(doublet) | $-4.441$($+1.50$);$\sigma_1{=}\sigma_2{=}0.009$ → 二重简并 | $-4.441$($+1.50$) |
+| $a_1$ (singlet) | $-5.929$ ($+0.01$); $\sigma_1{=}0.095,\ \sigma_2{=}0.29$ → non-degenerate | $-5.926$ ($+0.01$) |
+| $e$ (doublet) | $-4.441$ ($+1.50$); $\sigma_1{=}\sigma_2{=}0.009$ → doubly degenerate | $-4.441$ ($+1.50$) |
 
-三点:
-- **$e$ 精确到位**($-4.441$ 完全一致),$a_1$ 差 $3$ meV(细网格 host GF 的微调);
-- **singlet/doublet 直接从奇异值简并度读出**($\sigma_1\!\approx\!\sigma_2\Rightarrow e$,$\sigma_2\!\gg\!\sigma_1\Rightarrow a_1$)—— 把 §4 的对称性分块落成一个可算的判据,补上之前"只靠本征值简并、没特征标"那个 caveat;
-- **成本**:dim-$539$ 的 SVD × ~$400$ 个 $E$ 点 ~ **分钟级**,没碰 $P$/$Q$ dressing。
+Three points:
 
-$e=+1.50$ 是 **11-band** 的值(host GF 只含 11 个 Wannier 带,与 11-band explicit 自洽);host GF 里多放些带(更大的 rewann)会把它精修到 explicit 的 $+1.35$ / DFT 的 $+1.19$ —— 代价只是多算些本征值的 $k$-和,正是 Koster–Slater 省的地方。脚本:`tools/koster_slater_levels.py`。
+- **$e$ lands exactly** ($-4.441$ in full agreement); $a_1$ differs by $3$ meV (the fine-mesh host GF's small adjustment).
+- **Singlet vs doublet is read straight off the singular-value degeneracy** ($\sigma_1\!\approx\!\sigma_2\Rightarrow e$, $\sigma_2\!\gg\!\sigma_1\Rightarrow a_1$) — this turns §4's symmetry factorization into a computable criterion and closes the earlier caveat about relying on eigenvalue degeneracy with no character analysis.
+- **Cost**: a dim-$539$ SVD at ~$400$ values of $E$, i.e. **minutes**, with no $P$/$Q$ dressing touched at all.
+
+The $e=+1.50$ is the **11-band** value (the host GF contains only the 11 Wannier bands, self-consistently with 11-band explicit); putting more bands into the host GF (a larger rewann) will refine it toward explicit's $+1.35$ / DFT's $+1.19$ — at the cost of a few more eigenvalue $k$-sums, which is precisely where Koster–Slater is cheap. Script: `tools/koster_slater_levels.py`.

@@ -1,336 +1,377 @@
-# PdCoO$_2$ Pd 空位:三维 $T$-矩阵管线的端到端验证
+# PdCoO$_2$ Pd vacancy: end-to-end validation of the 3D $T$-matrix pipeline
 
-### 2×2×2 陪集 DOS 对拍空位超胞真值(0.1 meV);顺带修掉 fold\_col 的 3D 折叠 bug
+### A 2×2×2 coset DOS reconciled against the vacancy-supercell ground truth (0.1 meV), and a 3D folding bug in fold\_col fixed along the way
 
-> 本页是 EDT 管线**第一次跑三维体系**的完整记录:MoS$_2$ 的全部生产运行都在
-> `nk3 = 1`(二维带真空),换到体相金属 PdCoO$_2$ 后,一条从未被行使过的代码路径
-> 立刻发病。诊断、修复(qe-edt v2.2)与端到端验证都在 2×2×2 复现器上完成。
-> 主机与结构背景见 PdCoO$_2$ 能带页;缺陷 = **理想 Pd 空位**(未弛豫,中性)。
+> This page is the complete record of the **first time the EDT pipeline ran a three-dimensional system**: every
+> MoS$_2$ production run had `nk3 = 1` (two-dimensional with vacuum), and switching to the bulk metal PdCoO$_2$
+> immediately made a never-exercised code path fail. Diagnosis, fix (qe-edt v2.2) and end-to-end validation were all
+> done on a 2×2×2 reproducer.
+> Host and structural background are on the PdCoO$_2$ bands page; the defect is an **ideal Pd vacancy** (unrelaxed, neutral).
 
-## 1. 为什么 2×2×2 的陪集比对是"真值",不是近似
+## 1. Why a 2×2×2 coset comparison is ground truth, not an approximation
 
-把主机 $k$ 网格取成与超胞同尺寸($2^3$),周期阵列支就**是**空位超胞本身:
-盒子里一个缺陷加上盒子周期像,恰好构成那个 31 原子的超胞问题;链的
-$\Sigma^R(\omega)$ 又把平面波补空间**完整**装进来。于是陪集组装的
+Taking the host $k$ mesh to be the same size as the supercell ($2^3$) makes the periodic-array branch **be** the
+vacancy supercell itself: one defect in the box plus its periodic images is exactly that 31-atom supercell problem,
+and the chain's $\Sigma^R(\omega)$ brings in the plane-wave complement **completely**. So the coset assembly
 
 $$G(\omega)=\Big[(\omega+i\eta)-\varepsilon_a-\tfrac{V_{AA}+\Sigma^R(\omega)}{N_k}\Big]^{-1},\qquad
 \mathrm{DOS}(\omega)=-\tfrac1\pi\,\mathrm{Im\,Tr}\,G$$
 
-(128 维 = 8 陪集 × 16 带)必须逐条能级复现**空位超胞在 $\Gamma$ 点的 DFT 谱**——
-没有任何可调参数,唯一的常数是 core 对齐位移(见 §2)。这正是 MoS$_2$ 当年
-"陪集分解 = 周期阵列支可比超胞真值"的验证阶梯,在三维上重走一遍。
+(128 dimensions = 8 cosets × 16 bands) must reproduce **the DFT spectrum of the vacancy supercell at $\Gamma$**
+level by level — with no adjustable parameter, the only constant being the core alignment shift (see §2). This is the
+same validation ladder as MoS$_2$'s "coset decomposition = periodic-array branch comparable to supercell truth",
+walked again in three dimensions.
 
-## 2. 管线与逐级的门
+## 2. The pipeline and its gates, stage by stage
 
-| 步骤 | 要点 | 门(实测) |
+| step | key points | gate (measured) |
 |---|---|---|
-| 超胞 SCF | 2×2×2 菱方(32/31 原子),FFT **强制** $150^3=2\times75^3$;金属超胞用 `local-TF` 混合(Broyden $\beta=0.3$ 在 0.6 Ry 处震荡不收敛) | 完美超胞总能/f.u. 与原胞独立计算吻合到 $1\times10^{-8}$ Ry;空位胞保留全部 **12 个对称操作**(Pd 在 3a 位,位点群 = 晶体点群 $D_{3d}$) |
-| $\Delta V$ | `extract_pot.x`(ityp 列约定 + 8 位精度;stock `pp.x` 是 Z 列 + 5 位) | 峰值 310.8 eV,**4 Å 内衰减 5 个数量级**,胞边界 rms 6 meV(0.002% 峰值)——金属屏蔽,无长程尾 |
-| 对齐 | 3D 无真空,用 `pot_align='core'`(最远原子实心球平均) | 与独立的"最外壳层均值"法吻合到 **8 meV**(1.309 vs 1.317 eV) |
-| born 块 | EDT 自包含(`born_only`),全带 1–40 | 厄米性 $1.3\times10^{-15}$,全部 $q_3$ 类一致;**独立平面波积分器**逐元素仲裁:三个置换对称 $q$ 通道比值 7 位相同,残余 8–12% 恰为积分器故意略去的 KB 非局域部分 |
-| MODE C 链 | `edt_r42q3.x`,`svd_tol=0`,16 块 | 算符自检 $1.9\times10^{-14}$;herm($A$) 首步 $1.5\times10^{-11}$、后续 **$\sim6\times10^{-15}$**;col 与 legacy 两种 fold 的链:VAA 逐位相同、$A/B$ 块相对 $\le1.2\times10^{-8}$ |
+| supercell SCF | 2×2×2 rhombohedral (32/31 atoms), FFT **forced** to $150^3=2\times75^3$; metallic supercells need `local-TF` mixing (Broyden $\beta=0.3$ oscillates and fails to converge around 0.6 Ry) | the perfect supercell's total energy per f.u. agrees with an independent primitive-cell calculation to $1\times10^{-8}$ Ry; the vacancy cell retains all **12 symmetry operations** (Pd sits at 3a, so the site group = the crystal point group $D_{3d}$) |
+| $\Delta V$ | `extract_pot.x` (ityp-column convention + 8 digits; stock `pp.x` writes a Z column with 5) | peak 310.8 eV, **five orders of magnitude of decay within 4 Å**, cell-boundary rms 6 meV (0.002% of peak) — metallic screening, no long-range tail |
+| alignment | no vacuum in 3D, so `pot_align='core'` (a solid-sphere average on the farthest atom) | agrees with an independent "outermost-shell mean" method to **8 meV** (1.309 vs 1.317 eV) |
+| born block | EDT self-contained (`born_only`), all bands 1–40 | Hermiticity $1.3\times10^{-15}$, consistent across all $q_3$ classes; an **independent plane-wave integrator** arbitrates element by element: the three permutation-symmetric $q$ channels agree in their ratios to 7 digits, and the residual 8–12% is exactly the KB nonlocal part the integrator deliberately omits |
+| MODE C chain | `edt_r42q3.x`, `svd_tol=0`, 16 blocks | operator self-check $1.9\times10^{-14}$; herm($A$) $1.5\times10^{-11}$ on the first step and **$\sim6\times10^{-15}$** thereafter; chains from the col and legacy folds have bit-identical VAA and relative $A/B$ block differences $\le1.2\times10^{-8}$ |
 
-对齐常数进谱的方式:EDT 的 $\Delta V$ 携带 shift $=\langle V_p\rangle_{\rm core}-\langle V_d\rangle_{\rm core}
-=+0.0962$ Ry,即陪集谱落在**完美晶格的绝对能标**上,比较时把空位超胞真值整体
-$+1.3094$ eV——这不是拟合参数,是管线自己打印的数。
+How the alignment constant enters the spectrum: EDT's $\Delta V$ carries a shift $=\langle V_p\rangle_{\rm core}-\langle V_d\rangle_{\rm core}
+=+0.0962$ Ry, so the coset spectrum sits on the **absolute energy scale of the perfect lattice**, and the
+comparison shifts the vacancy-supercell ground truth bodily by $+1.3094$ eV — not a fitting parameter, but a number
+the pipeline prints itself.
 
-## 3. 结果:两条泳道的 DOS 对比
+## 3. Results: DOS comparison in two lanes
 
 ![PdCoO2 coset DOS vs supercell truth](../assets/pdcoo2_coset_dos.png)
 
-**(a) 门泳道**(无缺陷):纯主机陪集(8 $k$ × 16 带的 $\varepsilon_a$ 展宽)对拍**完美**超胞
-$\Gamma$ 的 DFT 谱。这条泳道没有物理内容——它只检验折叠恒等式与两次独立 SCF 的一致性,
-给出比较方法的**本底**:积分相对 $|\Delta\mathrm{DOS}|=0.0013$。
+**(a) Gate lane** (no defect): the pure host coset (8 $k$ × 16 bands of broadened $\varepsilon_a$) reconciled
+against the DFT spectrum of the **perfect** supercell at $\Gamma$. This lane contains no physics — it only tests the
+folding identity and the consistency of two independent SCF runs, and it establishes the **noise floor** of the
+comparison method: integrated relative $|\Delta\mathrm{DOS}|=0.0013$.
 
-**(b) 物理泳道**:MODE C 陪集组装对拍**空位**超胞 $\Gamma$ 真值。空位对谱的重排很剧烈
-((a) 与 (b) 的峰结构明显不同),而每一个峰、每一处肩都被复现:
+**(b) Physics lane**: the MODE C coset assembly reconciled against the **vacancy** supercell ground truth at
+$\Gamma$. The vacancy rearranges the spectrum dramatically (the peak structures of (a) and (b) are visibly
+different), and yet every peak and every shoulder is reproduced:
 
-| 量 | 值 |
+| quantity | value |
 |---|---|
-| 积分相对 $|\Delta\mathrm{DOS}|$ | **0.0037**(本底 0.0013) |
-| QP 不动点 vs 真值(123 条可配对) | 中位 **0.1 meV**,90 分位 0.4 meV |
-| 未配对能级数 | **5 = 被移除 Pd 的 4d 轨道数**(128 主机基态 vs 窗口内 123 条真值;空位把 5 个 d 态逐出流形,$T$-矩阵侧同样逐出) |
+| integrated relative $|\Delta\mathrm{DOS}|$ | **0.0037** (noise floor 0.0013) |
+| QP fixed points vs ground truth (123 pairable) | median **0.1 meV**, 90th percentile 0.4 meV |
+| number of unpaired levels | **5 = the number of 4d orbitals on the removed Pd** (128 host basis states vs 123 ground-truth levels in the window; the vacancy expels 5 d states from the manifold, and the $T$-matrix side expels them too) |
 
-最后一行值得强调:能级**计数**的差恰好等于被拔掉原子的 d 轨道数,两侧一致——
-这是方法把"移除一个原子"这件事做对了的直接证据,而不只是把留下的态摆对了位置。
+The last row deserves emphasis: the difference in level **count** equals exactly the number of d orbitals on the
+removed atom, and both sides agree — direct evidence that the method gets "removing one atom" right, and not merely
+that it places the surviving states correctly.
 
-## 4. fold\_col 的 3D bug:症状、指纹、三行铁证
+## 4. The 3D bug in fold\_col: symptoms, fingerprint, and three lines of hard evidence
 
-第一次跑 6³ 链时 herm($A$) $=O(10)$(应为机器精度)、算符自检 $|{\rm proj}-M|=5.2>|M|=2.9$。
-在 2×2×2 复现器(每步 0.9 s)上做**单变量对照**逐一排除:cube 来源(extract\_pot 与 pp.x
-两种 cube 的四个门逐位相同)、edmat 补零、SVD 截断(`svd_tol=0` 仍坏)、$k$ 网格大小(2³ 也坏)。
-随后两步定位:
+The first 6³ chain run gave herm($A$) $=O(10)$ (it should be machine precision) and an operator self-check of
+$|{\rm proj}-M|=5.2>|M|=2.9$. On the 2×2×2 reproducer (0.9 s per step) a **single-variable comparison** ruled
+possibilities out one at a time: cube provenance (both extract\_pot and pp.x cubes give bit-identical results on all
+four gates), edmat zero-padding, SVD truncation (still broken at `svd_tol=0`), and $k$-mesh size (2³ is broken too).
+Two further steps localized it:
 
-**独立仲裁**:从头写的平面波积分器直接算 $\langle\psi_{mk_f}|\Delta V|\psi_{nk_i}\rangle$,
-证明 **born 路径在 3D 正确**(比值 = $N_k$ 约定常数,置换对称通道 7 位一致)——嫌疑收缩到链侧。
+**Independent arbitration**: a plane-wave integrator written from scratch computed
+$\langle\psi_{mk_f}|\Delta V|\psi_{nk_i}\rangle$ directly and proved **the born path is correct in 3D** (ratios = the
+$N_k$ convention constant, permutation-symmetric channels agreeing to 7 digits) — narrowing suspicion to the chain side.
 
-**$q$ 块指纹**:把链的 `apply_dV` 原始输出(chi 转储)与 born 逐 $(k_f,k_i)$ 块比,得到判决性模式——
-**恰好 16 个 "$q_3=+\tfrac12$ 且缠绕 $g_3=0$" 的块 +1.000 精确,其余全部污染**(2³ 的 8 个 $k$
-全是 TRIM 点、体系有反演,故污染呈实数比值)。这个不对称模式唯一指向 fold\_col 的因子化表:
+**$q$-block fingerprint**: comparing the chain's raw `apply_dV` output (a chi dump) against born block by block over
+$(k_f,k_i)$ produced the decisive pattern — **exactly 16 blocks with "$q_3=+\tfrac12$ and winding $g_3=0$" are
+precisely +1.000, and every other block is contaminated** (all 8 $k$ of the 2³ mesh are TRIM points and the system
+has inversion, so the contamination shows up as real-valued ratios). That asymmetric pattern points uniquely at
+fold\_col's factorization tables:
 
 ```fortran
-ALLOCATE(Vq(dffts%nnr, nkstot), phw(dffts%nnr, 4))   ! 缠绕相位只有 4 槽 = (g1,g2)
-IF (ABS(a1-qw(1))<1.d-6 .AND. ABS(a2-qw(2))<1.d-6) map_iq = kq   ! q3 从不检查
-map_ip(ik2,kg2) = 1 + (-g1) + 2*(-g2)                 ! g3 缺席
+ALLOCATE(Vq(dffts%nnr, nkstot), phw(dffts%nnr, 4))   ! only 4 winding-phase slots = (g1,g2)
+IF (ABS(a1-qw(1))<1.d-6 .AND. ABS(a2-qw(2))<1.d-6) map_iq = kq   ! q3 is never checked
+map_ip(ik2,kg2) = 1 + (-g1) + 2*(-g2)                 ! g3 absent
 ```
 
-$q$ 匹配无守卫、后写者胜 → 所有 $(q_1,q_2,\cdot)$ 类的槽位被 $q_3{=}\tfrac12$ 候选最后覆盖;
-$g_3=-1$ 的缠绕相位 $e^{-2\pi iz}$ 整体缺失。MoS$_2$ 永远 $q_3\equiv0,g_3\equiv0$,2D 表恰好完备——
-**不是不小心,是从未被三维数据行使过**。修复(qe-edt v2.2):匹配加第三分量、`phw` 扩到
-8 槽($G\in\{0,-1\}^3$)、`map_ip` 加 $4\cdot(-g_3)$。修复后四门全绿(§2 表)。
-legacy 模式(`fold_col=.false.`,逐对精确折叠)被独立证明在 3D 本来就正确($5\times10^{-14}$)——
-生产因此始终有一条已验证的备用路径。
+The $q$ match is unguarded and last-writer-wins → every slot in the $(q_1,q_2,\cdot)$ class ends up overwritten by
+the $q_3{=}\tfrac12$ candidate; and the $g_3=-1$ winding phase $e^{-2\pi iz}$ is missing entirely. MoS$_2$ always has
+$q_3\equiv0,g_3\equiv0$, so the 2D tables happen to be complete — **not carelessness, simply never exercised by
+three-dimensional data**. The fix (qe-edt v2.2): add the third component to the match, extend `phw` to 8 slots
+($G\in\{0,-1\}^3$), and add $4\cdot(-g_3)$ to `map_ip`. All four gates go green after the fix (§2 table).
+The legacy mode (`fold_col=.false.`, exact pairwise folding) was independently proven correct in 3D all along
+($5\times10^{-14}$) — so production always had a verified fallback path.
 
-## 5. 三维化过程中攒下的教训
+## 5. Lessons accumulated while going three-dimensional
 
-| 教训 | 一句话 |
+| lesson | in one line |
 |---|---|
-| cube 必须用 `extract_pot.x` | stock `pp.x` 写 Gaussian 标准(Z 列)且只有 5 位有效;EDI 读取器期待 ityp 列。Z 列使 `count_nkb` 匹配不到任何物种 → `nkb=0` → ZGEMM LDC=0 + 越界 SIGSEGV |
-| 能带极值必须在均匀网格上量 | 高对称路径是 BZ 的零测集:band 25 的真实底比路径值低 88 meV,足以使解缠冻结窗吞进第二条带 |
-| 窗口锚在绝对能量,不锚 $E_F$ | 金属加展宽下 $E_F$ 随 $k$ 网格漂 50–80 meV,本征值不漂 |
-| 补零 edmat 数学上精确,但会**致盲算符自检** | MODE C 只读 $V_{AA}$,零永不进入计算;可是自检拿全带元素做判据——生产前用全带 born 让这道闸有真数据 |
-| 金属超胞 SCF 用 `local-TF` | 普通 Broyden 压不住长波长电荷晃动;原胞太小看不出来 |
-| herm($A$) 是链的免费硬门 | $A_j=Q_j^\dagger HQ_j$ 对任意 $Q$ 厄米——它偏离机器精度只能意味着**被应用的算符本身**错了 |
+| cubes must come from `extract_pot.x` | stock `pp.x` writes the Gaussian standard (a Z column) with only 5 significant digits; the EDI reader expects an ityp column. A Z column makes `count_nkb` match no species → `nkb=0` → ZGEMM with LDC=0 plus an out-of-bounds SIGSEGV |
+| band extrema must be measured on a uniform mesh | a high-symmetry path is a set of measure zero in the BZ: band 25's true minimum is 88 meV below its value on the path, enough for a disentanglement frozen window to swallow a second band |
+| anchor windows to absolute energies, not to $E_F$ | in a smeared metal, $E_F$ drifts by 50–80 meV with the $k$ mesh while the eigenvalues do not |
+| a zero-padded edmat is mathematically exact but **blinds the operator self-check** | MODE C reads only $V_{AA}$, so the zeros never enter the calculation; but the self-check uses all-band elements as its criterion — feed it a real all-band born before production so that gate has actual data |
+| use `local-TF` for metallic supercell SCF | plain Broyden cannot damp the long-wavelength charge sloshing; the primitive cell is too small for it to show |
+| herm($A$) is the chain's free hard gate | $A_j=Q_j^\dagger HQ_j$ is Hermitian for any $Q$ — so a departure from machine precision can only mean **the operator being applied** is itself wrong |
 
-## 6. Wannier 衰减验证:簇方法的资格证
+## 6. Wannier decay validation: the cluster method's licence to operate
 
-谱函数组装要把 $T$ 放到缺陷周围的实空间簇上,前提是**顶点与 $T$ 在 Wannier 对基下确实局域**。
-这一点在完整的 $6^3$ R 网格上直接测量(**无任何截断**,衰减是证据不是假设):把
-$\tilde V(\omega)=(V_{AA}+\Sigma^R(\omega))/N_k$ 与 $T=\tilde V[1-G_0\tilde V]^{-1}$
-旋入 Wannier 规范、双重傅里叶到 $(R,R')$ 对基,按到缺陷的最小镜像距离分壳。
+Assembling spectral functions puts $T$ on a real-space cluster around the defect, which presupposes that **the
+vertex and $T$ really are localized in the Wannier pair basis**. This is measured directly on the complete $6^3$ R
+mesh (**with no truncation at all**, so the decay is evidence rather than assumption): rotate
+$\tilde V(\omega)=(V_{AA}+\Sigma^R(\omega))/N_k$ and $T=\tilde V[1-G_0\tilde V]^{-1}$ into the Wannier gauge, double
+Fourier transform to the $(R,R')$ pair basis, and bin into shells by minimum-image distance to the defect.
 
 ![PdCoO2 Wannier decay](../assets/pdcoo2_wdecay.png)
 
-**先跑的三道约定门**(MoS$_2$ 教训的固定动作,全部由数据判定):
+**Three convention gates run first** (the standard drill learned from MoS$_2$, all decided by the data):
 
-| 门 | 结果 |
+| gate | result |
 |---|---|
-| u.mat 取向($U^\dagger\varepsilon U$ vs $U\varepsilon U^\dagger$ 对拍 $H_W$) | **2.5e-5 vs 6.1 eV** —— 判别力 5 个量级 |
-| 顶点中心自定位(对角块 argmax) | $(5,5,5)$,**与结构预言 $-(1,1,1)\bmod 6$ 逐分量一致**(断言通过) |
-| $\tilde V$ 厄米性 | 5–7e-4(推迟对象的正常 Im 量级) |
+| u.mat orientation ($U^\dagger\varepsilon U$ vs $U\varepsilon U^\dagger$ against $H_W$) | **2.5e-5 vs 6.1 eV** — five orders of magnitude of discriminating power |
+| vertex centre self-location (argmax over diagonal blocks) | $(5,5,5)$, **agreeing component by component with the structural prediction $-(1,1,1)\bmod 6$** (assertion passes) |
+| $\tilde V$ Hermiticity | 5–7e-4 (the normal Im magnitude for a retarded object) |
 
-中心在 $-r_{\rm def}$ 而非 $+r_{\rm def}$ 是傅里叶相位约定的结果
-($V(k,k')\sim e^{-i(k-k')\cdot r_{\rm def}}$);而"WS 原点必须取缺陷位置"的老教训在这里
-**又演了一遍**:菱方胞极度拉长($\alpha=26.7^\circ$,$|a_1{+}a_2{+}a_3|=c_{\rm hex}=17.74$ Å),
-第一版脚本以 $(0,0,0)$ 为原点,把真·缺陷本座(0.38 eV)标成了"最远处的 29 倍尖峰"。
-原点必须**从结构读出并由数据自证**,两者缺一不可。
+The centre lands at $-r_{\rm def}$ rather than $+r_{\rm def}$ as a consequence of the Fourier phase convention
+($V(k,k')\sim e^{-i(k-k')\cdot r_{\rm def}}$); and the old lesson that "the WS origin must be taken at the defect
+position" **played out yet again** here: the rhombohedral cell is extremely elongated
+($\alpha=26.7^\circ$, $|a_1{+}a_2{+}a_3|=c_{\rm hex}=17.74$ Å), and a first version of the script used $(0,0,0)$ as
+the origin, labelling the true defect site (0.38 eV) as "a 29× spike at the farthest distance".
+The origin must be **read from the structure and confirmed by the data** — neither alone is enough.
 
-### 6a. 三条结论
+### 6a. Three conclusions
 
-1. **局域性成立**:$V(0)=0.38$ eV → 第一壳(2.83 Å)**1%** → 10 Å 外 ~0.03%,
-   两个数量级的衰减发生在第一壳内;$T$ 的衰减跟随 $V$
-   ($T=V+VG_0V+\cdots$ 每一项双腿钉在 $V$ 的支持域上,数据证实了这个论证)。
-2. **一项已量化的系统误差**:展开标签 17.74 Å 处的"回升"是 $2\times2\times2$ cube 的
-   **角瓦块**——经超胞周期回绕它物理上离缺陷只有 ~6.8 Å,孤立盒变换把这份权重放到了
-   展开位置。绝对值 $V$ ~1.3e-2、$T$ ~0.02 eV,随 $\omega$ 几乎不动。
-   这是**有限超胞的指纹**,压低它的唯一途径是 $3\times3\times3$ cube(输入已在盘上)。
-3. **物理预告:$E_F$ 处的本地共振**。$T$ 的缺陷本座范数 $0.028\to\mathbf{0.135}\to0.037$ eV
-   ($E_F\pm0.5$ eV 对比 $E_F$,**×5**),而 $V$ 几乎不随 $\omega$ 变(0.37–0.38)——
-   增强全部来自多重散射 $[1-G_0V]^{-1}$,且只发生在本座。Pd 空位在 $E_F$ 附近
-   有共振,谱函数与输运里将直接可见(强能量依赖的散射率)。
+1. **Locality holds**: $V(0)=0.38$ eV → first shell (2.83 Å) **1%** → beyond 10 Å ~0.03%, with two orders of
+   magnitude of decay happening within the first shell; $T$'s decay follows $V$'s
+   ($T=V+VG_0V+\cdots$ has both legs of every term pinned to $V$'s support, and the data confirms that argument).
+2. **One quantified systematic**: the "rise" at the unrolled label of 17.74 Å is the **corner tile** of the
+   $2\times2\times2$ cube — under supercell periodic wrapping it is physically only ~6.8 Å from the defect, and the
+   isolated-box transform places that weight at the unrolled position. In absolute terms $V$ ~1.3e-2 and $T$
+   ~0.02 eV, barely moving with $\omega$.
+   This is the **fingerprint of a finite supercell**, and the only way to suppress it is a $3\times3\times3$ cube
+   (inputs already on disk).
+3. **A physical prediction: a local resonance at $E_F$**. $T$'s defect-site norm goes
+   $0.028\to\mathbf{0.135}\to0.037$ eV ($E_F\pm0.5$ eV against $E_F$, a factor **×5**), while $V$ barely changes
+   with $\omega$ (0.37–0.38) — the enhancement comes entirely from multiple scattering $[1-G_0V]^{-1}$, and only at
+   the defect site. The Pd vacancy has a resonance near $E_F$, which will be directly visible in the spectral
+   function and in transport (a strongly energy-dependent scattering rate).
 
-## 7. 谱函数:$A(k,\omega)$ 沿能带路径
+## 7. Spectral functions: $A(k,\omega)$ along the band path
 
-管线的终点站。$T$ **直接在 Wannier 对基**中组装($R_c=10$ Å 簇,97 站像 / 1552 维,
-$G_0$ 由 hr.dat 插值到 $32^3$ 密网格、按 595 个唯一 $\Delta R$ 做 GEMM——
-与 MoS$_2$ 的 kubo/kpath 代码同构),然后
+The pipeline's terminus. $T$ is assembled **directly in the Wannier pair basis** ($R_c=10$ Å cluster, 97 site images
+/ 1552 dimensions, with $G_0$ interpolated from hr.dat onto a $32^3$ dense mesh and GEMM'd over 595 unique
+$\Delta R$ — structurally the same as MoS$_2$'s kubo/kpath code), and then
 
 $$\Sigma_W(k,\omega)=n_d\sum_{RR'}e^{-ikR}\,T_{RR'}(\omega)\,e^{ikR'},\qquad
 A(k,\omega)=-\tfrac1\pi\,\mathrm{Im\,Tr}\big[\omega+i\eta-H_W(k)-\Sigma_W\big]^{-1}$$
 
-### 7a. 门 0:代数恒等式,先于一切物理
+### 7a. Gate 0: an algebraic identity, before any physics
 
-全站点簇 + 与链同一 $6^3$ 网格的 $G_0$ 时,簇路线与能带基直接公式是同一线性代数——
-逐 $k$ 块比值必须是平坦常数,且常数有理论预言值 $N_k$。实测:
+With an all-sites cluster and a $G_0$ on the same $6^3$ mesh as the chain, the cluster route and the direct
+band-basis formula are the same linear algebra — so the per-$k$ block ratio must be a flat constant, and the constant
+has a predicted value of $N_k$. Measured:
 
-$$\text{常数}=216.00000000=N_k,\qquad \text{rel-std}=2.9\times10^{-13},\qquad
-\text{错误符号对照组: }4.2$$
+$$\text{constant}=216.00000000=N_k,\qquad \text{rel-std}=2.9\times10^{-13},\qquad
+\text{wrong-sign control: }4.2$$
 
-这道门在调试中先后拦下**三个独立的约定错误**(对照路线的基混用;$\Sigma(k)$ 收缩相位符号;
-$G_0$ 相位取向——后者一阶精确、二阶起漂移,靠逐阶二分定位)。每一个都会让谱函数
-悄悄错掉而图上看不出来;现在每个约定都由恒等式判定,归一化由预言值断言。
+During debugging this gate caught **three independent convention errors** (mixed bases in the comparison route; the
+sign of the $\Sigma(k)$ contraction phase; and the $G_0$ phase orientation — the last exact at first order and
+drifting from second, localized by bisecting order by order). Each of them would have made the spectral function
+quietly wrong while looking fine on the plot; now every convention is decided by the identity and the normalization
+asserted against a predicted value.
 
-### 7b. 结果
+### 7b. Results
 
 ![PdCoO2 spectral function](../assets/pdcoo2_spec_kpath.png)
 
-主机能带(细线)与谱强度脊线逐点重合;**展宽集中在 $E_F$ 穿越处**,同一条 Pd 带在
-几百 meV 之外锐利如初——$E_F$ 共振(§6a)的谱学指纹。定量($n_d=0.5\%$/Pd 位):
+The host bands (thin lines) coincide point by point with the ridges of spectral intensity, and **the broadening
+concentrates where bands cross $E_F$** — the same Pd band is as sharp as ever a few hundred meV away, the
+spectroscopic fingerprint of the $E_F$ resonance (§6a). Quantitatively (at $n_d=0.5\%$ per Pd site):
 
-| 量 | 值 |
+| quantity | value |
 |---|---|
-| $\Gamma(E_F)$(三个费米穿越点) | 中位 **23.9 meV**(18.8–25.1) |
+| $\Gamma(E_F)$ (three Fermi crossings) | median **23.9 meV** (18.8–25.1) |
 | $\tau=\hbar/\Gamma$ | **27 fs** |
-| $\ell=v_F\tau$($v_F\sim7.5\times10^5$ m/s) | **~20 nm** |
+| $\ell=v_F\tau$ ($v_F\sim7.5\times10^5$ m/s) | **~20 nm** |
 
-Pd 空位是共振增强的强散射体:0.5% 空位就把这个以超长自由程著称的材料打到
-$\ell\sim20$ nm——与"PdCoO$_2$ 的超高电导依赖 Pd 层近乎无缺陷"的实验共识定性一致。
-$\Gamma\propto n_d$,其它浓度线性换算;$\Sigma_W/n_d$ 全量存盘
-(`pd_spec_sig.npz`),换浓度重出图约 1 分钟。
+The Pd vacancy is a resonantly enhanced strong scatterer: 0.5% vacancies knock this famously long-mean-free-path
+material down to $\ell\sim20$ nm — qualitatively consistent with the experimental consensus that PdCoO$_2$'s extreme
+conductivity depends on the Pd layers being nearly defect-free.
+$\Gamma\propto n_d$, so other concentrations scale linearly; the full $\Sigma_W/n_d$ is stored
+(`pd_spec_sig.npz`) and replotting at a new concentration takes about a minute.
 
-### 7c. Γ→Z 的 $E_F\pm1$ eV zoom:$c$ 轴不携带费米穿越
+### 7c. A $E_F\pm1$ eV zoom on Γ→Z: the $c$ axis carries no Fermi crossing
 
 ![PdCoO2 Gamma-Z zoom](../assets/pdcoo2_spec_GZzoom.png)
 
-聚焦 $(E_F-1,E_F+1)$ eV、只取 Γ→Z(层间/$c$ 轴方向;201 点,$\omega$ 步 2.5 meV,
-$\eta=5$ meV,$G_0$ 网格加密到 $40^3$)。结果本身就是一条物理陈述:
+Focusing on $(E_F-1,E_F+1)$ eV along Γ→Z alone (the interlayer / $c$-axis direction; 201 points, $\omega$ step
+2.5 meV, $\eta=5$ meV, $G_0$ mesh refined to $40^3$). The result is itself a physical statement:
 
-1. **这一段没有任何能带穿过 $E_F$**——传导带沿 Γ→Z 从 $-0.76$ 升到 $-0.27$ eV
-   (其最小值恰在 Γ),上半窗口全空。这是**准二维性的谱学版本**:费米面是
-   垂直于 $c$ 轴的六边形柱面,$E_F$ 穿越全部发生在面内方向(全路径图的
-   Γ-L、X|Q、P 附近)。
-2. **带在此段全程锐利**——它们位于 $\omega\approx-0.3\ldots-0.8$ eV,
-   离 $T(\omega)$ 的 $E_F$ 共振远,只拿到离壳的小展宽。与全路径图中
-   "展宽集中在 $E_F$ 穿越处"互为印证:共振散射的能量选择性,在同一份
-   $\Sigma_W(k,\omega)$ 数据里从两个正交的切面上读出来。
+1. **No band in this segment crosses $E_F$** — the conduction band rises from $-0.76$ to $-0.27$ eV along Γ→Z (its
+   minimum lying exactly at Γ), and the upper half of the window is empty. This is the **spectroscopic version of
+   quasi-two-dimensionality**: the Fermi surface is a hexagonal cylinder perpendicular to $c$, and every $E_F$
+   crossing happens in in-plane directions (near Γ-L, X|Q and P in the full-path figure).
+2. **The bands are sharp throughout this segment** — they sit at $\omega\approx-0.3\ldots-0.8$ eV, far from
+   $T(\omega)$'s $E_F$ resonance, and pick up only a small off-shell broadening. This mutually corroborates the
+   "broadening concentrates at $E_F$ crossings" of the full-path figure: the energy selectivity of resonant
+   scattering, read off two orthogonal cuts through the same $\Sigma_W(k,\omega)$ data.
 
-技术注:$G_0$ 的 $40^3$ 均匀网格是**主机传播子 BZ 积分的求积格点**
-($T$ 的多重散射闭合要经全 BZ 的中间态),不是插值——$H_W(k)$ 与
-$\Sigma_W(k,\omega)$ 本身都在路径 k 上直接求值,无需任何网格。
+Technical note: the $40^3$ uniform mesh for $G_0$ is the **quadrature grid for the host propagator's BZ integral**
+($T$'s multiple-scattering closure runs through intermediate states over the whole BZ), not an interpolation —
+$H_W(k)$ and $\Sigma_W(k,\omega)$ are themselves evaluated directly at the path $k$ with no mesh needed.
 
-### 7d. Γ→L 的 $E_F\pm1$ eV zoom:共振的能量选择性,单条带上直读
+### 7d. A $E_F\pm1$ eV zoom on Γ→L: the resonance's energy selectivity, read off a single band
 
 ![PdCoO2 Gamma-L zoom](../assets/pdcoo2_spec_GLzoom.png)
 
-与 7c 同参数,换到**有费米穿越**的面内段(RHL1 的 $L=(\tfrac12,0,0)$;
-全路径图上第一个穿越所在)。三条读数:
+Same parameters as 7c, moved to an in-plane segment that **does** have a Fermi crossing (RHL1's
+$L=(\tfrac12,0,0)$; the location of the first crossing in the full-path figure). Three readings:
 
-1. **陡峭的 Pd 传导带在穿越 $E_F$ 处变暗、变宽**:$E_F\pm0.15$ eV 窗口内谱峰
-   从 ~40 掉到 ~15 states/eV($A_{\rm peak}\propto1/\Gamma$,共振区 $\Gamma$ 增强、
-   峰高塌落),离开窗口同一条带立刻恢复锐利——$T(\omega)$ 共振(§6a 的 ×5)的
-   能量选择性在一条带上一眼读出;
-2. **$\Gamma(E_F)$ = 中位 17.0 meV**(16.2–17.5,4 个穿越态;2.5 meV $\omega$ 网格 +
-   $40^3$ $G_0$,比全路径跑的分辨率更高)→ $\tau\approx39$ fs @ 0.5% 空位;
-3. **散射率沿费米面各向异性 ~40%**:此段 17 meV vs 全路径其它穿越点 ~24 meV——
-   不同 $k$ 处的费米面态与缺陷共振的耦合强度不同。这是输运的实质输入:
-   各向异性 $\tau(k)$ 意味着 SERTA 与完整解(含顶点修正/IBTE)会出现可测差别。
+1. **The steep Pd conduction band dims and broadens where it crosses $E_F$**: within an $E_F\pm0.15$ eV window the
+   spectral peak drops from ~40 to ~15 states/eV ($A_{\rm peak}\propto1/\Gamma$, so an enhanced $\Gamma$ in the
+   resonance region collapses the peak height), and the same band recovers its sharpness immediately outside the
+   window — the energy selectivity of the $T(\omega)$ resonance (§6a's ×5) read at a glance off one band;
+2. **$\Gamma(E_F)$ = median 17.0 meV** (16.2–17.5 over 4 crossing states; with a 2.5 meV $\omega$ mesh and $40^3$
+   $G_0$, i.e. finer resolution than the full-path run) → $\tau\approx39$ fs at 0.5% vacancies;
+3. **The scattering rate is ~40% anisotropic around the Fermi surface**: 17 meV in this segment versus ~24 meV at
+   the other crossings of the full path — Fermi-surface states at different $k$ couple to the defect resonance with
+   different strength. This is a substantive input for transport: an anisotropic $\tau(k)$ means SERTA and the full
+   solution (with vertex corrections / IBTE) will differ measurably.
 
-### 7e. 高分辨版(601 k × 2001 $\omega$,$\eta=2$ meV)
+### 7e. High-resolution version (601 k × 2001 $\omega$, $\eta=2$ meV)
 
 ![PdCoO2 Gamma-L HD zoom](../assets/pdcoo2_spec_GLzoomHD_log.png)
 
-把 7d 的分辨率全面加密(k 点 ×3、$\omega$ 步长 1 meV、显示 $\eta$ 降到 2 meV,
-使本征线宽完全主导;**色标为对数**,覆盖三个量级)后:
+After refining 7d's resolution across the board (3× the k points, a 1 meV $\omega$ step, display $\eta$ reduced to
+2 meV so the intrinsic linewidth completely dominates; **logarithmic colour scale**, spanning three decades):
 
-- **共振窗口清晰成型**:$\omega\in(-0.1,+0.2)$ eV 内谱峰黯淡、窗口外恢复为
-  发丝级锐线——能量选择性成为图上无可争辩的特征;
-- **线宽读数收敛**:HD 的 12 个穿越态给 $\Gamma(E_F)$ 中位 **17.01 meV**,
-  与低分辨版(4 个态,$\eta=5$ meV)的 16.99 逐位一致——对 k/ω 分辨率与
-  $\eta$ 均已收敛,**这是可引用的数**;
-- $-0.3\ldots-0.5$ eV 的避免交叉在 1 meV 网格下完全分辨;
-- 对数色标下**共振窗口的洛伦兹尾翼完整可见**(穿越点周围的弥散晕)——
-  线形本身(不只是峰位)成为可读的对象。
+- **The resonance window takes clear shape**: spectral peaks are dim inside $\omega\in(-0.1,+0.2)$ eV and recover to
+  hairline sharpness outside — the energy selectivity becomes an incontestable feature of the figure;
+- **The linewidth reading has converged**: the HD run's 12 crossing states give a median $\Gamma(E_F)$ of
+  **17.01 meV**, agreeing to the digit with the low-resolution version's 16.99 (4 states, $\eta=5$ meV) — converged
+  with respect to k/ω resolution and to $\eta$, so **this is a citable number**;
+- the avoided crossing at $-0.3\ldots-0.5$ eV is fully resolved on the 1 meV mesh;
+- on a log scale **the Lorentzian tails of the resonance window are fully visible** (the diffuse halo around the
+  crossings) — the lineshape itself, not just the peak position, becomes a readable object.
 
-(601×2001 的全 $\Sigma_W/n_d$ 在盘,换缺陷浓度重出图为秒级。ω 并行 6 worker,39 分钟。)
+(The full $\Sigma_W/n_d$ for 601×2001 is on disk, so replotting at a different defect concentration takes seconds.
+ω-parallel over 6 workers, 39 minutes.)
 
-### 7f. 三段 HD zoom(Γ→L→B$_1$|B→Z):展宽不只发生在 $E_F$
+### 7f. A three-segment HD zoom (Γ→L→B$_1$|B→Z): broadening does not only happen at $E_F$
 
 ![PdCoO2 GLBZ HD zoom](../assets/pdcoo2_spec_GLBZ_fine.png)
 
-同 HD 参数铺到三段路径(602 k;显示层从存盘 $\Sigma$ **零重算**再组装:
-$\Sigma$ 在 $\omega$ 上光滑,1 meV 网格线性插值到 0.25 meV 精确成立——
-$\eta$ 降到 **0.5 meV**,已低于图的像素宽,本征线宽主导一切可见结构;
-色标 **4 个量级**,锐带峰值 >200 states/eV 与 ~0.1 的共振晕同图可见):
+The same HD parameters laid over three path segments (602 k; the display layer is reassembled from the stored
+$\Sigma$ with **zero recomputation**: $\Sigma$ is smooth in $\omega$, so linear interpolation from the 1 meV mesh to
+0.25 meV is exact — $\eta$ is lowered to **0.5 meV**, already below the figure's pixel width, so the intrinsic
+linewidth dominates every visible structure; the colour scale spans **4 decades**, showing sharp-band peaks above
+200 states/eV and the ~0.1 resonance halo in the same figure):
 
-1. **两个陡峭费米穿越**(Γ-L 与 B-Z 段各一),穿越处的洛伦兹晕大小肉眼可辨地不同——
-   本段 7 个穿越态 $\Gamma(E_F)$ 中位 16.2、范围 **12.6–17.5 meV**;合并全路径其它
-   穿越点(~24–25 meV),**费米面散射率各向异性约 2 倍**;
-2. **最醒目的新特征:L 点附近 $-0.4$ eV 的平带顶有一大团弥散晕**(L–B$_1$ 之间
-   $+0.7$ eV 带同样可见展宽)。机制:$\mathrm{Im}\,\Sigma(\omega)$ 同时追踪
-   **共振**($E_F$,§6a)与**主机态密度峰**——van Hove/带极值处末态相空间大,
-   离开共振窗也拿到大 $\Gamma$。线性色标下这几乎不可见,对数色标把线形变成
-   一等公民;
-3. B$_1$|B 断点处谱结构近乎无缝衔接(两点对称等价)——组装相位约定的又一次自证。
+1. **Two steep Fermi crossings** (one each in the Γ-L and B-Z segments), with visibly different Lorentzian halo
+   sizes at the two — the 7 crossing states of these segments give a median $\Gamma(E_F)$ of 16.2 with a range of
+   **12.6–17.5 meV**; combined with the other crossings on the full path (~24–25 meV), that is a
+   **factor-of-about-2 anisotropy in the Fermi-surface scattering rate**;
+2. **The most striking new feature: a large diffuse halo at the flat-band top around $-0.4$ eV near L** (with
+   comparable broadening also visible on the $+0.7$ eV band between L and B$_1$). Mechanism:
+   $\mathrm{Im}\,\Sigma(\omega)$ tracks both the **resonance** ($E_F$, §6a) and **peaks in the host density of
+   states** — final-state phase space is large at van Hove points and band extrema, so a large $\Gamma$ is picked up
+   even away from the resonance window. On a linear colour scale this is nearly invisible; a log scale promotes the
+   lineshape to a first-class citizen;
+3. spectral structure joins almost seamlessly across the B$_1$|B break (the two points are symmetry-equivalent) —
+   another self-verification of the assembly's phase conventions.
 
-**关于"还要不要人工展宽"**(此图 $\eta=0.5$ meV 的依据):金属主机使
-$\mathrm{Im}\,\Sigma$ 处处有限(在壳 $\Gamma$ 最小 0.01 meV 但非零),显示 $\eta$
-原则上可趋零,实际由**像素宽**设界(±1 eV 窗口 ≈ 2 meV/像素,更小的 $\eta$
-只会欠采样)。管线中真正残留的人工参数是 $G_0$ 的 $\eta_{G_0}=25$ meV——
-它是 BZ 积分对离散网格的正则化,只能与网格一起收敛($64^3+10$ meV 的
-收敛检查在待办栈上);链 CF 的 $\eta$ 因 rest 空间远在 $+3.2$ eV 而无害。
+**On whether artificial broadening is still needed** (the basis for this figure's $\eta=0.5$ meV): a metallic host
+makes $\mathrm{Im}\,\Sigma$ finite everywhere (on-shell $\Gamma$ has a minimum of 0.01 meV but is nonzero), so the
+display $\eta$ can in principle go to zero, and in practice is bounded by the **pixel width** (a ±1 eV window is
+≈ 2 meV/pixel, and a smaller $\eta$ would merely undersample). The one genuinely artificial parameter left in the
+pipeline is $G_0$'s $\eta_{G_0}=25$ meV — a regularization of the BZ integral on a discrete mesh, which can only be
+converged together with the mesh (a $64^3+10$ meV convergence check is on the to-do stack); the chain CF's $\eta$ is
+harmless because the rest space sits far away at $+3.2$ eV.
 
-### 7g. 自能地图:$\mathrm{Re}/\mathrm{Im}\,\Sigma(k,\omega)$ 与在壳线宽
+### 7g. Self-energy maps: $\mathrm{Re}/\mathrm{Im}\,\Sigma(k,\omega)$ and the on-shell linewidth
 
 ![PdCoO2 self-energy maps](../assets/pdcoo2_sig_map_GLBZ.png)
 
-与 7f 同路径同能窗,从存盘的 $\Sigma_W(k,\omega)$ 直接出图(零重算):
+Same path and energy window as 7f, plotted directly from the stored $\Sigma_W(k,\omega)$ (zero recomputation):
 
-1. **(a) Re 与 (b) Im 互为 Kramers–Kronig 自检**:Re Tr$\,\Sigma$ 在 $E_F$ 下方弱正、
-   上方强负——符号恰在共振处翻转,正是 (b) 中 $E_F$ 共振峰两侧 Re 必反号的解析要求;
-2. **(b) 的乘积结构直接可视**:横向亮带($-0.35\ldots-0.8$ eV,主机 DOS 大处)×
-   纵向 k 调制(相位形状因子)——$\mathrm{Im}\,\Sigma=$ 共振(ω) × DOS(ω) × k 形状因子;
-3. **(c) 在壳 $\Gamma_s(k)$ 着色到能带上**(0.01–41.5 meV,跨三个量级的态选择性):
-   陡峭 Pd 带深部($-0.5\ldots-1$ eV)**30–40 meV**、$E_F$ 穿越 ~17、上方 ~10;
-   L 点平带顶 ~15–20(7f 那团晕);其余平带 <5 meV。
+1. **(a) Re and (b) Im are a Kramers–Kronig self-check on each other**: Re Tr$\,\Sigma$ is weakly positive below
+   $E_F$ and strongly negative above — the sign flips exactly at the resonance, which is precisely the analytic
+   requirement that Re change sign across the $E_F$ resonance peak in (b);
+2. **the product structure of (b) is directly visible**: a horizontal bright band ($-0.35\ldots-0.8$ eV, where the
+   host DOS is large) × a vertical k modulation (the phase form factor) —
+   $\mathrm{Im}\,\Sigma=$ resonance(ω) × DOS(ω) × k form factor;
+3. **(c) the on-shell $\Gamma_s(k)$ coloured onto the bands** (0.01–41.5 meV, a state selectivity spanning three
+   decades): deep on the steep Pd band ($-0.5\ldots-1$ eV) **30–40 meV**, ~17 at the $E_F$ crossings, ~10 above;
+   ~15–20 at the L-point flat-band top (7f's halo); and <5 meV on the remaining flat bands.
 
-**输运预告**:$\Gamma(\omega)$ 在 $E_F$ 附近陡变(下方 40 → 上方 10 meV),
-升温后热窗采样到强不对称散射率——**电阻率的 $T$ 依赖将偏离常数-$\tau$ 图像**,
-是 Kubo 计算里的看点。
+**A transport prediction**: $\Gamma(\omega)$ varies steeply across $E_F$ (40 meV below → 10 meV above), so at raised
+temperature the thermal window samples a strongly asymmetric scattering rate — **the $T$ dependence of the
+resistivity will depart from the constant-$\tau$ picture**, which is the thing to watch in a Kubo calculation.
 
-### 7h. 成本
+### 7h. Cost
 
-门 0 + $32^3$ $G_0$ + 434 $\omega$ × 301 $k$ 全程 **305 s**(6 worker × 8 线程的
-$\omega$ 级扇出;首版三算符 einsum 实现需 ~45 h,唯一 $\Delta R$-GEMM 重构 + 并行合计 ~530×)。
-注意事项:共振幅度带 ~10% 的有限盒不确定度(§6a 的 2×2×2 盒角效应),压低须 3×3×3。
+Gate 0 + the $32^3$ $G_0$ + 434 $\omega$ × 301 $k$ take **305 s** in total ($\omega$-level fan-out over 6 workers ×
+8 threads; the first three-operator einsum implementation needed ~45 h, so the unique-$\Delta R$ GEMM refactor plus
+parallelism together gave ~530×). Caveat: the resonance amplitude carries a ~10% finite-box uncertainty (§6a's
+2×2×2 corner effect), which requires 3×3×3 to reduce.
 
-## 8. 输运:剩余电阻率斜率 vs 电子辐照实验
+## 8. Transport: the residual-resistivity slope vs the electron-irradiation experiment
 
-$T$-矩阵的第一个定量实验对表。实验侧(2.5 MeV 电子辐照引入 Pd Frenkel pair,
-$\sigma_{\rm FP}=315$ barn,Fig. 9 浓度窗 0–20 ppm):$\Delta\rho\propto c$,
-斜率 $\approx9$–$10\times10^3$ n$\Omega\,$cm/%,且与**无自由参数的 2D unitary
-散射预言**吻合;最纯样品 $\rho_0=8.1$ n$\Omega\,$cm 对应本征缺陷 ~10 ppm。
+The $T$-matrix's first quantitative comparison with experiment. On the experimental side (2.5 MeV electron
+irradiation introducing Pd Frenkel pairs, $\sigma_{\rm FP}=315$ barn, Fig. 9's concentration window 0–20 ppm):
+$\Delta\rho\propto c$ with a slope of $\approx9$–$10\times10^3$ n$\Omega\,$cm/%, agreeing with the
+**parameter-free 2D unitary scattering prediction**; the purest sample's $\rho_0=8.1$ n$\Omega\,$cm corresponds to
+~10 ppm of intrinsic defects.
 
-### 8a. 方法:算斜率,不碰小数
+### 8a. Method: compute the slope, never touch the small numbers
 
-稀释极限下 $\Sigma=n_d T$ 且 $T$ 与浓度无关 $\Rightarrow\Gamma_k(c)=c\,\gamma_k$,
-$\rho_{\rm def}(c)=c\times[\text{FS 积分}]^{-1}$——**斜率在 $c\to0$ 解析提取**,
-从不数值构造 10 ppm 下 0.03 meV 的小线宽。$T\to0$ 的 $\delta$ 函数用逐 $k_z$ 切片的
-marching-triangles 费米线积分(96×96×12 网格,7208 段,在壳残差中位 0.75 meV),
-**无温度窗、无展宽**;只取面内速度($\sigma_{xx},\sigma_{yy}$ 分开,$v_z$ 不进入);
-$\tau=\hbar/(2|\mathrm{Im}\,\Sigma|)$(布居衰减率,FWHM 约定全程一致)。SERTA
-($\tau_{qp}$,无顶点修正)。FS 上 $\gamma_k\in[0.30,4.07]$ eV/单位浓度(中位 1.82)。
+In the dilute limit $\Sigma=n_d T$ with $T$ concentration-independent $\Rightarrow\Gamma_k(c)=c\,\gamma_k$ and
+$\rho_{\rm def}(c)=c\times[\text{FS integral}]^{-1}$ — **the slope is extracted analytically at $c\to0$**, so the
+0.03 meV linewidth at 10 ppm is never numerically constructed. The $T\to0$ $\delta$ function is handled by a
+marching-triangles Fermi-line integral on per-$k_z$ slices (96×96×12 mesh, 7208 segments, median on-shell residual
+0.75 meV), with **no temperature window and no broadening**; only in-plane velocities are taken
+($\sigma_{xx}$ and $\sigma_{yy}$ separately, with $v_z$ never entering); and
+$\tau=\hbar/(2|\mathrm{Im}\,\Sigma|)$ (the population decay rate, with the FWHM convention used consistently
+throughout). SERTA ($\tau_{qp}$, no vertex corrections). On the FS, $\gamma_k\in[0.30,4.07]$ eV per unit
+concentration (median 1.82).
 
-### 8b. 结果
+### 8b. Results
 
 ![PdCoO2 rho vs c](../assets/pdcoo2_rho_vs_c.png)
 
-| 量 | n$\Omega\,$cm/% |
+| quantity | n$\Omega\,$cm/% |
 |---|---|
-| 本工作,SERTA $V_{\rm Pd}$($\sigma_{xx}$ / $\sigma_{yy}$) | **4 422 / 4 723**(六角各向同性检验:差 6.6% = 网格噪声) |
-| 2D unitary 极限(**我们自己的** $n=1.056$ e/胞,Luttinger 计数) | **9 207** |
-| 实验(FP) | 9 000–10 000 |
+| this work, SERTA $V_{\rm Pd}$ ($\sigma_{xx}$ / $\sigma_{yy}$) | **4 422 / 4 723** (hexagonal isotropy check: 6.6% difference = mesh noise) |
+| 2D unitary limit (**our own** $n=1.056$ e/cell, Luttinger counting) | **9 207** |
+| experiment (FP) | 9 000–10 000 |
 
-三条结论:
+Three conclusions:
 
-1. **unitary 上限正中实验带**——零自由参数($\hbar/e^2$ × 层间距 × 我们的载流子数)
-   独立复现了"实验位于 unitary 极限"的判断;
-2. **我们的 Pd 空位在 SERTA 下达到 unitary 的 ~48%**,即实验斜率的一半、同量级——
-   第一性原理把 Pd 空位定量放到了近 unitary 强散射体的位置;10 ppm 本征浓度下
-   $\sigma\approx2.3\times10^{10}$ S/m,与最纯样品的 $1.2\times10^{10}$ 自洽;
-3. **因子 ~2 缺口的候选**(按嫌疑排序):顶点修正($\tau_{tr}$ vs $\tau_{qp}$——FS 上
-   $\gamma$ 跨 0.3–4.1 eV 的强各向异性说明 $(1-\cos\theta)$ 权重不可忽略;若散射为
-   各向同性 unitary s 波则严格为零,故这是判决性检验)、实验为 **Frenkel pair** 而我们
-   只算空位(间隙在层外、较弱但非零)、有限盒 ±10%(§6a)、未弛豫几何。
-   寿命约定的因子 2 已排除(三处独立实现互相咬合;错用振幅衰减率会使斜率减半而非翻倍)。
+1. **The unitary upper bound lands squarely in the experimental band** — with zero free parameters
+   ($\hbar/e^2$ × interlayer spacing × our own carrier count), independently reproducing the judgement that the
+   experiment sits at the unitary limit;
+2. **our Pd vacancy reaches ~48% of unitary under SERTA**, i.e. half the experimental slope and the same order —
+   first principles quantitatively places the Pd vacancy among the near-unitary strong scatterers; at the 10 ppm
+   intrinsic concentration $\sigma\approx2.3\times10^{10}$ S/m, consistent with the purest sample's
+   $1.2\times10^{10}$;
+3. **candidates for the factor-of-~2 shortfall** (in order of suspicion): vertex corrections ($\tau_{tr}$ vs
+   $\tau_{qp}$ — the strong anisotropy of $\gamma$ across 0.3–4.1 eV on the FS says the $(1-\cos\theta)$ weight
+   cannot be neglected; it would be identically zero for isotropic unitary s-wave scattering, making this a decisive
+   test), the experiment being a **Frenkel pair** while we compute the vacancy alone (the interstitial sits outside
+   the layer and is weaker but nonzero), the ±10% finite box (§6a), and the unrelaxed geometry.
+   A factor-of-2 lifetime-convention error has been excluded (three independent implementations agree; using the
+   amplitude decay rate by mistake would halve the slope, not double it).
 
-## 9. 成本与可复现
+## 9. Cost and reproducibility
 
-全部诊断与验证在 Anvil highmem 单节点:2³ 复现器每条链 **~15 s**(16 步全宽 128),
-chi 指纹作业 ~2 分钟,修复后重建 15 s(增量)。计算目录 `/anvil/scratch/x-rg47749/pd2k`
-(链、cube、born、指纹与 DOS 脚本),超胞 `/anvil/scratch/x-rg47749/pdsc`。
-代码修复:qe-edt **v2.2**,commit `c118a67`(`src/edt_twolevel.f90` 的 `build_qcanon`),
-生产二进制 `edt_r42q3.x`。
+All diagnostics and validation ran on a single Anvil highmem node: **~15 s** per chain on the 2³ reproducer (16
+steps at full width 128), ~2 minutes for the chi-fingerprint job, and 15 s to rebuild after the fix (incremental).
+The run directory is `/anvil/scratch/x-rg47749/pd2k` (chains, cubes, born, fingerprint and DOS scripts), with the
+supercell in `/anvil/scratch/x-rg47749/pdsc`.
+Code fix: qe-edt **v2.2**, commit `c118a67` (`build_qcanon` in `src/edt_twolevel.f90`), production binary
+`edt_r42q3.x`.
 
-6³ 生产链:作业 19936426(4h25m;R0 全宽构建 2×72 min + SVD + 16 步 × 394 s),
-`lanczos_pdv222_k6xp.dat` 249.6 MB,herm($A$) 全程 ~3e-15;**SVD 秩 288/3456 = 8.3%**
-——内禀秩由缺陷局域支持域决定、与 k 网格无关(2³ 时 112/128:基组比内禀秩还小,压不动;
-预言 12³ 仍 ~290)。衰减验证:`pd_wdecay.py`(完整矩阵已存,重分壳零成本)。
+The 6³ production chain: job 19936426 (4h25m; full-width R0 construction 2×72 min + SVD + 16 steps × 394 s),
+`lanczos_pdv222_k6xp.dat` 249.6 MB, herm($A$) ~3e-15 throughout; **SVD rank 288/3456 = 8.3%** — the intrinsic rank
+is set by the defect's localized support and is independent of the k mesh (at 2³ it is 112/128: the basis is smaller
+than the intrinsic rank, so there is nothing to compress; 12³ is predicted to still be ~290). Decay validation:
+`pd_wdecay.py` (the full matrix is stored, so re-binning the shells is free).
 
-谱函数:`pd_kpath_spec.py`(门 0 内置;$\omega$ 并行 `SPEC_NWORK`;
-$\Sigma_W/n_d$ 与 $A(k,\omega)$ 存盘于 `$A/pdedt/pd_spec_*.npz/npy`)。
+Spectral functions: `pd_kpath_spec.py` (gate 0 built in; $\omega$-parallel via `SPEC_NWORK`;
+$\Sigma_W/n_d$ and $A(k,\omega)$ stored in `$A/pdedt/pd_spec_*.npz/npy`).
 
-SERTA 斜率:`pd_serta.py`(一次 $E_F$ 簇解 + FS 线积分,全程 ~2 分钟)。
+SERTA slope: `pd_serta.py` (one $E_F$ cluster solve + the FS line integral, ~2 minutes in total).
 
-**下一步**:IBTE 顶点修正(光学定理为门,判决 50% 缺口的归属);间隙 $T$-矩阵
-(2×2×2 弛豫 pilot 在跑)与弛豫空位(3×3×3 SG15 在跑)补齐 Frenkel-pair 合成斜率;
-有限温 $\rho(T)$(检验 $\Gamma(\omega)$ 不对称导致的非常数-$\tau$ 行为)。
+**Next steps**: IBTE vertex corrections (with the optical theorem as the gate, to decide where the 50% shortfall
+belongs); the interstitial $T$-matrix (a 2×2×2 relaxed pilot is running) and the relaxed vacancy (3×3×3 SG15
+running) to complete the Frenkel-pair composite slope; and finite-temperature $\rho(T)$ (to test the
+non-constant-$\tau$ behaviour implied by the asymmetry of $\Gamma(\omega)$).

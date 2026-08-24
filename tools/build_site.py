@@ -285,7 +285,7 @@ def _topnav(active, prefix=""):
                                       a("pages/results.html", "Results", "results"),
                                       a("pages/npol2-cert.html", "npol=2 cert.", "npol2"),
                                       a("pages/soc-zoom.html", "SOC zooms", "soczoom"),
-                                      a("pages/mos2-mobility.html", "MoS₂ 迁移率", "mos2"),
+                                      a("pages/mos2-mobility.html", "MoS&#8322; mobility", "mos2"),
                                       a("pages/mode-d-crosscheck.html", "MODE D check", "moded"),
                                       a("pages/pdcoo2-bands.html", "PdCoO2 bands", "pdcoo2"),
                                       a("pages/pdvac-coset.html", "Pd-vac 3D", "pdvac"),
@@ -384,9 +384,10 @@ def build_npol2cert():
     r = convert_doc(md, want_subtitle=False)
     toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
     header = ('<header><div class="header-inner"><h1>{t}</h1>'
-              '<p class="subtitle">EDT 的 npol=2(旋量)实现如何在翻倍测试失败后被三个'
-              '规范不变判据无罪释放,EDI-direct noncolin 矩阵元如何被定罪,以及取而代之的'
-              'EDT 自产 born 块与双门终判。</p>'
+              '<p class="subtitle">How EDT&rsquo;s npol=2 (spinor) implementation was acquitted by three '
+              'gauge-invariant criteria after the doubling test failed, how the EDI-direct noncolin matrix '
+              'elements were convicted, and the EDT-produced born block and two-gate verdict that replaced '
+              'them.</p>'
               '<div class="meta"><span class="pill">Certification</span>'
               '<span class="pill">{n} sections</span>'
               '<span class="pill">MathJax v3</span>'
@@ -407,8 +408,9 @@ def build_soczoom():
     r = convert_doc(md, want_subtitle=False)
     toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
     header = ('<header><div class="header-inner"><h1>{t}</h1>'
-              '<p class="subtitle">首批含 SOC 的电子-缺陷谱函数:K 谷 CBM/VBM zoom,'
-              '10 旋量带活性流形,EDI-v8d born + EDT r11 链,$n_d=10^{{12}}$ cm$^{{-2}}$。</p>'
+              '<p class="subtitle">The first electron&ndash;defect spectral functions including SOC: '
+              'K-valley CBM/VBM zooms, a 10-spinor-band active manifold, EDI-v8d born + an EDT r11 chain, '
+              '$n_d=10^{{12}}$ cm$^{{-2}}$.</p>'
               '<div class="meta"><span class="pill">Production</span>'
               '<span class="pill">{n} sections</span>'
               '<span class="pill">Generated {d}</span></div></div></header>'
@@ -678,11 +680,21 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
-    ('MoS$_2$ 缺陷限制迁移率：四层级散射理论对照 + K 谷 zoom 谱函数', 'Production',
+    ('MoS$_2$ defect-limited mobility: a four-level scattering-theory comparison + K-valley zoom spectral functions', 'Production',
      '2026-08-23', 'prod', 'Headline',
      # hand-inserted into docs/index.html before this was registered here,
      # which is why a plain rebuild of the site silently dropped it once
-     '同一 144b22 链上的 {full $T$, Born} × {$\\Sigma$ 保留, 丢弃} 12 格矩阵（三缺陷 × e/h，300 K $\\eta\\to0$ IBTE，$n=10^{10}$、$n_d=10^{12}$ cm$^{-2}$）。<b>Born 对深势阱错 1–2 个数量级</b>（V$_\\mathrm{S}$ 空穴 53×，严格二阶 190×）；<b>$\\Sigma$ 的角色随缺陷翻转</b>：V$_\\mathrm{S}$ 屏蔽（19.9→13.3 eV）、O$_\\mathrm{S}$ 在 CBM 造共振（$\\Sigma$=42 eV 比裸顶点大 4 倍，丢 $\\Sigma$ 后 $\\mu_e$ 假涨 72×）、Se$_\\mathrm{S}$ 近乎抵消（残余 0.3–0.6 eV）；唯有 full $T$+$\\Sigma$ 全面自洽。附 K 谷 zoom $A(k,\\omega)$（O$_\\mathrm{S}$ CBM 谱重被拉入带隙）、<b>edmat/降折矩阵 Wannier 衰减验证</b>（15 对象全 LOCALIZED，峰/底 10⁴–10⁷；链 VAA ≡ edmat 活性块逐位 0.0）与 Se$_\\mathrm{S}$ 空穴 2.2× 顶点修正等。',
+     'A 12-cell matrix of {full $T$, Born} &times; {$\\Sigma$ kept, dropped} on one and the same 144b22 chain '
+     '(three defects &times; e/h, 300 K $\\eta\\to0$ IBTE, $n=10^{10}$ and $n_d=10^{12}$ cm$^{-2}$). '
+     '<b>Born is wrong by 1&ndash;2 orders of magnitude for deep wells</b> (V$_\\mathrm{S}$ holes 53&times;, '
+     'strict second order 190&times;); <b>$\\Sigma$&rsquo;s role flips with the defect</b>: it screens for '
+     'V$_\\mathrm{S}$ (19.9&rarr;13.3 eV), builds a CBM resonance for O$_\\mathrm{S}$ ($\\Sigma$=42 eV, 4&times; '
+     'the bare vertex, and dropping $\\Sigma$ inflates $\\mu_e$ by a spurious 72&times;), and nearly cancels for '
+     'Se$_\\mathrm{S}$ (0.3&ndash;0.6 eV residual); only full $T$+$\\Sigma$ is consistent across the board. '
+     'Also: K-valley zoom $A(k,\\omega)$ (O$_\\mathrm{S}$ CBM spectral weight pulled into the gap), '
+     '<b>Wannier-decay validation of the edmat and downfolded matrices</b> (all 15 objects LOCALIZED, '
+     'peak/floor 10&#8308;&ndash;10&#8311;; chain VAA &equiv; the edmat active block, bit-for-bit 0.0), and a '
+     '2.2&times; vertex correction for Se$_\\mathrm{S}$ holes.',
      '<a href="pages/mos2-mobility.html">Open the mobility page &rarr;</a>'),
     ("PtCoO$_2$ full chain ($S0\\to S11$): is that factor of 2 a method systematic, or material-dependent?", "Production",
      "2026-08-23", "prod", "Headline",
@@ -714,62 +726,84 @@ CATALOG = [
      "2 points, and the Fermi-surface topology is near-critical (band 23 top just 35 meV below "
      "$E_F$).",
      '<a href="pages/ptcoo2.html">Open the PtCoO$_2$ chain &rarr;</a>'),
-    ("PdCoO$_2$ Pd 空位:三维 $T$-矩阵管线端到端验证(2×2×2 陪集 vs 超胞真值)", "3D validation",
+    ("PdCoO$_2$ Pd vacancy: end-to-end validation of the 3D $T$-matrix pipeline (2&times;2&times;2 coset vs supercell ground truth)", "3D validation",
      "2026-08-14", "prod", "Verified",
-     "EDT 管线<b>第一次跑三维体系</b>。超胞 ΔV(extract_pot,4 Å 内衰减 5 个量级)→ core 对齐"
-     "(两种独立方法吻合 8 meV)→ 全带 born(独立平面波积分器仲裁)→ MODE C 链(herm ~6e-15)"
-     "→ 陪集 DOS 对拍空位超胞 Γ 真值:<b>积分偏差 0.37%(门泳道本底 0.13%),QP 能级中位 0.1 meV,"
-     "未配对的 5 条恰为被移除 Pd 的 4d 计数</b>。顺带用 q 块指纹定位并修掉 fold_col 的硬 2D bug"
-     "(q3 槽位碰撞 + 缺 g3 缠绕相位;qe-edt v2.2):16 个 q3=+1/2 块碰巧 +1.000 精确的不对称模式"
-     "唯一指向三行代码。2D 运行逐位不受影响。<b>6³ 生产链已跑通</b>(SVD 秩 288/3456=8.3%,"
-     "herm ~3e-15)并完成 <b>Wannier 衰减验证</b>:V/T 第一壳内衰减两个量级(簇方法资格证),"
-     "盒角系统误差已量化,且发现 <b>T 在 E$_F$ 处 ×5 的本地共振</b>。"
-     "<b>谱函数落地</b>:A(k,ω) 沿 RHL1 路径(门 0 恒等式 = N_k 到 2.9e-13),"
-     "Γ(E$_F$) = 24 meV @ 0.5% 空位 → τ = 27 fs、ℓ ~ 20 nm——共振增强的强散射体。"
-     "<b>输运对表</b>:SERTA 剩余电阻率斜率 4.4–4.7×10³ nΩ·cm/% ≈ <b>unitary 极限(9.2×10³,"
-     "自算 n)与辐照实验(9–10×10³)的一半</b>,零自由参数复现实验位于 unitary 的判断。",
+     "The <b>first three-dimensional system the EDT pipeline has run</b>. Supercell &Delta;V (extract_pot, five "
+     "orders of magnitude of decay within 4 &Aring;) &rarr; core alignment (two independent methods agreeing to "
+     "8 meV) &rarr; all-band born (arbitrated by an independent plane-wave integrator) &rarr; MODE C chain "
+     "(herm ~6e-15) &rarr; coset DOS reconciled against the vacancy supercell&rsquo;s &Gamma; ground truth: "
+     "<b>integrated deviation 0.37% (gate-lane noise floor 0.13%), median QP level error 0.1 meV, and the 5 "
+     "unpaired levels exactly matching the removed Pd&rsquo;s 4d count</b>. Along the way, a q-block fingerprint "
+     "localized and fixed a hard 2D-only bug in fold_col (a q3 slot collision plus a missing g3 winding phase; "
+     "qe-edt v2.2): the asymmetric pattern of exactly 16 q3=+1/2 blocks coming out precisely +1.000 pointed "
+     "uniquely at three lines of code. 2D runs are bit-for-bit unaffected. The <b>6&sup3; production chain now "
+     "runs</b> (SVD rank 288/3456=8.3%, herm ~3e-15), with <b>Wannier decay validation</b> complete: V/T decay "
+     "two orders of magnitude within the first shell (the cluster method&rsquo;s licence to operate), the "
+     "box-corner systematic is quantified, and a <b>&times;5 local resonance in T at E$_F$</b> was discovered. "
+     "<b>Spectral functions landed</b>: A(k,&omega;) along the RHL1 path (gate-0 identity = N_k to 2.9e-13), "
+     "&Gamma;(E$_F$) = 24 meV at 0.5% vacancies &rarr; &tau; = 27 fs and &ell; ~ 20 nm &mdash; a resonantly "
+     "enhanced strong scatterer. <b>Transport comparison</b>: the SERTA residual-resistivity slope of "
+     "4.4&ndash;4.7&times;10&sup3; n&Omega;&middot;cm/% is <b>about half the unitary limit (9.2&times;10&sup3;, "
+     "with our own n) and half the irradiation experiment (9&ndash;10&times;10&sup3;)</b>, reproducing with zero "
+     "free parameters the conclusion that the experiment sits at the unitary limit.",
      '<a href="pages/pdvac-coset.html">Open the 3D validation &rarr;</a>'),
-    ("PdCoO$_2$ delafossite 能带:PBE vs PBE+U,两种胞交叉验证", "Standalone DFT",
+    ("PdCoO$_2$ delafossite bands: PBE vs PBE+U, cross-validated in two cells", "Standalone DFT",
      "2026-08-14", "ok", "Verified",
-     "从一个 POSCAR 出发的独立算例(与本站的缺陷 T-矩阵主线无关)。菱方原胞(4 原子,RHL1 路径)与"
-     "程序构造的六方常规胞(12 原子,Γ-M-K-Γ-A-L-H-A)双路径;<b>只有一条 Pd 带穿过 E$_F$</b>"
-     "(六方胞里折叠成 3 条,自洽)、Γ→A 方向几乎完全平——超高电导与准二维性的能带解释。"
-     "<b>+U(Co-3d 4 eV)只动 −1.5..−4 eV 的 Co-3d 占据带,E$_F$ 仅移 3 meV</b>:输运物理对 U 不敏感。"
-     "两种胞的总能/f.u. 吻合到 10 meV(+U 时 0.37 mRy)。<b>DFPT 线性响应给出 U(Co-3d) = 7.95 eV</b>"
-     "(屏蔽比 χ/χ₀ = 0.135,Co-3d 确实局域),但自旋极化检验显示磁矩严格为 0(塌回非磁解,差 0.1 μeV)"
-     "——闭壳层使 +U 只给刚性移动,<b>所以输运用 PBE、谱学才用 U=7.95</b>。"
-     "<b>16 个 MLWF</b> 复现整个孤立 p-d 流形(无解缠):两组不同投影收敛到同一全局极小"
-     "(Ω_I 相同到 9 位),对 DFT 能带逐点 RMS <b>3.6 meV</b>、费米面附近 2.8 meV。",
+     "A standalone calculation starting from one POSCAR (independent of this site&rsquo;s defect T-matrix main "
+     "line). Two paths: the rhombohedral primitive cell (4 atoms, RHL1) and a programmatically constructed "
+     "hexagonal conventional cell (12 atoms, &Gamma;-M-K-&Gamma;-A-L-H-A); <b>only one Pd band crosses "
+     "E$_F$</b> (folding into 3 in the hexagonal cell, self-consistently), and it is almost perfectly flat along "
+     "&Gamma;&rarr;A &mdash; the band-structure explanation for the extreme conductivity and the "
+     "quasi-two-dimensionality. <b>+U (Co-3d, 4 eV) only moves the Co-3d occupied bands at &minus;1.5..&minus;4 eV, "
+     "shifting E$_F$ by a mere 3 meV</b>: the transport physics is insensitive to U. Total energies per f.u. agree "
+     "between the two cells to 10 meV (0.37 mRy with +U). <b>DFPT linear response gives U(Co-3d) = 7.95 eV</b> "
+     "(screening ratio &chi;/&chi;&#8320; = 0.135, so Co-3d really is localized), but a spin-polarized check finds "
+     "the moment strictly 0 (collapsing back to the non-magnetic solution, a 0.1 &mu;eV difference) &mdash; a "
+     "closed shell means +U only gives a rigid shift, <b>so transport uses PBE and only spectroscopy uses "
+     "U=7.95</b>. <b>16 MLWFs</b> reproduce the entire isolated p-d manifold (no disentanglement): two different "
+     "projection sets converge to the same global minimum (&Omega;_I identical to 9 digits), with a point-by-point "
+     "RMS against the DFT bands of <b>3.6 meV</b> and 2.8 meV near the Fermi level.",
      '<a href="pages/pdcoo2-bands.html">Open the PdCoO$_2$ bands &rarr;</a>'),
-    ("MODE D(折叠自由电子尾部)交叉检验:DOS 对拍 MODE C + 自由电子能量空间收敛", "Cross-check",
+    ("MODE D (folded free-electron tail) cross-check: DOS reconciliation against MODE C + free-electron energy-space convergence", "Cross-check",
      "2026-08-13", "ok", "Verified",
-     "合作者 cz 贡献的 OPW/折叠自由电子尾部(EDI `opw-tail`)在 6×6 非 SOC **三个体系**(理想 V$_S$、弛豫 V$_S$、弛豫 O$_S$)上的独立复现与"
-     "对拍。M2 数字逐一复现(drop 11.10 / ffree 1.32 / fexact 2.79 meV);<b>三套共 18 个 DOS 峰"
-     "与 MODE C 的位移全部 ≤5 meV(网格分辨率)</b>,而丢掉尾部的 drop-block 把缺陷能级推 10-90 meV;"
-     "间隙 $L_1$ 误差降到 1/4.2-1/6.2。新扫的自由电子能量空间收敛给出生产端 χ 只需 ~2500 个平面波"
-     "(300 eV 截断,代价 0.007-0.024 meV)。<b>生产形态已打通</b>(EDT 新增 chi 导出,尾部=直到平面波"
-     "截断的真补空间):幻影门 MODE C/D 双双通过(O$_S$ 间隙空,与真值一致),但 V$_S$ 深双重态"
-     "MODE D 高出 MODE C <b>100 meV</b>——M2 自洽测试(同 $n_x$ 报 8 meV)系统性高估了方法精度。",
+     "An independent reproduction and reconciliation of the OPW / folded free-electron tail contributed by our "
+     "collaborator cz (EDI `opw-tail`), on <b>three systems</b> in 6&times;6 non-SOC (ideal V$_S$, relaxed V$_S$, "
+     "relaxed O$_S$). The M2 numbers reproduce one by one (drop 11.10 / ffree 1.32 / fexact 2.79 meV); <b>all 18 "
+     "DOS peaks across the three systems shift by &le;5 meV relative to MODE C</b> (the mesh resolution), whereas "
+     "drop-block, which discards the same tail, pushes defect levels by 10&ndash;90 meV; the in-gap $L_1$ error "
+     "falls to 1/4.2&ndash;1/6.2. A newly swept free-electron energy-space convergence shows production &chi; needs "
+     "only ~2500 plane waves (a 300 eV cutoff, costing 0.007&ndash;0.024 meV). <b>The production form now works "
+     "end to end</b> (EDT gained a chi export, with the tail being the true complement up to the plane-wave "
+     "cutoff): both MODE C and MODE D pass the phantom gate (O$_S$&rsquo;s gap is empty, matching ground truth), "
+     "but MODE D puts V$_S$&rsquo;s deep doublet <b>100 meV</b> above MODE C &mdash; so the M2 self-consistency "
+     "test (which reports 8 meV at the same $n_x$) systematically overstates the method&rsquo;s accuracy.",
      '<a href="pages/mode-d-crosscheck.html">Open the cross-check &rarr;</a>'),
-    ("22 带 144k 稀释极限 DOS:三缺陷三方对照(真值/阵列/稀释)", "Production", "2026-08-12", "prod", "Headline",
-     "12×12×22 旋量带链(起始块 SVD `svd_tol=1e-4`,秩 ~1024-1080 = 32-34%,Banff 4 节点 4.6 h/链)"
-     "的稀释极限 DOS。V$_S$ 深间隙双重态:真值 +1.085/+1.135 → 阵列 +1.115/+1.165 → 稀释 "
-     "+1.120/+1.170 — <b>稀释位移 ≤5 meV,深态在 1/36 已达孤立极限</b>;O$_S$ CB 共振 +1.545 三线"
-     "重合;Se$_S$ 首个下折叠 DOS(间隙干净)。SVD 三尺度夹逼真秩 ∈(1008,1024],物理秩由缺陷势"
-     "空间支撑决定、与缺陷化学无关。",
+    ("22-band 144k dilute-limit DOS: a three-way comparison over three defects (truth / array / dilute)", "Production", "2026-08-12", "prod", "Headline",
+     "Dilute-limit DOS from a 12&times;12&times;22-spinor-band chain (start-block SVD `svd_tol=1e-4`, rank "
+     "~1024&ndash;1080 = 32&ndash;34%, 4.6 h per chain on 4 Banff nodes). V$_S$&rsquo;s deep in-gap doublet: "
+     "truth +1.085/+1.135 &rarr; array +1.115/+1.165 &rarr; dilute +1.120/+1.170 &mdash; <b>a dilution shift of "
+     "&le;5 meV, so the deep states have already reached the isolated limit at 1/36</b>; O$_S$&rsquo;s CB "
+     "resonance at +1.545 coincides across all three; and Se$_S$ gets its first downfolded DOS (a clean gap). "
+     "Three SVD scales bracket the true rank in (1008, 1024], so the physical rank is set by the defect "
+     "potential&rsquo;s spatial support and is independent of the defect chemistry.",
      '<a href="pages/soc-zoom.html#sec-4">Open the 3-way DOS &rarr;</a>'),
-    ("SOC 缺陷谱函数首批:K 谷 CBM/VBM zoom(O$_S$ + V$_S$)", "Production", "2026-08-10", "prod", "Headline",
-     "首批含自旋轨道耦合的 $A(k,\\omega)$:12×12、10 旋量带活性流形、$n_d=10^{12}$ cm$^{-2}$、"
-     "$\\eta=5$ meV。CBM 窗直接呈现传导带 SOC 双线(K 劈裂 3 meV 沿 $K\\to M$ 张开);VBM 窗呈现 "
-     "149 meV K 点价带劈裂与缺陷平带多重态(V$_S$ 间隙侧新增 +0.181 eV 特征)。born=EDI-v8d(跨码 1e-14),"
-     "链=EDT r11(unit test 2.5-2.7e-11),10 带簇使 T 缓存从小时级降到 5 分钟。Se$_S$ 在跑。",
+    ("First batch of SOC defect spectral functions: K-valley CBM/VBM zooms (O$_S$ + V$_S$)", "Production", "2026-08-10", "prod", "Headline",
+     "The first $A(k,\\omega)$ including spin&ndash;orbit coupling: 12&times;12, a 10-spinor-band active manifold, "
+     "$n_d=10^{12}$ cm$^{-2}$, $\\eta=5$ meV. The CBM window shows the conduction-band SOC doublet directly "
+     "(3 meV splitting at K, opening along $K\\to M$); the VBM window shows the 149 meV K-point valence splitting "
+     "together with the defect flat-band multiplet (a new +0.181 eV feature on V$_S$&rsquo;s gap side). "
+     "born = EDI-v8d (cross-code 1e-14), chain = EDT r11 (unit test 2.5&ndash;2.7e-11), and the 10-band cluster "
+     "brings the T cache down from hours to 5 minutes. Se$_S$ is running.",
      '<a href="pages/soc-zoom.html">Open the zooms &rarr;</a>'),
-    ("npol=2 认证:翻倍测试裁决、EDI noncolin 定罪、EDT born 块自立", "Verification", "2026-08-09", "ok", "Certified",
-     "翻倍测试 FAIL 引发的司法式裁决:局域臂 52/52 与独立 numpy 裁判精确 1.000;简并对 2-矢量"
-     "平行性 25/25 达 $|\\cos|=1.0000$;标量回归 $8\\times10^{-15}$ — EDT 无罪。EDI-direct noncolin "
-     "矩阵元被定罪(混合旋量下自旋分量丢失,残差达 0.50)。born 块移植进 EDT 后:闭环 unit test "
-     "$4.6\\times10^{-11}$,SV 审计 1260 块 p90 $7.8\\times10^{-3}$,终判旋量对简并 0.0000 meV。"
-     "教训:SV 中位数会被 $M_\\mathrm{loc}\\otimes I_2+M_\\mathrm{KB}\\otimes e_{11}$ 结构欺骗,永远看全分布。",
+    ("npol=2 certification: the doubling-test verdict, EDI noncolin convicted, EDT&rsquo;s born block made self-sufficient", "Verification", "2026-08-09", "ok", "Certified",
+     "A forensic adjudication triggered by a FAILing doubling test: the local arm matches an independent numpy "
+     "referee at exactly 1.000 on 52/52 elements; degenerate-pair 2-vector parallelism reaches $|\\cos|=1.0000$ on "
+     "25/25; and the scalar regression is $8\\times10^{-15}$ &mdash; EDT is innocent. The EDI-direct noncolin matrix "
+     "elements were convicted (spin components lost under mixed spinors, with residuals reaching 0.50). After "
+     "porting the born block into EDT: closure unit test $4.6\\times10^{-11}$, an SV audit over 1260 blocks with "
+     "p90 $7.8\\times10^{-3}$, and a final verdict of 0.0000 meV spinor-pair degeneracy. Lesson: the median SV can "
+     "be fooled by the $M_\\mathrm{loc}\\otimes I_2+M_\\mathrm{KB}\\otimes e_{11}$ structure &mdash; always look at "
+     "the whole distribution.",
      '<a href="pages/npol2-cert.html">Open the adjudication &rarr;</a>'),
     ("Method derivations: $\\Sigma$, the $T$-matrix, the e&ndash;d self-energy", "Method", "2026-08-07", "ok", "Reference",
      "The exact downfolding identity and each method as one choice of $\\Sigma$: M-only / bare 2nd order / "

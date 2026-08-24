@@ -1,74 +1,81 @@
-# SOC 缺陷谱函数:K 谷带边 zoom(首批)
+# SOC defect spectral functions: K-valley band-edge zooms (first batch)
 
-## 0. 摘要
+## 0. Summary
 
-**含自旋轨道耦合**的电子-缺陷谱函数 $A(k,\omega)$:MoS$_2$ 单层,O$_\mathrm{S}$ /
-Se$_\mathrm{S}$ / V$_\mathrm{S}$(弛豫几何)三缺陷,12×12 粗网格 × 22 旋量带链
-(带 13–34)+ **22 轨道 Wannier 顶点帧**(同一 wannier 化,无 disentanglement),
-$n_d = 10^{12}\,\mathrm{cm^{-2}}$、$\eta=5$ meV、KZOOM 路径($K-0.3\,\overline{\Gamma K}
-\to K+0.45\,\overline{KM}$,721 点)、$N_f=1200$。CBM 窗呈现**传导带 SOC 双线**
-(K 点劈裂 3.0 meV,沿 $K\to M$ 张开);VBM 窗呈现 **149 meV 的 K 点价带自旋劈裂**与
-其间的缺陷平带多重态;全路径窗中 V$_\mathrm{S}$ 的深间隙 S-p 双重态(+1.12/+1.17)
-横贯显形。谱函数由快速路线(顶点因子化 + 宿主 $G_0$ 谱分箱,`kpath_fast.py`)产出:
-9 窗全套 ~30 分钟,门内验证因子化精确(1e-15)、分箱中隙 3e-5 / 带边 7e-4。
+Electron–defect spectral functions $A(k,\omega)$ **including spin–orbit coupling**: monolayer MoS$_2$, three defects O$_\mathrm{S}$ /
+Se$_\mathrm{S}$ / V$_\mathrm{S}$ (relaxed geometry), a 12×12 coarse mesh × 22-spinor-band chain
+(bands 13–34) plus a **22-orbital Wannier vertex frame** (the same wannierization, no disentanglement),
+$n_d = 10^{12}\,\mathrm{cm^{-2}}$, $\eta=5$ meV, the KZOOM path ($K-0.3\,\overline{\Gamma K}
+\to K+0.45\,\overline{KM}$, 721 points), $N_f=1200$. The CBM window shows the **conduction-band SOC doublet**
+(3.0 meV splitting at K, opening along $K\to M$); the VBM window shows the **149 meV K-point valence spin splitting**
+with the defect flat-band multiplet between the two. In the full-path window, V$_\mathrm{S}$'s deep in-gap S-p doublet (+1.12/+1.17)
+appears right across the path. Spectral functions come from the fast route (vertex factorization + host $G_0$ spectral binning, `kpath_fast.py`):
+all 9 windows in ~30 minutes, with in-gate verification that the factorization is exact (1e-15) and the binning is 3e-5 mid-gap / 7e-4 at the band edge.
 
-## 1. 图
+## 1. Figures
 
-**全路径总览($\Gamma$–M–K–$\Gamma$,全能窗;2026-08-12,22 轨道 Wannier 框架
-[带 13–34,无 disentanglement])。V$_\mathrm{S}$ 面板中 **+1.12/+1.17 eV 的深间隙
-S-p 双重态**横贯全路径显形(与 §4b 的稀释 DOS 能级一致;$T(\omega)$ 在两能级处
-$\max|T|$ 增强 ×200),而 O$_\mathrm{S}$/Se$_\mathrm{S}$ 间隙干净——三缺陷对照即
-物理判据。色标下限 0.03:$n_d=8.8\times10^{-4}$/cell 的孤立缺陷平带谱权重本就小
-($\max_k A \approx 0.2$),这是稀释极限的诚实亮度:**
+**Full-path overview ($\Gamma$–M–K–$\Gamma$, full energy window; 2026-08-12, 22-orbital Wannier frame
+[bands 13–34, no disentanglement]). In the V$_\mathrm{S}$ panel the **deep in-gap S-p doublet at +1.12/+1.17 eV**
+shows up across the whole path (consistent with the dilute-DOS levels of §4b; $\max|T|$ in $T(\omega)$ is enhanced
+×200 at both levels), while the O$_\mathrm{S}$/Se$_\mathrm{S}$ gaps are clean — the three-defect comparison is
+itself the physical criterion. Colour-scale floor 0.03: an isolated defect flat band at $n_d=8.8\times10^{-4}$/cell
+simply carries little spectral weight ($\max_k A \approx 0.2$), and this is the honest brightness of the dilute limit:**
 
 ![SOC22 full path](../assets/kfull_soc22.png)
 
-> 工序注记:此前 10 轨道版缺失该双重态有**两**个独立原因——Mo-d 子空间不可表示性,
-> 以及 chk→u.mat 转换器写出了等效转置的 $U$(酉性检验对此免疫)。后者由
-> wannier 化恒等式 $U^\dagger\,\mathrm{diag}(\varepsilon_k)\,U = H_W(k)$ 判定并修复
-> (正确取向 1.5e-5,错误取向 O(4 eV);工具已入 qe-edt `post/chk2umat.py`)。
+> Process note: the earlier 10-orbital version was missing this doublet for **two** independent reasons — the
+> Mo-d subspace cannot represent it, and the chk→u.mat converter wrote an effectively transposed $U$
+> (a unitarity check is blind to that). The latter was diagnosed and fixed with the wannierization identity
+> $U^\dagger\,\mathrm{diag}(\varepsilon_k)\,U = H_W(k)$
+> (1.5e-5 for the correct orientation, O(4 eV) for the wrong one; the tool now lives in qe-edt as `post/chk2umat.py`).
 
-**三缺陷 22 带 K 谷 zoom(144k 链 + 22 轨道帧,同一 wannier 化):**
+**Three-defect 22-band K-valley zooms (144k chain + 22-orbital frame, same wannierization):**
 
 ![SOC22 CBM zoom](../assets/kzoom_soc22_cbm.png)
 
 ![SOC22 VBM zoom](../assets/kzoom_soc22_vbm.png)
 
 
-**自能色图($\Sigma^{ed}(k,\omega)=n_d\,T(k,k;\omega)$,同 KZOOM 路径与能窗;
-上行 Re Tr $\Sigma$(发散色标),下行 $-$Im Tr $\Sigma$(对数))。链式分数在
-$\omega+i\eta$ 求值(推迟 $\tilde V$):有限链把被修饰的 rest 连续谱离散成实轴
-Ritz 极点,实 $\omega$ 求值会让窗内极点呈零宽度细针(诊断:极点处 $\max|S_m|$
-71/63/161,各缺陷能量不同=链侧而非宿主 vHs);$+i\eta$ 后细针化为 ~$\eta$ 宽的
-物理洛伦兹,隙内能级仅移 $O(\eta^2/\Delta)$:**
+**Self-energy colour maps ($\Sigma^{ed}(k,\omega)=n_d\,T(k,k;\omega)$, same KZOOM path and energy windows;
+top row Re Tr $\Sigma$ (diverging colour scale), bottom row $-$Im Tr $\Sigma$ (logarithmic)). The continued
+fraction is evaluated at $\omega+i\eta$ (retarded $\tilde V$): a finite chain discretizes the dressed rest
+continuum into real-axis Ritz poles, and evaluating at real $\omega$ makes those in-window poles appear as
+zero-width needles (diagnostic: $\max|S_m|$ = 71/63/161 at the poles, at defect-dependent energies, i.e. a
+chain-side artifact rather than a host vHs). With $+i\eta$ the needles become physical Lorentzians of width
+~$\eta$, and in-gap levels shift only by $O(\eta^2/\Delta)$:**
 
 ![Sigma CBM zoom](../assets/sigzoom_soc22_cbm.png)
 
 ![Sigma VBM zoom](../assets/sigzoom_soc22_vbm.png)
 
-读图:$T(k,k)$ 沿路径近乎平直——点缺陷短程势的特征;VBM 窗中 V$_\mathrm{S}$
-的 +0.03 浅隙态呈教科书式共振($-$Im 亮线、Re 过零翻号,$\pm$300 meV 色散瓣),
-Se$_\mathrm{S}$ 几乎无特征(等价电子);CBM 窗中 O$_\mathrm{S}$ 的 Re$\,\Sigma<0$
-是其下方 +1.545 共振的能级吸引,V$_\mathrm{S}$ 的 Re$\,\Sigma>0$ 向隙内增强
-是深双重态(+1.12/+1.17)从下方的推斥;$-$Im 在带边同步开启(散射相空间)。
+Reading the maps: $T(k,k)$ is nearly flat along the path — the signature of a short-ranged point-defect
+potential. In the VBM window, V$_\mathrm{S}$'s shallow +0.03 in-gap state is a textbook resonance (a bright
+$-$Im line, Re crossing zero and changing sign, dispersive lobes at $\pm$300 meV), while Se$_\mathrm{S}$ shows
+almost no feature (isovalent). In the CBM window, O$_\mathrm{S}$'s Re$\,\Sigma<0$ is level attraction from its
++1.545 resonance below, and V$_\mathrm{S}$'s Re$\,\Sigma>0$ growing into the gap is repulsion from the deep
+doublet (+1.12/+1.17) below; $-$Im switches on at the band edge in step (scattering phase space).
 
 
-**同图 $n_d = 10^{13}$ cm$^{-2}$ 版**($\Sigma = n_d T$ 严格线性,$T$ 缓存复用——
-色标整体 ×10:V$_\mathrm{S}$ 共振核心 Re$\,\Sigma$ 达 ±3.8 eV,$-$Im 超 1 eV。
-注意:此浓度下单点缺陷 T-矩阵(独立散射体假设)开始吃紧——共振附近的谱重整已非
-微扰,缺陷间干涉/ATA 修正在此量级进入;$10^{12}$ 版是定量可靠区):
+**The same figures at $n_d = 10^{13}$ cm$^{-2}$** ($\Sigma = n_d T$ is strictly linear and $T$ is reused from
+cache — the colour scale simply scales ×10: V$_\mathrm{S}$'s resonance core reaches Re$\,\Sigma$ = ±3.8 eV and
+$-$Im exceeds 1 eV. Note that at this concentration the single-point-defect $T$-matrix (independent-scatterer
+assumption) is getting strained — the spectral renormalization near the resonance is no longer perturbative, and
+defect–defect interference / ATA corrections enter at this level; the $10^{12}$ version is the quantitatively
+reliable regime):
 
 ![Sigma CBM zoom nd13](../assets/sigzoom_soc22_cbm_nd13.png)
 
 ![Sigma VBM zoom nd13](../assets/sigzoom_soc22_vbm_nd13.png)
 
 
-**浓度系列:$n_d = 3\times10^{13}$ cm$^{-2}$(2.64%/胞)——杂质带区**。
-谱函数已强烈重构:CBM 窗中 O$_\mathrm{S}$ 把 CB 底**下拉并劈裂**(其 +1.545 共振
-成杂质带),V$_\mathrm{S}$ 把 CB 底**上推** ~50 meV——方向恰为 $10^{12}$ 版
-Re$\,\Sigma$ 符号的放大兑现;VBM 窗中 V$_\mathrm{S}$ 价带顶与缺陷能级反交叉、
-边缘上推 ~0.13 eV,O$_\mathrm{S}$ +0.05,Se$_\mathrm{S}$ 整体微移仍带状。
-**注意**:此浓度下 $n_d T$ 独立散射体近似只作定性参考(缺陷间干涉/多重散射未含):
+**Concentration series: $n_d = 3\times10^{13}$ cm$^{-2}$ (2.64%/cell) — the impurity-band regime**.
+The spectral function is already strongly reconstructed: in the CBM window O$_\mathrm{S}$ **pulls the CB bottom
+down and splits it** (its +1.545 resonance becomes an impurity band), while V$_\mathrm{S}$ **pushes the CB bottom
+up** by ~50 meV — directions that are exactly the amplified realization of the Re$\,\Sigma$ signs in the
+$10^{12}$ version. In the VBM window, V$_\mathrm{S}$ anticrosses the valence-band top with the defect level and
+pushes the edge up ~0.13 eV, O$_\mathrm{S}$ by +0.05, and Se$_\mathrm{S}$ shifts slightly overall while staying
+band-like. **Note**: at this concentration the $n_d T$ independent-scatterer approximation is qualitative only
+(defect–defect interference / multiple scattering are not included):
 
 ![A CBM zoom nd3e13](../assets/kzoom_soc22_nd3e13_cbm.png)
 
@@ -78,46 +85,48 @@ Re$\,\Sigma$ 符号的放大兑现;VBM 窗中 V$_\mathrm{S}$ 价带顶与缺陷�
 
 ![Sigma VBM zoom nd3e13](../assets/sigzoom_soc22_vbm_nd3e13.png)
 
-首批 10 带版(O$_\mathrm{S}$+V$_\mathrm{S}$)存档:
+The first-batch 10-band version (O$_\mathrm{S}$+V$_\mathrm{S}$), archived:
 
 ![SOC CBM zoom](../assets/kzoom_soc_cbm.png)
 
 ![SOC VBM zoom](../assets/kzoom_soc_vbm.png)
 
-VBM 图中 V$_\mathrm{S}$ 面板的绿色虚线为**标量(非 SOC)超胞真值能级**,直接对照
-SOC 对间隙缺陷能级的重排与劈裂。
+The green dashed lines in the V$_\mathrm{S}$ panel of the VBM figure are the **scalar (non-SOC) supercell
+ground-truth levels**, for a direct comparison of how SOC rearranges and splits the in-gap defect levels.
 
-## 2. 平带探测器读数(局域缺陷特征,$E-E_\mathrm{VBM}$/eV)
+## 2. Flat-band detector readings (localized defect features, $E-E_\mathrm{VBM}$/eV)
 
-| 窗口 | O$_\mathrm{S}$ | V$_\mathrm{S}$ |
+| window | O$_\mathrm{S}$ | V$_\mathrm{S}$ |
 |---|---|---|
-| CBM | +1.694 | +1.702, **+1.758**(双特征,间距 ~56 meV) |
-| VBM | −0.253, −0.241, −0.217, −0.181, −0.116, −0.060, −0.020, +0.004 | −0.329, −0.297, −0.253, −0.241, −0.213, −0.181, −0.132, −0.060, −0.012, **+0.053, +0.181**(深入间隙) |
+| CBM | +1.694 | +1.702, **+1.758** (two features, ~56 meV apart) |
+| VBM | −0.253, −0.241, −0.217, −0.181, −0.116, −0.060, −0.020, +0.004 | −0.329, −0.297, −0.253, −0.241, −0.213, −0.181, −0.132, −0.060, −0.012, **+0.053, +0.181** (well into the gap) |
 
-标量 V$_\mathrm{S}$ 的六个真值能级(−0.298…+0.060)与 SOC 多重态同域——SOC 把每个
-轨道能级按总角动量结构劈裂/重排,V$_\mathrm{S}$ 间隙侧新增 +0.181 eV 平带。
+The six scalar V$_\mathrm{S}$ ground-truth levels (−0.298…+0.060) occupy the same range as the SOC multiplet — SOC
+splits and rearranges each orbital level according to its total-angular-momentum structure, and V$_\mathrm{S}$
+gains a new flat band at +0.181 eV on the gap side.
 
-## 3. 计算路径(本批)
+## 3. Computational route (this batch)
 
-- **born $M_{AA}$**:EDI-direct v8d(带轴转置修复后,与 EDT 跨码闭环 1e-14 认证),
-  144×144 k 对全 40 带,5m36s;
-- **MODE C 链**:EDT r11(A2A 分批转置手术,6×6 逐位回归)/Anvil highmem 单节点
-  16 pool×3 线程,n_reorth=1(0.000000 meV 判决)、col_chunk=1,~45 min/步 × 16 步;
-  链启动 unit test = 每次生产的跨码闭环(O$_\mathrm{S}$ 2.730e-11、V$_\mathrm{S}$ 2.547e-11);
-- **10 旋量带 Wannier**:soc40 宿主带 25–34 为全局隔离群(与 24/35 带净隙 6.5 meV/0.56 eV),
-  无需 disentanglement;w90 3.1 写盘崩溃经 chk 直提 + restart=plot 恢复(u.mat 幺正 1.9e-10);
-- **T 缓存**:Koster–Slater 簇(RCUT=4,61 胞,dim 610),10 带下每窗仅 ~5 分钟
-  (11 带标量生产为 2–3.5h)——Banff 4 节点四窗并行完成;
-- 宿主:100 Ry(60 Ry 复核:劈裂 ≤0.03 meV 但绝对能级 7.32 meV 超 5 meV 门)。
+- **born $M_{AA}$**: EDI-direct v8d (after the band-axis transpose fix, certified against EDT cross-code at 1e-14),
+  all 40 bands over 144×144 k pairs, 5m36s;
+- **MODE C chain**: EDT r11 (batched A2A transpose surgery, 6×6 bit-for-bit regression) / Anvil highmem single node,
+  16 pools × 3 threads, n_reorth=1 (0.000000 meV verdict), col_chunk=1, ~45 min/step × 16 steps;
+  the chain start-up unit test *is* the cross-code closure for every production run (O$_\mathrm{S}$ 2.730e-11, V$_\mathrm{S}$ 2.547e-11);
+- **10-spinor-band Wannier**: soc40 host bands 25–34 form a globally isolated group (net gaps of 6.5 meV / 0.56 eV
+  to bands 24/35), so no disentanglement is needed; a w90 3.1 write crash was recovered by extracting from the chk
+  directly plus restart=plot (u.mat unitarity 1.9e-10);
+- **T cache**: Koster–Slater cluster (RCUT=4, 61 cells, dim 610), only ~5 minutes per window at 10 bands
+  (the 11-band scalar production took 2–3.5h) — completed with four windows in parallel on 4 Banff nodes;
+- host: 100 Ry (a 60 Ry cross-check: splittings agree to ≤0.03 meV, but absolute levels are off by 7.32 meV, over the 5 meV gate).
 
-## 4. 超胞真值闸门:陪集 DOS 对账(已完成)
+## 4. Supercell ground-truth gate: coset DOS reconciliation (complete)
 
-陪集分解使 6×6-陪集的下折叠问题严格等价于周期缺陷阵列 = SOC 超胞。用 socsup 的
-超胞本征值(各 1040 条,O$_\mathrm{S}$ VBM=第 936 态、V$_\mathrm{S}$ 第 930 态)
-直接对账:
+The coset decomposition makes the 6×6-coset downfolded problem strictly equivalent to a periodic defect array = the
+SOC supercell. Reconciled directly against socsup's supercell eigenvalues (1040 each; O$_\mathrm{S}$ VBM = state 936,
+V$_\mathrm{S}$ state 930):
 
-**三方总览**(黑=真值,蓝=10 带,红=22 带;V$_\mathrm{S}$ 内嵌图为间隙 zoom——
-10 带的杂散峰与错位双重态 vs 22 带的干净贴合一图定案):
+**Three-way overview** (black = ground truth, blue = 10 bands, red = 22 bands; the V$_\mathrm{S}$ inset is a gap
+zoom — the 10-band spurious peaks and misplaced doublet versus the 22-band clean fit settle it in one figure):
 
 ![3-way DOS comparison](../assets/socdos_3way.png)
 
@@ -125,24 +134,25 @@ SOC 对间隙缺陷能级的重排与劈裂。
 
 ![VS DOS truth 22b](../assets/socdos_VS_22b.png)
 
-**流形宽度仲裁**(同一宿主、同一 edmat,唯一变量 = active 窗口):
+**Manifold-width arbitration** (same host, same edmat; the only variable is the active window):
 
-| V$_\mathrm{S}$ 深间隙双重态 | 10 带 | **22 带** | 超胞真值 |
+| V$_\mathrm{S}$ deep in-gap doublet | 10 bands | **22 bands** | supercell truth |
 |---|---|---|---|
-| 位置 (eV) | ~0.93/1.0(偏 ~150 meV) | **+1.118/+1.166** | 1.086/~1.15 |
-| 间隙杂散峰 | 0.18–0.73 一串假峰 | **无** | 无 |
-| O$_\mathrm{S}$ CB 起点 | +1.538(差 28 meV) | +1.554(差 12 meV) | +1.566 |
+| position (eV) | ~0.93/1.0 (off by ~150 meV) | **+1.118/+1.166** | 1.086/~1.15 |
+| spurious in-gap peaks | a string of false peaks, 0.18–0.73 | **none** | none |
+| O$_\mathrm{S}$ CB onset | +1.538 (28 meV off) | +1.554 (12 meV off) | +1.566 |
 
-**结论与分工**:V$_\mathrm{S}$ 空位深态带强 S-p 特征,Mo-d 主导的 10 带流形张不开它
-(非 SOC 时"5 带败给 11 带"的教训在 SOC 重演)。10 带适用于**带边 K 谷 zoom**
-(本页 §1 图定性可靠、快 30×);**深间隙/真值级定量必须 22 带**。22 带残差
-~20–40 meV 源于 N$_S$=16 链截断,可按需加深。
+**Conclusion and division of labour**: the V$_\mathrm{S}$ vacancy's deep state has strong S-p character, and the
+Mo-d-dominated 10-band manifold cannot span it (the non-SOC lesson of "5 bands loses to 11 bands" repeats under SOC).
+The 10-band frame is fine for **band-edge K-valley zooms** (the §1 figures on this page are qualitatively reliable
+and 30× faster); **deep-gap or ground-truth-level quantitative work requires 22 bands**. The 22-band residual of
+~20–40 meV comes from the N$_S$=16 chain truncation and can be deepened on demand.
 
-### 4b. 22 带 144k 稀释极限(三缺陷,新)
+### 4b. 22-band 144k dilute limit (three defects, new)
 
-12×12(144 k)× 22 旋量带链(SVD 压缩 `svd_tol=1e-4`,秩 1032/1032/1080,
-Banff 4 节点 4.6–4.7 h/链)给出 $n_d=1/144$ 的稀释极限 DOS,与超胞真值、
-6×6 阵列三方对照(η=10 meV):
+A 12×12 (144 k) × 22-spinor-band chain (SVD compression `svd_tol=1e-4`, ranks 1032/1032/1080,
+4.6–4.7 h/chain on 4 Banff nodes) gives the dilute-limit DOS at $n_d=1/144$, compared three ways against the
+supercell ground truth and the 6×6 array (η=10 meV):
 
 ![VS 22b 3-way](../assets/socdos22_VS.png)
 
@@ -150,21 +160,22 @@ Banff 4 节点 4.6–4.7 h/链)给出 $n_d=1/144$ 的稀释极限 DOS,与超胞�
 
 ![SES 22b 3-way](../assets/socdos22_SES.png)
 
-| 观测量 | 真值(阵列 1/36) | 陪集 6×6 22b | **稀释 144k 22b** |
+| observable | truth (array 1/36) | coset 6×6 22b | **dilute 144k 22b** |
 |---|---|---|---|
-| V$_\mathrm{S}$ 深间隙双重态 (eV) | +1.085 / +1.135 | +1.115 / +1.165 | **+1.120 / +1.170** |
-| O$_\mathrm{S}$ CB 共振 (eV) | +1.545 | +1.545 | **+1.545** |
-| Se$_\mathrm{S}$ 间隙 | 干净 | — | **干净**(首个下折叠 DOS)|
+| V$_\mathrm{S}$ deep in-gap doublet (eV) | +1.085 / +1.135 | +1.115 / +1.165 | **+1.120 / +1.170** |
+| O$_\mathrm{S}$ CB resonance (eV) | +1.545 | +1.545 | **+1.545** |
+| Se$_\mathrm{S}$ gap | clean | — | **clean** (first downfolded DOS) |
 
-**结论**:(i) V$_\mathrm{S}$ 深态的稀释位移 ≤5 meV——**深间隙能级在 1/36 浓度
-已达孤立缺陷极限**(缺陷间耦合可忽略);阵列-vs-真值的 ~30 meV 残差来自
-$N_S=16$ 链截断,与浓度无关。(ii) O$_\mathrm{S}$ 的 CB 共振三线重合,浓度
-无关性干净利落。(iii) 稀释谱独有 V$_\mathrm{S}$ +0.19 eV 浅间隙特征
-(10 带时代 +0.181 观察的 22 带确认)。链 host-VBM(−5.8859 eV)与谱函数
-管线的 GATE_VBM 逐位互证。
+**Conclusions**: (i) the dilution shift of the V$_\mathrm{S}$ deep state is ≤5 meV — **the deep in-gap levels have
+already reached the isolated-defect limit at 1/36 concentration** (defect–defect coupling is negligible); the
+~30 meV array-vs-truth residual comes from the $N_S=16$ chain truncation and is concentration-independent.
+(ii) O$_\mathrm{S}$'s CB resonance coincides across all three, cleanly concentration-independent.
+(iii) The dilute spectrum uniquely resolves V$_\mathrm{S}$'s shallow +0.19 eV in-gap feature (the 22-band
+confirmation of the +0.181 seen in the 10-band era). The chain host-VBM (−5.8859 eV) and the spectral-function
+pipeline's GATE_VBM verify each other to the digit.
 
-## 5. 待办
+## 5. To do
 
-- ~~Se$_\mathrm{S}$ SOC 链 + 真值对账 + 三缺陷 zoom~~(全部完成:§1 22 带三缺陷版、§4b DOS);
-- ~~带边 zoom 的 22 带复核~~(完成:§1 的 22 带版即是;V$_\mathrm{S}$ CB 平带 10 带 +1.694/+1.758 → 22 带 +1.698 单特征,Se$_\mathrm{S}$ CB 洁净、V$_\mathrm{S}$ VBM 侧 −0.213/−0.181/−0.036 与 +0.185 间隙尖峰(与 §4b 稀释 DOS +0.19 互证));
-- 10 带留一法插值误差(Wannier 质量关)。
+- ~~Se$_\mathrm{S}$ SOC chain + ground-truth reconciliation + three-defect zooms~~ (all complete: the 22-band three-defect version in §1, DOS in §4b);
+- ~~22-band cross-check of the band-edge zooms~~ (complete: the 22-band version in §1 is exactly that; V$_\mathrm{S}$'s CB flat bands go from 10-band +1.694/+1.758 to a single 22-band feature at +1.698, Se$_\mathrm{S}$'s CB is clean, and on the V$_\mathrm{S}$ VBM side −0.213/−0.181/−0.036 plus a +0.185 in-gap spike (mutually confirmed by the +0.19 of the §4b dilute DOS));
+- leave-one-out interpolation error for the 10-band frame (the Wannier-quality gate).
