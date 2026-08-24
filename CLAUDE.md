@@ -70,6 +70,17 @@ Stdlib-only Markdown→HTML converter. Key invariant: it **protects** fenced cod
 - `build_index()` assembles the landing page from `CATALOG` + summary/glance/warnings blocks.
 - Self-checks print section/eq/table counts and assert no placeholder leaked (`\x00`).
 
+> **`docs/` is generated output — never hand-edit it.** A catalog row or `_topnav` link
+> patched straight into `docs/index.html` survives until the next `python tools/build_site.py`,
+> which silently regenerates the file and drops it. This has bitten once: the
+> `mos2-mobility` row and nav link lived only in `docs/index.html` and vanished on the next
+> rebuild. Register every page in `CATALOG` **and** `_topnav` instead.
+>
+> Corollary: a page with no `content/<name>.md` source cannot be regenerated, so its own
+> `<nav>` is a frozen snapshot that drifts every time a page is added
+> (`docs/pages/mos2-mobility.html` is the one such page today — its nav has to be refreshed
+> by hand, or it should be given a `content/` source and a `build_*()` like everything else).
+
 ## 5. Recipe: add a new test (the common request)
 
 1. Put the writeup in `content/<test>.md` (Markdown + LaTeX, same conventions as `research.md`).
