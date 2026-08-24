@@ -31,6 +31,7 @@ NOTE_SOCZOOM = os.path.join(ROOT, "content", "soczoom.md")
 NOTE_MODED   = os.path.join(ROOT, "content", "moded.md")
 NOTE_PDCOO2  = os.path.join(ROOT, "content", "pdcoo2.md")
 NOTE_PDVAC = os.path.join(ROOT, "content", "pdvac-coset.md")
+NOTE_PTCOO2  = os.path.join(ROOT, "content", "ptcoo2.md")
 NOTE_RESULTS = os.path.join(ROOT, "content", "note_tmatrix_results.md")
 NOTE_LADDER = os.path.join(ROOT, "content", "note_sternheimer_ladder.md")
 NOTE_KOSTER = os.path.join(ROOT, "content", "note_koster_slater.md")
@@ -269,9 +270,10 @@ def _topnav(active, prefix=""):
     def a(href, label, key):
         cls = ' style="color:#fff;text-decoration:underline"' if key == active else ""
         return '<a href="%s%s"%s>%s</a>' % (prefix, href, cls, label)
+    # joined rather than "%s"*N so adding a page cannot desync the placeholder count
     return ('<nav class="topnav"><div class="inner">'
             '<span class="brand">Sternheimer&nbsp;EDI</span>'
-            '%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s</div></nav>' % (a("index.html", "Home", "home"),
+            + "".join((a("index.html", "Home", "home"),
                                       a("pages/theory.html", "Theory &amp; Method", "theory"),
                                       a("pages/sternheimer-ladder.html", "Rest-space ladder", "ladder"),
                                       a("pages/deflated-ladder.html", "Deflated ladder", "deflated"),
@@ -286,7 +288,9 @@ def _topnav(active, prefix=""):
                                       a("pages/mode-d-crosscheck.html", "MODE D check", "moded"),
                                       a("pages/pdcoo2-bands.html", "PdCoO2 bands", "pdcoo2"),
                                       a("pages/pdvac-coset.html", "Pd-vac 3D", "pdvac"),
+                                      a("pages/ptcoo2.html", "PtCoO2 chain", "ptcoo2"),
                                       a("pages/note-kprime-normalization.html", "Note: k&prime;-norm", "note")))
+            + '</div></nav>')
 
 def page_shell(title, head_html, nav_html, body_html, css_href):
     return """<!doctype html><html lang="en"><head>
@@ -455,6 +459,27 @@ def build_pdvac():
     out = page_shell(SITE_TITLE + " \u2014 PdCoO2 Pd-vacancy coset validation",
                      header, _topnav("pdvac", prefix="../"), body, "../assets/style.css")
     with open(os.path.join(PAGES_DIR, "pdvac-coset.html"), "w", encoding="utf-8") as f:
+        f.write(out)
+    return r
+
+
+def build_ptcoo2():
+    with open(NOTE_PTCOO2, encoding="utf-8") as f:
+        md = f.read()
+    r = convert_doc(md, want_subtitle=True)
+    toc_links = "".join('<a href="#%s">%s</a>' % (sl, tx) for sl, tx in r["toc"])
+    header = ('<header><div class="header-inner"><h1>{t}</h1>'
+              '<p class="subtitle">{s}</p>'
+              '<div class="meta"><span class="pill">Production</span>'
+              '<span class="pill">{n} sections</span>'
+              '<span class="pill">Generated {d}</span></div></div></header>'
+             ).format(t=r["title"], s=r.get("subtitle") or "", n=len(r["toc"]), d=GEN_DATE)
+    toc_section = ('<section id="contents"><h2>Contents</h2>'
+                   '<div class="toc">%s</div></section>' % toc_links)
+    body = toc_section + "\n" + r["preamble"] + "\n" + r["body"]
+    out = page_shell(SITE_TITLE + " — PtCoO2 electron-defect T-matrix chain",
+                     header, _topnav("ptcoo2", prefix="../"), body, "../assets/style.css")
+    with open(os.path.join(PAGES_DIR, "ptcoo2.html"), "w", encoding="utf-8") as f:
         f.write(out)
     return r
 
@@ -652,6 +677,36 @@ def build_results():
 # ---------- landing page ----------
 # Test Catalog rows: (item, type, date, badge_class, badge_label, summary, link_html)
 CATALOG = [
+    ("PtCoO$_2$ full chain ($S0\\to S11$): is that factor of 2 a method systematic, or material-dependent?", "Production",
+     "2026-08-23", "prod", "Headline",
+     "The PdCoO$_2$ chain <b>ported verbatim to PtCoO$_2$</b> (same code, same production "
+     "parameters, structures from the same refinement) to settle one discriminating question. "
+     "<b>Answer: not consistent. Full-order $T$/IBTE gives a Frenkel slope of 13021 nΩ·cm/% "
+     "= 1.235× the measured 10546, against 2.05× for PdCoO$_2$</b> \u2014 and the two "
+     "<b>measured</b> slopes differ by only 1% (10546 vs 10654), so the whole difference sits "
+     "in the theory: the factor of 2 is <b>material-dependent</b>, and PtCoO$_2$ actually "
+     "agrees better. <b>The mechanism is identified too</b>: at identical production settings "
+     "Pt/Pd = <b>0.593</b>, and <b>the two arms give that ratio independently</b> "
+     "(vacancy 0.571 / interstitial 0.605) \u2014 a material-level effect, not an accident of "
+     "defect configuration. With $\\Sigma$ <b>dropped, Pt/Pd rises to 0.83\u20130.87</b>: the "
+     "materials differ by only ~15% in bare scattering but 41% once the rest-space self-energy "
+     "is kept, so <b>$\\Sigma$ carries the difference</b> \u2014 Pt\u2019s 5d/6s leave the rest "
+     "space 27% closer to $E_F$ (2.425 vs 3.311 eV), a prediction written down the moment S1 "
+     "measured band 27 and later confirmed four independent ways. Structure fixed by a "
+     "<b>Fermi-surface topology test</b> (both alternative parameter sets give two crossing "
+     "bands, while PtCoO$_2$ is experimentally a single-band metal); S1 hard gate = manifold "
+     "isolation 0.2295 eV (4.1× narrower than PdCoO$_2$ but positive, so no disentanglement). "
+     "The <b>ordering reversal</b> the source document asks for does appear (interstitial 2.0× "
+     "stronger at full order, vacancy 6.5× stronger at Born). <b>Convergence: 9 axes / 37 "
+     "points, 18/18 byte-identical to production</b> from a different job script; a conservative "
+     "±9.2% band gives 1.12–1.35×, <b>disjoint</b> from PdCoO$_2$\u2019s 2.05–2.06×. "
+     "Counter-intuitive find: <b>n_lancz=24 is required for the interstitial arm</b> \u2014 the "
+     "vacancy is within 0.42% at 12 steps, the interstitial is off by <b>97%</b> (dirty kernel, "
+     "asym 0.41 = 5× the vacancy). Reported honestly: <b>the $G_0$ axis does not converge</b> "
+     "(±20%, driven by the optical-theorem factor $s$ swinging 0.76\u20131.28), RCUT has only "
+     "2 points, and the Fermi-surface topology is near-critical (band 23 top just 35 meV below "
+     "$E_F$).",
+     '<a href="pages/ptcoo2.html">Open the PtCoO$_2$ chain &rarr;</a>'),
     ("PdCoO$_2$ Pd 空位:三维 $T$-矩阵管线端到端验证(2×2×2 陪集 vs 超胞真值)", "3D validation",
      "2026-08-14", "prod", "Verified",
      "EDT 管线<b>第一次跑三维体系</b>。超胞 ΔV(extract_pot,4 Å 内衰减 5 个量级)→ core 对齐"
@@ -1023,6 +1078,7 @@ def main():
     build_moded()
     build_pdcoo2()
     build_pdvac()
+    build_ptcoo2()
     build_deflated()
     build_tlres()
     build_methods()
