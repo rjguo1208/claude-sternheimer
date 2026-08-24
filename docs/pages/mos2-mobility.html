@@ -1,0 +1,83 @@
+<!doctype html><html lang="zh"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sternheimer Electron-Defect T-matrix — MoS₂ 缺陷限制迁移率与 K 谷谱函数</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head><body>
+<nav class="topnav"><div class="inner"><span class="brand">Sternheimer&nbsp;EDI</span><a href="../index.html">Home</a><a href="../pages/theory.html">Theory &amp; Method</a><a href="../pages/sternheimer-ladder.html">Rest-space ladder</a><a href="../pages/deflated-ladder.html">Deflated ladder</a><a href="../pages/twolevel-results.html">Two-level results</a><a href="../pages/methods.html">Method derivations</a><a href="../pages/koster-slater.html">Koster&ndash;Slater</a><a href="../pages/feshbach-implementation.html">Feshbach impl.</a><a href="../pages/plan.html">Implementation Plan</a><a href="../pages/results.html">Results</a><a href="../pages/npol2-cert.html">npol=2 cert.</a><a href="../pages/soc-zoom.html">SOC zooms</a><a href="../pages/mos2-mobility.html" style="color:#fff;text-decoration:underline">MoS₂ 迁移率</a><a href="../pages/mode-d-crosscheck.html">MODE D check</a><a href="../pages/pdcoo2-bands.html">PdCoO2 bands</a><a href="../pages/pdvac-coset.html">Pd-vac 3D</a><a href="../pages/note-kprime-normalization.html">Note: k&prime;-norm</a></div></nav>
+<header><div class="header-inner"><h1>MoS₂ 缺陷限制迁移率:四层级散射理论对照 + K 谷 zoom 谱函数</h1><p class="subtitle">三种硫族点缺陷(V$_\mathrm{S}$ / O$_\mathrm{S}$ / Se$_\mathrm{S}$,弛豫几何、SOC、22 旋量带)的电子/空穴迁移率,由 $\omega$ 分辨降折顶点 $\tilde V(\omega)=(V_{AA}+\Sigma(\omega))\,\mathrm{Ry}/N_k$ 驱动:MODE C 链连分数 → Koster–Slater $T$-矩阵 → 光学定理强制核 → IBTE → $\eta\to0$ 外推。固定 $n=10^{10}$ cm$^{-2}$、$n_d=10^{12}$ cm$^{-2}$。</p><div class="meta"><span class="pill">Production</span><span class="pill">12/12 格</span><span class="pill">Generated 2026-08-23</span></div></div></header>
+<main>
+<section id="contents"><h2>Contents</h2><div class="toc"><a href="#sec-0">0. 摘要</a><a href="#sec-1">1. 最终总表(300 K,$\eta\to0$ IBTE)</a><a href="#sec-2">2. 近似层级比值:$\Sigma$ 的三种角色</a><a href="#sec-3">3. K 谷 zoom 谱函数 $A(k,\omega)$</a><a href="#sec-4">4. Wannier 衰减验证(edmat 与降折矩阵)</a><a href="#sec-5">5. 方法与验证链</a><a href="#sec-6">6. 数据与复现</a></div></section>
+
+<section id="sec-0"><h2>0. 摘要</h2>
+<p>本页在同一宿主、同一 Lanczos 链(2026-08-20 144b22 ns24 sectors,12×12 粗网格 × 22 旋量带,弛豫缺陷、真空对齐 $\Delta V$、4 对称扇区)上对照<strong>四个散射理论层级</strong>——{full $T$-matrix, Born} × {rest 自能 $\Sigma$ 保留, 丢弃}——给出三缺陷 × 电子/空穴的缺陷限制迁移率(12 格矩阵全部落地),并用 K 谷 zoom 谱函数与顶点的 Wannier 衰减为每个结论提供矢量级证据。三个头条:<strong>(i)</strong> Born 对深势阱错 1–2 个数量级(V$_\mathrm{S}$ 空穴 53×,严格二阶 190×)——与 PdCoO$_2$ 空位同机制;<strong>(ii)</strong> $\Sigma$ 的角色随缺陷翻转:V$_\mathrm{S}$ 是屏蔽(19.9→13.3 eV)、O$_\mathrm{S}$ 在 CBM 是造共振($\Sigma$(CBM)=42 eV,比裸顶点大 4 倍;丢 $\Sigma$ 后 $\mu_e$ 假涨 72×)、Se$_\mathrm{S}$ 是近乎抵消(3.5 vs 3.12 eV,残余 0.3–0.6 eV);<strong>(iii)</strong> 四层级中唯有 full $T$ + $\Sigma$ 对三种缺陷、两种载流子同时自洽。载流子约定:片密度固定 $n=10^{10}$ cm$^{-2}$,$E_F(T)$ 由 pristine 原胞能带二分反解;$\mu\propto 1/n_d$。</p>
+</section>
+
+<section id="sec-1"><h2>1. 最终总表(300 K,$\eta\to0$ IBTE,cm²/(V·s))</h2>
+<p>NW={120,180,240} 窗口阶梯($\eta=600/\mathrm{NW}$ meV)线性 $1/\mathrm{NW}$ 外推;(xx+yy)/2,各向同性 &lt;8%。<strong>full $T$+$\Sigma$</strong> 为生产参考。</p>
+<div class="table-wrap"><table><thead><tr><th>电子 $\mu_e$</th><th><strong>full $T$+$\Sigma$</strong></th><th>full $T$−$\Sigma$</th><th>Born+$\Sigma$</th><th>Born−$\Sigma$</th></tr></thead><tbody>
+<tr><td>V$_\mathrm{S}$(S 空位)</td><td><strong>7 654</strong></td><td>571</td><td>2 576</td><td>570</td></tr>
+<tr><td>O$_\mathrm{S}$(O 替位)</td><td><strong>1 330</strong></td><td>95 721</td><td>828</td><td>6 275</td></tr>
+<tr><td>Se$_\mathrm{S}$(Se 替位)</td><td><strong>7 412</strong></td><td>5 347</td><td>5 640</td><td>3 738</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>空穴 $\mu_h$</th><th><strong>full $T$+$\Sigma$</strong></th><th>full $T$−$\Sigma$</th><th>Born+$\Sigma$</th><th>Born−$\Sigma$</th></tr></thead><tbody>
+<tr><td>V$_\mathrm{S}$</td><td><strong>15 243</strong></td><td>1 482</td><td>287</td><td>80</td></tr>
+<tr><td>O$_\mathrm{S}$</td><td><strong>2 413</strong></td><td>5 698</td><td>913</td><td>335</td></tr>
+<tr><td>Se$_\mathrm{S}$</td><td><strong>4 303</strong></td><td>1 884</td><td>5 100</td><td>1 268</td></tr>
+</tbody></table></div>
+<p><strong>参考层级的温度依赖</strong>(IBTE,括号内 SERTA):</p>
+<div class="table-wrap"><table><thead><tr><th>T (K)</th><th>V$_\mathrm{S}$ $\mu_e$</th><th>V$_\mathrm{S}$ $\mu_h$</th><th>O$_\mathrm{S}$ $\mu_e$</th><th>O$_\mathrm{S}$ $\mu_h$</th><th>Se$_\mathrm{S}$ $\mu_e$</th><th>Se$_\mathrm{S}$ $\mu_h$</th></tr></thead><tbody>
+<tr><td>100</td><td>8 159 (7 817)</td><td>53 950 (45 286)</td><td>818 (789)</td><td>6 000 (5 569)</td><td>7 313 (6 740)</td><td>2 110 (1 862)</td></tr>
+<tr><td>200</td><td>7 659 (7 068)</td><td>29 516 (23 193)</td><td>1 112 (1 020)</td><td>3 558 (3 217)</td><td>7 116 (6 032)</td><td>3 261 (1 895)</td></tr>
+<tr><td>300</td><td>7 654 (6 833)</td><td>15 243 (11 770)</td><td>1 330 (1 158)</td><td>2 413 (2 178)</td><td>7 412 (5 763)</td><td>4 303 (1 948)</td></tr>
+<tr><td>400</td><td>7 735 (6 705)</td><td>9 173 (7 068)</td><td>1 518 (1 253)</td><td>2 019 (1 806)</td><td>7 914 (5 618)</td><td>4 961 (2 009)</td></tr>
+</tbody></table></div>
+<blockquote><p>Se$_\mathrm{S}$ 空穴的顶点修正(IBTE/SERTA)高达 <strong>2.2×</strong>:同位价弱微扰 → 强前向散射,SERTA 严重高估电阻;$\mu_h$ 随 $T$ <em>上升</em>(热窗爬过 VBM 附近弱共振后散射率下降)。V$_\mathrm{S}$/O$_\mathrm{S}$ 势阱深、散射近各向同性,修正仅 1.1–1.3×。O$_\mathrm{S}$ 是唯一两侧通吃的强散射体($\mu_e$=1330、$\mu_h$=2413)。</p></blockquote>
+</section>
+
+<section id="sec-2"><h2>2. 近似层级比值:$\Sigma$ 的三种角色</h2>
+<div class="table-wrap"><table><thead><tr><th>缺陷</th><th>$\Sigma$ 的角色</th><th>顶点证据(§4 衰减表峰值)</th><th>后果(300 K IBTE)</th></tr></thead><tbody>
+<tr><td><strong>V$_\mathrm{S}$</strong></td><td>屏蔽(PdCoO$_2$ 同款)</td><td>裸 19.9 eV → $\tilde V$ 13.3 eV(−33%)</td><td>丢 $\Sigma$:$\mu_e$ 崩 13×、$\mu_h$ 崩 10×;Born/full($\Sigma$ 同保留)空穴 <strong>53×</strong>、严格二阶 190×——深势阱多重散射饱和</td></tr>
+<tr><td><strong>O$_\mathrm{S}$</strong></td><td>造 CBM 共振 / VBM 屏蔽(同一 $\Sigma$ 两带边方向相反)</td><td>$\Sigma$(CBM)=42 eV(裸的 4 倍)把 $\tilde V$(CBM) 推到 33 eV;$\tilde V$(VBM)=8.1 eV(&lt;裸 11.2)</td><td>丢 $\Sigma$:$\mu_e$ 假涨 <strong>72×</strong>(1 330→95 721)——CBM 共振整个活在 rest 空间(O-2p 高能尾巴下折);$\mu_h$ 反升 2.4×</td></tr>
+<tr><td><strong>Se$_\mathrm{S}$</strong></td><td>近乎抵消</td><td>$\Sigma\approx3.5$ eV 与裸 3.12 eV 对消,残余 0.34–0.55 eV</td><td>弱顶点下 Born 级数正常收敛(Born/full ≤1.6×);"弱散射"不是裸势弱,而是 rest 把它消掉</td></tr>
+</tbody></table></div>
+<p><strong>与 PdCoO$_2$ 的 2×2 结论对照</strong>(<a href="pdvac-coset.html">Pd-vac 3D</a>):定性一致——Born 对深势阱错 1–2 个数量级、$\Sigma$ 不可丢;但半导体带边使 $\Sigma$ 的两种机制(屏蔽 vs 造共振)在同一材料中同时上演且随缺陷/载流子翻转方向。<strong>只有 full $T$ + $\Sigma$ 全面自洽。</strong></p>
+</section>
+
+<section id="sec-3"><h2>3. K 谷 zoom 谱函数 $A(k,\omega)$</h2>
+<p>路径 $0.70\overline{\Gamma K}\to K\to K+0.45\overline{KM}$(261 点),$\omega$ 分辨顶点(5 meV 分箱连分数),内部 $\eta=2$ meV,宿主 $g_S$ 480² 稠密谱分箱;显示浓度 $c=1/144$(每 BvK 胞一个缺陷),$g_0$ 展宽 4 meV。$A(k,\omega)=-\pi^{-1}\,\mathrm{Im}\sum_n\big[g_{0n}+g_{0n}^2\,c\,N_k\,T_{nn}(k,\omega)\big]$;$T_{nn}(k,\omega)$ 原始量(与 $c$ 无关)已存盘,展宽与浓度可在渲染时自由重选。</p>
+<p><img src="../assets/mos2mob_Akw.png" alt="六面板 A(k,w):三缺陷 × 电子/空穴 K 谷缩放" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p>读图:上排电子(CBM)、下排空穴(VBM)。K 谷价带自旋劈裂 ~150 meV 双抛物线、CB 劈裂 ~3 meV 与 <a href="soc-zoom.html">SOC zooms</a> 一致。唯一强异常在 <strong>O$_\mathrm{S}$ 电子面板</strong>:K 点 CBM 谱重被 $\Sigma$ 拉入带隙(带底下沉、增宽)——正是 $\mu_e$ 表中 O$_\mathrm{S}$ 垫底的微观根源,也与 soc-zoom §1 的 Re$\,\Sigma<0$ 能级吸引同源。</p>
+<p><strong>QP 带($\varepsilon+\mathrm{Re}\,\Sigma$ on-shell,按 $|\mathrm{Im}\,\Sigma|$ 着色,$c=1/144$):</strong></p>
+<p><img src="../assets/mos2mob_qp_VS.png" alt="VS QP bands" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p><img src="../assets/mos2mob_qp_OS.png" alt="OS QP bands" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p><img src="../assets/mos2mob_qp_SES.png" alt="SES QP bands" style="max-width:100%;height:auto;display:block;margin:1.2rem auto;border:1px solid #d0d7de;border-radius:6px"></p>
+<p>V$_\mathrm{S}$ 全路径 $|\mathrm{Im}\,\Sigma|\le4$ meV(带边散射弱 → 最高 $\mu_h$);O$_\mathrm{S}$ CBM 谷底 $|\mathrm{Im}\,\Sigma|$ 峰 ~22 meV、QP 带下弯穿过裸 CBM,而其价带几乎不动(≲2 meV)——电子/空穴不对称与 §1 定量一致;Se$_\mathrm{S}$ 两侧均为 meV 级。</p>
+</section>
+
+<section id="sec-4"><h2>4. Wannier 衰减验证(edmat 与降折矩阵)</h2>
+<p>规范一致性与局域性的指纹测试(七月 SV 规范污染正是在此现形):活性块转 Wannier $(R,R')$ 表象,以<strong>缺陷胞为中心</strong>(胞对角 map 的 argmax,非原点)分壳层。<strong>gE 门</strong>:链内 $V_{AA}$ 与原始 40 带 edmat 的 13–34 带切块<strong>逐位相同(max|d| = 0.0)</strong>,三缺陷——顺带钉下 ver 20260809 .bin 的 F-order 约定(无旧版转置)。</p>
+<div class="table-wrap"><table><thead><tr><th>峰值 (eV)</th><th>裸 $V_{AA}$</th><th>$\tilde V$(VBM)</th><th>$\tilde V$(CBM)</th><th>$\Sigma$(CBM)</th><th>峰/底比</th></tr></thead><tbody>
+<tr><td>V$_\mathrm{S}$</td><td>19.85</td><td>13.27</td><td>12.79</td><td>11.8</td><td>~4–5×10⁵</td></tr>
+<tr><td>O$_\mathrm{S}$</td><td>11.22</td><td>8.10</td><td><strong>33.23</strong></td><td><strong>42.3</strong></td><td>~2–13×10⁵</td></tr>
+<tr><td>Se$_\mathrm{S}$</td><td>3.12</td><td><strong>0.34</strong></td><td><strong>0.55</strong></td><td>3.5</td><td>10⁴(裸 6×10⁴)</td></tr>
+</tbody></table></div>
+<p>全部 15 个对象(裸 / $\tilde V$ 两锚点 / $\Sigma$ 两锚点 × 3 缺陷)LOCALIZED:缺陷胞一致 $R=[-3,-3]$,胞对角元衰减 4–7 个数量级。$d\approx3.7$–$4.7$ 胞(13–16 Å)处的共同 ~20–30 meV 平台与缺陷种类无关——是真空对齐 $\Delta V$ 的真实远场水平(sternA 时代实测 ±20–30 meV),即 12×12 BvK 环绕边界上的物理势尾;越过后继续降至 $3\times10^{-6}$–$5\times10^{-5}$ eV 真底。</p>
+</section>
+
+<section id="sec-5"><h2>5. 方法与验证链</h2>
+<ul>
+<li><strong>输入</strong>:2026-08-20 MODE C 链(144b22 ns24 sectors;NLr 459/459/230/230,herm(A) ~5e-15)+ 该链自身 NSCF 的 w90 重跑($\Omega$=37.519 Ų,与独立 wannier 化一致到 5 位)——u.mat 必须与链同一 NSCF(规范连续性)。</li>
+<li><strong>引擎</strong>:$\omega$ 分辨顶点在链的 Bloch 基直接组装(支撑基来自 Bloch Gram,免 einsum 旋转,每箱 ~9 s;<strong>gT 门</strong>:与 g8 验证过的 Wannier einsum 路线逐元素 1.9e-11);宿主 $g_S$ 480² 稠密谱 1.5 meV 分箱;匹配 $\eta$ 洛伦兹核 + 光学定理强制(2 轮行缩放,中位 0.4–0.8%);去壳层零模的阻尼 IBTE(谱半径 &lt;1,直接/迭代一致 ~2e-4)。</li>
+<li><strong>Born 变体</strong>:黄金规则核 $P=|\langle u|\tilde V|u'\rangle|^2$、$\gamma\equiv\hbar\sum P$($s\equiv1$ 按构造)——一致的 $O(V^2)$ 定义,避免 $|V+VG_0V|^2$ 混阶;$-\Sigma$ 变体顶点 $\omega$ 无关,跳过连分数。</li>
+<li><strong>门清单</strong>:g1 链 eps≡xml(0.0);g2/g2b hr/u.mat ≤0.03 meV;gE(逐位 0.0);gT 1.9e-11;g4 支撑残差 ~1e-6;g8 支撑 vs 全维 3168² 直接求解 ≤6e-4(= 顶点截断 × $T$ 共振增强);g5 光学定理;g6 IBTE;g7 各向同性;wdecay 全 LOCALIZED;Im $T_{nn}\le0$ 全网格。</li>
+</ul>
+</section>
+
+<section id="sec-6"><h2>6. 数据与复现</h2>
+<p>Banff <code>~/edi_tmatrix/socsup_banff/mob22/</code>:<code>chainmob_*.npz</code>(12 格,各含 100–400 K × NW 阶梯 × SERTA/tr/IBTE 与 $n(T)$/$E_F(T)$)、<code>wdecay_*.npz</code>、<code>zoomchain_*.npz</code>(完整 $T_{nn}(k,\omega)$,复数半精度)、<code>SUMMARY.md</code>;引擎 <code>mos2_mob_chain.py</code> / <code>mos2_zoom_chain.py</code> / <code>mos2_wdecay.py</code> / <code>plot_zoom_chain.py</code>。Anvil 侧 <code>/anvil/scratch/x-rg47749/mos2mob/</code> 为运行副本(scratch 会被 purge,以 Banff 为准)。计算:Anvil shared 分区,单节点 64–128 线程 Python;12 格 + 3 zoom + wdecay 共 ~30 节点·小时。</p>
+</section>
+</main>
+<footer><div class="inner">Sternheimer electron&ndash;defect T-matrix project &mdash; MoS₂ mobility &amp; spectral functions page, generated 2026-08-23.</div></footer>
+</body></html>
