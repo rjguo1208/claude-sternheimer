@@ -39,10 +39,10 @@ benchmarks were recomputed from the digitised data and reproduce to better than 
 
 ![PtCoO2 Frenkel-pair resistivity](../assets/ptcoo2_frenkel_prx.png)
 
-Left: linear axes, with the PtCoO$_2$ A–D scatter and all four theory levels. Right: log–log,
-including the $\rho(300\,\mathrm{K})$ reference line and the PdCoO$_2$ comparison. The solid
-black line ("this work, full T-matrix") sits about 24% above the data points, consistent
-with 1.235×.
+All four theory levels against the 30 measured points of PtCoO$_2$ samples A–D, with the
+$\rho(300\,\mathrm{K})$ reference line. Black is the full $T$-matrix, purple is Born; solid keeps
+$\Sigma$, dashed drops it. The solid black line sits about 24% above the data, which is the
+1.235× of the table; Born misses by one to two and a half decades.
 
 ## 2. Structure: a fork that had to be settled first
 
