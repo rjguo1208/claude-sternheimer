@@ -41,10 +41,10 @@ benchmarks were recomputed from the digitised data and reproduce to better than 
 
 All four theory levels against the 30 measured points of PtCoO$_2$ samples A–D (each sample keeps
 its own marker and colour from the source figure), with the $\rho(300\,\mathrm{K})$ reference line.
-**Red is the production answer** — full $T$-matrix with $\Sigma$ kept. The other three are greyed
-back: dark grey for full $T$ with $\Sigma$ dropped, light grey for the two Born curves; solid keeps
-$\Sigma$, dashed drops it. The red line sits about 24% above the data, which is the 1.235× of the
-table, while Born misses by one to two and a half decades.
+**Dark blue is the production answer** — full $T$-matrix with $\Sigma$ kept. The other three are
+greyed back: dark grey for full $T$ with $\Sigma$ dropped, light grey for the two Born curves; solid
+keeps $\Sigma$, dashed drops it. The blue line sits about 24% above the data, which is the 1.235× of
+the table, while Born misses by one to two and a half decades.
 
 ## 2. Structure: a fork that had to be settled first
 
